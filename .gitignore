@@ -1,0 +1,53 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Test / lint / type caches ─────────────────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── Agent runtime state (per-project, never committed) ────────────────────────
+# Sessions, audit log, checkpoints, snapshots and per-project skills live here.
+.agentic/
+
+# ── Project-local working files (not part of the public repo) ─────────────────
+backups/
+
+# ── Editor / tooling ──────────────────────────────────────────────────────────
+.claude/
+.serena/
+.vscode/
+.idea/
+*.swp
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── Note ──────────────────────────────────────────────────────────────────────
+# The agent also writes to your HOME directory, outside this repo:
+#   ~/.agentic_1a_history            input history (all projects)
+#   ~/.agentic_1a_params.json        /parameters settings
+#   ~/.agentic_1a_mcp.json           MCP server configuration
+#   ~/.agentic_1a_default_model.txt  persisted default model
+#   ~/.agentic_1a_models.json        model roles (failover, architect, vision)
+#   ~/.agentic_1a_skills/            your global skills
+#   ~/.agentic_imessage.json         iMessage bridge configuration
+# Nothing there is ever committed. See the Privacy section of the manual.
