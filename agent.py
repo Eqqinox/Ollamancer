@@ -54,7 +54,7 @@ from rich.table import Table
 # Settings (values are rebound at runtime): always via the module, never
 # `from agentic.config import X` — a frozen copy would never see a change.
 # Voir agentic/config.py et tests/test_import_rules.py.
-from agentic import config
+from agentic import config, state
 
 try:
     import ollama
@@ -171,23 +171,14 @@ def _prompt(label: str) -> str:
         return _prompt_session.prompt(label)
     return input(label)
 
-_num_ctx_cache: dict = {}
 
 
 
 
 
-_search_cache: dict = {}    # (query, category, language) -> (timestamp, results)
-_robots_cache: dict = {}    # origin (scheme://host) -> RobotFileParser | None (None = introuvable, on autorise)
 
-SAFE_MODE = False  # bascule via /safe ou --safe au lancement ; voir _RISKY_TOOLS
 _RISKY_TOOLS = {"write_file", "append_file", "edit_file", "run_command", "run_tests", "run_background", "kill_process", "git_commit", "python_repl"}
 
-SANDBOX_MODE = False  # bascule via /sandbox ou --sandbox au lancement ; voir _run_shell
-PRIVATE_MODE = False  # via --private at launch: ephemeral session, nothing from the conversation
-                       # is written to disk (no session JSON, no input history,
-                       # no audit log, no disk snapshots, no checkpoints, no memory).
-_SANDBOX_CONTAINER = None  # name of this session's active Docker container (created lazily)
 _SANDBOX_IMAGE_DEFAULT = "agentic1a-sandbox-default:latest"
 _DEFAULT_SANDBOX_DOCKERFILE = """FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \\
@@ -572,42 +563,12 @@ Réponds en français sauf si l'utilisateur écrit dans une autre langue.""",
 }
 
 
-# ── État session ──────────────────────────────────────────────────────────────
-_snapshots: dict  = {}    # {str(path_absolu): contenu_original}
-_context_files: dict = {} # {str(path_absolu): nom_fichier}
-_todo: str = ""            # free-text checklist for the multi-step task in progress
-_memory: str = ""           # mémoire persistante texte libre, chargée/sauvée sur .agentic/memory.md
-_bg_processes: dict = {}   # {id_str: {"proc": Popen, "command": str, "log_path": Path, "log_file": file, "started_at": str}}
-_bg_counter = 0
-_AUDIT_LOG: Path | None  = None   # Initialisé dans main()
-_SNAPSHOT_DIR: Path | None = None # Initialisé dans main()
-_BG_LOG_DIR: Path | None = None   # Initialisé dans main()
-PROJECT_ROOT: Path | None  = None # Initialisé dans main()
 
-# ── Git checkpoints (B1) — replaces the all-or-nothing in-memory /undo ──────────
-# A "shadow" git repository lives in .agentic/checkpoints.git with the project folder
-# as its work tree. It is completely independent of the user's own git, if any
-# (dedicated GIT_DIR/GIT_WORK_TREE) — it never touches their index, refs or
-# commits — and therefore behaves identically in git AND non-git projects (the
-# aider approach). One checkpoint = a commit of the state BEFORE a turn's first write.
-_CHECKPOINT_GITDIR: Path | None = None
-_CHECKPOINTS: list = []           # [{"sha": str, "ts": str, "turn": int, "label": str}]
-_checkpoint_turn = 0              # incremented on every run_agent call (= one user turn)
-_checkpoint_made_this_turn = False
 
-# ── Persistance de session (B3) ─────────────────────────────────────────────────
-_SESSION_DIR: Path | None = None  # .agentic/sessions/ — initialisé dans main()
-_SESSION_FILE: Path | None = None # JSON file for THIS session (one per session, rewritten)
 
-# ── RAG local (B5) ───────────────────────────────────────────────────────────────
-_SEMANTIC_DB: Path | None = None  # .agentic/semantic_index.db — initialisé dans main()
 
-# ── Compaction de contexte (v3.0) ────────────────────────────────────────────────
-_LAST_PROMPT_TOKENS = 0           # last real prompt_eval_count returned by Ollama (the prompt's true size)
 _COMPACT_MARKER = "[⎗ Summary of earlier conversation (auto-compacted to save context)]\n\n"
 
-# ── Active model (for sequential side calls: vision B6) ─────────────────────────
-_CURRENT_MODEL = ""               # the current loop's model, updated by run_agent
 
 
 # ── Sécurité ──────────────────────────────────────────────────────────────────
@@ -676,8 +637,8 @@ def _check_file_path(path_str: str) -> tuple[bool, str]:
     path pointed clean out of the project root and both write_file and its
     read-back silently operated on it with no containment check at all."""
     resolved = Path(path_str).expanduser().resolve()
-    if PROJECT_ROOT is not None:
-        root = PROJECT_ROOT.resolve()
+    if state.PROJECT_ROOT is not None:
+        root = state.PROJECT_ROOT.resolve()
         try:
             resolved.relative_to(root)
         except ValueError:
@@ -712,7 +673,7 @@ def _check_robots(url: str) -> tuple[bool, str]:
     except Exception:
         return True, ""
 
-    rp = _robots_cache.get(origin, "__unset__")
+    rp = state._robots_cache.get(origin, "__unset__")
     if rp == "__unset__":
         rp = None
         try:
@@ -724,7 +685,7 @@ def _check_robots(url: str) -> tuple[bool, str]:
                 rp = parser
         except Exception:
             rp = None
-        _robots_cache[origin] = rp
+        state._robots_cache[origin] = rp
 
     if rp is None:
         return True, ""
@@ -738,7 +699,7 @@ def _check_robots(url: str) -> tuple[bool, str]:
 
 def _audit(tool: str, args: dict, blocked: bool = False, reason: str = "") -> None:
     """Write an entry to the audit log."""
-    if not _AUDIT_LOG:
+    if not state._AUDIT_LOG:
         return
     ts  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     tag = "BLOCKED" if blocked else "OK     "
@@ -747,7 +708,7 @@ def _audit(tool: str, args: dict, blocked: bool = False, reason: str = "") -> No
     if reason:
         line += f" | {reason}"
     try:
-        with open(_AUDIT_LOG, "a", encoding="utf-8") as f:
+        with open(state._AUDIT_LOG, "a", encoding="utf-8") as f:
             f.write(line + "\n")
     except Exception:
         pass
@@ -757,14 +718,14 @@ def _auto_snapshot(path_str: str) -> None:
     """Save a file's original content before modification (RAM + disk)."""
     p = Path(path_str).expanduser().resolve()
     key = str(p)
-    if key not in _snapshots and p.exists():
+    if key not in state._snapshots and p.exists():
         try:
             content = p.read_text(encoding="utf-8")
-            _snapshots[key] = content
+            state._snapshots[key] = content
             # Persistance sur disque
-            if _SNAPSHOT_DIR and _SNAPSHOT_DIR.exists():
+            if state._SNAPSHOT_DIR and state._SNAPSHOT_DIR.exists():
                 ts   = datetime.now().strftime("%H%M%S")
-                dest = _SNAPSHOT_DIR / f"{p.name}_{ts}.bak"
+                dest = state._SNAPSHOT_DIR / f"{p.name}_{ts}.bak"
                 dest.write_text(content, encoding="utf-8")
         except Exception:
             pass
@@ -784,32 +745,31 @@ def _git_available() -> bool:
 
 
 def _checkpoints_available() -> bool:
-    return _CHECKPOINT_GITDIR is not None and _CHECKPOINT_GITDIR.exists() and _git_available()
+    return state._CHECKPOINT_GITDIR is not None and state._CHECKPOINT_GITDIR.exists() and _git_available()
 
 
 def _git_ckpt(*args, timeout: int = 60) -> subprocess.CompletedProcess:
     """Run a git command against the shadow checkpoint repo (dedicated GIT_DIR + the
     project root as work-tree, so it never touches the user's own git)."""
     env = {**os.environ,
-           "GIT_DIR": str(_CHECKPOINT_GITDIR),
-           "GIT_WORK_TREE": str(PROJECT_ROOT)}
+           "GIT_DIR": str(state._CHECKPOINT_GITDIR),
+           "GIT_WORK_TREE": str(state.PROJECT_ROOT)}
     return subprocess.run(["git", *args], capture_output=True, text=True, timeout=timeout, env=env)
 
 
 def _init_checkpoints() -> None:
     """Create/prepare the shadow checkpoint repo. Silent no-op if git is missing —
     the agent then falls back to the legacy in-memory /undo (RAM snapshots)."""
-    global _CHECKPOINT_GITDIR
-    if not _git_available() or PROJECT_ROOT is None:
-        _CHECKPOINT_GITDIR = None
+    if not _git_available() or state.PROJECT_ROOT is None:
+        state._CHECKPOINT_GITDIR = None
         return
-    gitdir = PROJECT_ROOT / ".agentic" / "checkpoints.git"
-    _CHECKPOINT_GITDIR = gitdir
+    gitdir = state.PROJECT_ROOT / ".agentic" / "checkpoints.git"
+    state._CHECKPOINT_GITDIR = gitdir
     try:
         if not gitdir.exists():
             r = _git_ckpt("init", timeout=30)
             if r.returncode != 0:
-                _CHECKPOINT_GITDIR = None
+                state._CHECKPOINT_GITDIR = None
                 return
             # Local identity (the commit fails if a global user.name/email is missing).
             _git_ckpt("config", "user.email", "agentic@local")
@@ -818,14 +778,13 @@ def _init_checkpoints() -> None:
         (gitdir / "info").mkdir(parents=True, exist_ok=True)
         (gitdir / "info" / "exclude").write_text(_CHECKPOINT_EXCLUDES, encoding="utf-8")
     except Exception:
-        _CHECKPOINT_GITDIR = None
+        state._CHECKPOINT_GITDIR = None
 
 
 def _make_turn_checkpoint(label: str) -> None:
     """Commit the current (pre-write) project state to the shadow repo, at most once per
     user turn (before that turn's first write). Guarded by _checkpoint_made_this_turn."""
-    global _checkpoint_made_this_turn
-    if _checkpoint_made_this_turn or not _checkpoints_available():
+    if state._checkpoint_made_this_turn or not _checkpoints_available():
         return
     try:
         _git_ckpt("add", "-A")
@@ -835,12 +794,12 @@ def _make_turn_checkpoint(label: str) -> None:
         sha = _git_ckpt("rev-parse", "HEAD").stdout.strip()
         if not sha:
             return
-        _CHECKPOINTS.append({
+        state._CHECKPOINTS.append({
             "sha": sha, "ts": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "turn": _checkpoint_turn, "label": label,
+            "turn": state._checkpoint_turn, "label": label,
         })
-        _checkpoint_made_this_turn = True
-        _audit("CHECKPOINT", {"turn": _checkpoint_turn, "sha": sha[:10], "label": label})
+        state._checkpoint_made_this_turn = True
+        _audit("CHECKPOINT", {"turn": state._checkpoint_turn, "sha": sha[:10], "label": label})
     except Exception:
         pass
 
@@ -923,7 +882,7 @@ def _searxng_fetch(query: str, category: str = "general") -> list:
     # sources francophones hors-sujet. "auto" (réglable via /parameters) laisse
     # l'instance décider.
     cache_key = (query.strip().lower(), category, config.SEARCH_LANGUAGE)
-    cached = _search_cache.get(cache_key)
+    cached = state._search_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < config.SEARCH_CACHE_TTL:
         return cached[1]
 
@@ -934,7 +893,7 @@ def _searxng_fetch(query: str, category: str = "general") -> list:
         params["categories"] = category
     r = requests.get(config.SEARXNG_URL, params=params, timeout=10)
     results = r.json().get("results", [])[:config.SEARCH_RESULT_CAP]
-    _search_cache[cache_key] = (time.time(), results)
+    state._search_cache[cache_key] = (time.time(), results)
     return results
 
 
@@ -1319,7 +1278,7 @@ def _closest_path_hint(path_str: str) -> str:
     Matches first on the basename (right directory, misspelled name — the common case), then on
     the full relative path (wrong directory). Walks the project tree with the same exclude-dirs
     and a hard cap as the reference tools, and only runs on the error path so cost never matters."""
-    root = PROJECT_ROOT or Path.cwd()
+    root = state.PROJECT_ROOT or Path.cwd()
     try:
         wanted = Path(path_str).expanduser()
     except Exception:
@@ -1883,7 +1842,7 @@ def _cosine(a, b) -> float:
 
 
 def _open_semantic_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(_SEMANTIC_DB)
+    conn = sqlite3.connect(state._SEMANTIC_DB)
     conn.execute("CREATE TABLE IF NOT EXISTS chunks "
                  "(path TEXT, mtime REAL, idx INTEGER, start_line INTEGER, text TEXT, vec BLOB)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_path ON chunks(path)")
@@ -1893,7 +1852,7 @@ def _open_semantic_db() -> sqlite3.Connection:
 def _reindex_semantic(conn: sqlite3.Connection) -> int:
     """Incrementally sync the index to disk: re-embed new/changed files (mtime differs),
     drop rows for deleted files. Returns the number of files (re)indexed this call."""
-    root = PROJECT_ROOT or Path.cwd()
+    root = state.PROJECT_ROOT or Path.cwd()
     disk = {str(p): p.stat().st_mtime for p in _iter_semantic_files(root)}
     cur = conn.cursor()
     indexed = {path: mt for path, mt in cur.execute("SELECT DISTINCT path, mtime FROM chunks")}
@@ -1931,7 +1890,7 @@ def search_semantic(query: str) -> str:
     Args:
         query: A natural-language description of what you are looking for
     """
-    if _SEMANTIC_DB is None:
+    if state._SEMANTIC_DB is None:
         return "Semantic index not initialized (no project root)."
     try:
         conn = _open_semantic_db()
@@ -1950,7 +1909,7 @@ def search_semantic(query: str) -> str:
         rows = conn.execute("SELECT path, start_line, text, vec FROM chunks").fetchall()
         if not rows:
             return "No indexable project files found to search semantically."
-        root = PROJECT_ROOT or Path.cwd()
+        root = state.PROJECT_ROOT or Path.cwd()
         scored = []
         for path, start, text, vec in rows:
             scored.append((_cosine(qvec, _blob_to_vec(vec)), path, start, text))
@@ -2046,8 +2005,8 @@ def analyze_image(path: str, question: str) -> str:
         return ("No multimodal model available. Install one (e.g. `ollama pull llava` or a "
                 "gemma3 vision build) and select it with /vision-model.")
     # Sequential loading: release the current model before loading the vision model.
-    if _CURRENT_MODEL and _CURRENT_MODEL != vision_model:
-        _unload_model(_CURRENT_MODEL)
+    if state._CURRENT_MODEL and state._CURRENT_MODEL != vision_model:
+        _unload_model(state._CURRENT_MODEL)
     _audit("ANALYZE_IMAGE", {"path": str(p), "model": vision_model})
     try:
         resp = ollama.chat(
@@ -2090,8 +2049,8 @@ def _skill_dirs() -> list[Path]:
     """Root directories to search for skills, least to most specific (most specific wins
     on a name clash)."""
     dirs = [config._AGENT_HOME / "skills", config.SKILLS_GLOBAL_DIR]
-    if PROJECT_ROOT is not None:
-        dirs.append(PROJECT_ROOT / ".agentic" / "skills")
+    if state.PROJECT_ROOT is not None:
+        dirs.append(state.PROJECT_ROOT / ".agentic" / "skills")
     return dirs
 
 
@@ -2292,7 +2251,7 @@ def _docker_available() -> tuple[bool, str]:
 
 
 def _sandbox_dockerfile_path() -> Path | None:
-    custom = PROJECT_ROOT / ".agentic" / "sandbox.Dockerfile"
+    custom = state.PROJECT_ROOT / ".agentic" / "sandbox.Dockerfile"
     return custom if custom.exists() else None
 
 
@@ -2334,15 +2293,14 @@ def _ensure_sandbox_image() -> tuple[bool, str]:
 def _ensure_sandbox_container() -> tuple[bool, str]:
     """Returns (ok, container_name_or_error_message). Reuses this session's
     container if it is already running."""
-    global _SANDBOX_CONTAINER
-    if _SANDBOX_CONTAINER:
+    if state._SANDBOX_CONTAINER:
         check = subprocess.run(
-            ["docker", "inspect", "-f", "{{.State.Running}}", _SANDBOX_CONTAINER],
+            ["docker", "inspect", "-f", "{{.State.Running}}", state._SANDBOX_CONTAINER],
             capture_output=True, text=True, timeout=10,
         )
         if check.returncode == 0 and check.stdout.strip() == "true":
-            return True, _SANDBOX_CONTAINER
-        _SANDBOX_CONTAINER = None  # died/was removed in the meantime, so recreate one
+            return True, state._SANDBOX_CONTAINER
+        state._SANDBOX_CONTAINER = None  # died/was removed in the meantime, so recreate one
 
     available, reason = _docker_available()
     if not available:
@@ -2357,21 +2315,20 @@ def _ensure_sandbox_container() -> tuple[bool, str]:
     subprocess.run(["docker", "rm", "-f", container_name], capture_output=True, timeout=10)  # résidu éventuel
     result = subprocess.run(
         ["docker", "run", "-d", "--name", container_name,
-         "-v", f"{PROJECT_ROOT}:/workspace", "-w", "/workspace", tag,
+         "-v", f"{state.PROJECT_ROOT}:/workspace", "-w", "/workspace", tag,
          "tail", "-f", "/dev/null"],
         capture_output=True, text=True, timeout=30,
     )
     if result.returncode != 0:
         return False, result.stderr.strip()[-1000:]
-    _SANDBOX_CONTAINER = container_name
+    state._SANDBOX_CONTAINER = container_name
     return True, container_name
 
 
 def _cleanup_sandbox() -> None:
-    global _SANDBOX_CONTAINER
-    if _SANDBOX_CONTAINER:
-        subprocess.run(["docker", "rm", "-f", _SANDBOX_CONTAINER], capture_output=True, timeout=15)
-        _SANDBOX_CONTAINER = None
+    if state._SANDBOX_CONTAINER:
+        subprocess.run(["docker", "rm", "-f", state._SANDBOX_CONTAINER], capture_output=True, timeout=15)
+        state._SANDBOX_CONTAINER = None
 
 
 atexit.register(_cleanup_sandbox)
@@ -2382,7 +2339,7 @@ def _run_shell(command: str, timeout: int) -> tuple[str, int]:
     when SANDBOX_MODE is off, otherwise via `docker exec` in the session
     container. Raises RuntimeError (no silent fallback to the host) if the
     sandbox is requested but unavailable."""
-    if SANDBOX_MODE:
+    if state.SANDBOX_MODE:
         ok, container_or_err = _ensure_sandbox_container()
         if not ok:
             raise RuntimeError(f"Sandbox unavailable ({container_or_err})")
@@ -2474,13 +2431,12 @@ while True:
     _o.write(_cap.getvalue()); _o.write("\\n__DONE__\\n"); _o.flush()
 '''.replace("__EXEC__", _REPL_EXEC).replace("__DONE__", _REPL_DONE)
 
-_repl_state: dict = {"proc": None, "mode": None}
 
 
 def _repl_start():
     """(Re)start the persistent interpreter for the current sandbox mode."""
     _repl_stop()
-    if SANDBOX_MODE:
+    if state.SANDBOX_MODE:
         ok, container_or_err = _ensure_sandbox_container()
         if not ok:
             raise RuntimeError(f"Sandbox unavailable ({container_or_err})")
@@ -2491,14 +2447,14 @@ def _repl_start():
         proc = subprocess.Popen([sys.executable, "-u", "-c", _REPL_DRIVER],
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT, text=True,
-                                cwd=str(PROJECT_ROOT) if PROJECT_ROOT else None)
-    _repl_state["proc"] = proc
-    _repl_state["mode"] = "sandbox" if SANDBOX_MODE else "host"
+                                cwd=str(state.PROJECT_ROOT) if state.PROJECT_ROOT else None)
+    state._repl_state["proc"] = proc
+    state._repl_state["mode"] = "sandbox" if state.SANDBOX_MODE else "host"
     return proc
 
 
 def _repl_stop():
-    proc = _repl_state.get("proc")
+    proc = state._repl_state.get("proc")
     if proc is not None:
         try:
             proc.stdin.close()
@@ -2512,8 +2468,8 @@ def _repl_stop():
                 proc.kill()
             except Exception:
                 pass
-    _repl_state["proc"] = None
-    _repl_state["mode"] = None
+    state._repl_state["proc"] = None
+    state._repl_state["mode"] = None
 
 
 atexit.register(_repl_stop)
@@ -2550,9 +2506,9 @@ def python_repl(code: str) -> str:
     if not safe:
         return f"⛔ Blocked: {reason}"
     try:
-        proc = _repl_state.get("proc")
-        want_mode = "sandbox" if SANDBOX_MODE else "host"
-        if proc is None or proc.poll() is not None or _repl_state.get("mode") != want_mode:
+        proc = state._repl_state.get("proc")
+        want_mode = "sandbox" if state.SANDBOX_MODE else "host"
+        if proc is None or proc.poll() is not None or state._repl_state.get("mode") != want_mode:
             proc = _repl_start()
     except RuntimeError as e:
         return f"⛔ {e} — REPL NOT started. Use /sandbox to disable, or fix Docker."
@@ -2582,18 +2538,17 @@ def run_background(command: str) -> str:
     Args:
         command: Full shell command to run in the background
     """
-    global _bg_counter
     safe, reason = _check_command(command)
     if not safe:
         return f"⛔ Blocked: {reason}"
 
-    running = sum(1 for info in _bg_processes.values() if info["proc"].poll() is None)
+    running = sum(1 for info in state._bg_processes.values() if info["proc"].poll() is None)
     if running >= config.MAX_BACKGROUND_PROCESSES:
         return f"Too many background processes running ({running}/{config.MAX_BACKGROUND_PROCESSES}). Stop one first with kill_process."
 
-    _bg_counter += 1
-    pid_label = str(_bg_counter)
-    log_dir = _BG_LOG_DIR if _BG_LOG_DIR else Path.cwd()
+    state._bg_counter += 1
+    pid_label = str(state._bg_counter)
+    log_dir = state._BG_LOG_DIR if state._BG_LOG_DIR else Path.cwd()
     log_path = log_dir / f"bg_{pid_label}.log"
     try:
         log_file = open(log_path, "w", encoding="utf-8")
@@ -2603,7 +2558,7 @@ def run_background(command: str) -> str:
     except Exception as e:
         return f"Error starting background process: {e}"
 
-    _bg_processes[pid_label] = {
+    state._bg_processes[pid_label] = {
         "proc": proc, "command": command, "log_path": log_path,
         "log_file": log_file, "started_at": datetime.now().strftime("%H:%M:%S"),
     }
@@ -2616,7 +2571,7 @@ def check_process(process_id: str) -> str:
     Args:
         process_id: The id returned by run_background (e.g. "1")
     """
-    info = _bg_processes.get(str(process_id))
+    info = state._bg_processes.get(str(process_id))
     if not info:
         return f"No background process with id '{process_id}'. Use list_processes to see active ones."
     ret = info["proc"].poll()
@@ -2633,7 +2588,7 @@ def kill_process(process_id: str) -> str:
     Args:
         process_id: The id returned by run_background (e.g. "1")
     """
-    info = _bg_processes.get(str(process_id))
+    info = state._bg_processes.get(str(process_id))
     if not info:
         return f"No background process with id '{process_id}'."
     proc = info["proc"]
@@ -2653,10 +2608,10 @@ def kill_process(process_id: str) -> str:
 
 def list_processes() -> str:
     """List every background process started this session, with its current status."""
-    if not _bg_processes:
+    if not state._bg_processes:
         return "No background processes started this session."
     lines = []
-    for pid_label, info in sorted(_bg_processes.items(), key=lambda kv: int(kv[0])):
+    for pid_label, info in sorted(state._bg_processes.items(), key=lambda kv: int(kv[0])):
         ret = info["proc"].poll()
         status = "running" if ret is None else f"exited {ret}"
         lines.append(f"#{pid_label} [{status}] started {info['started_at']} — {info['command']}")
@@ -2667,7 +2622,7 @@ def _cleanup_background_processes(verbose: bool = False) -> None:
     """Stop every still-running background process (session end / interpreter exit).
     Waits for real termination (SIGKILL fallback) rather than firing SIGTERM and hoping —
     otherwise poll() right after would still report "running" (not yet reaped)."""
-    for pid_label, info in list(_bg_processes.items()):
+    for pid_label, info in list(state._bg_processes.items()):
         proc = info["proc"]
         if proc.poll() is None:
             try:
@@ -2707,27 +2662,26 @@ def todo_write(checklist: str) -> str:
     Args:
         checklist: The full checklist text, replacing the previous one entirely
     """
-    global _todo
-    _todo = checklist.strip()
-    return "Checklist updated." if _todo else "Checklist cleared."
+    state._todo = checklist.strip()
+    return "Checklist updated." if state._todo else "Checklist cleared."
 
 
 def todo_read() -> str:
     """Read the current task checklist for this session. Empty if none has been set yet."""
-    return _todo or "(no checklist set)"
+    return state._todo or "(no checklist set)"
 
 
 def _memory_path() -> Path | None:
-    return _SNAPSHOT_DIR.parent / "memory.md" if _SNAPSHOT_DIR else None
+    return state._SNAPSHOT_DIR.parent / "memory.md" if state._SNAPSHOT_DIR else None
 
 
 def _save_memory() -> None:
-    if PRIVATE_MODE:
+    if state.PRIVATE_MODE:
         return  # private session: memory is never written to disk
     path = _memory_path()
     if path:
         try:
-            path.write_text(_memory, encoding="utf-8")
+            path.write_text(state._memory, encoding="utf-8")
         except Exception:
             pass
 
@@ -2756,17 +2710,16 @@ def memory_write(content: str) -> str:
     Args:
         content: The full memory text, replacing the previous one entirely
     """
-    global _memory
-    _memory = content.strip()
+    state._memory = content.strip()
     _save_memory()
-    if len(_memory) > config.MEMORY_SOFT_LIMIT:
-        return f"Memory updated ({len(_memory)} chars) — getting long, consider trimming to keep only what's still relevant."
-    return "Memory updated." if _memory else "Memory cleared."
+    if len(state._memory) > config.MEMORY_SOFT_LIMIT:
+        return f"Memory updated ({len(state._memory)} chars) — getting long, consider trimming to keep only what's still relevant."
+    return "Memory updated." if state._memory else "Memory cleared."
 
 
 def memory_read() -> str:
     """Read the current persistent memory (project/user knowledge saved across sessions)."""
-    return _memory or "(no memory saved yet)"
+    return state._memory or "(no memory saved yet)"
 
 
 TOOLS = [
@@ -3247,8 +3200,8 @@ def get_num_ctx(model: str) -> int:
     SAFE_NUM_CTX (not Ollama's default, which uses 16384 without ever looking at
     the model's actual capacity). Cached per model to avoid an ollama.show() call
     on every message."""
-    if model in _num_ctx_cache:
-        return _num_ctx_cache[model]
+    if model in state._num_ctx_cache:
+        return state._num_ctx_cache[model]
     num_ctx = config.SAFE_NUM_CTX
     try:
         info = ollama.show(model).modelinfo or {}
@@ -3258,7 +3211,7 @@ def get_num_ctx(model: str) -> int:
                 break
     except Exception:
         pass
-    _num_ctx_cache[model] = num_ctx
+    state._num_ctx_cache[model] = num_ctx
     return num_ctx
 
 
@@ -3652,7 +3605,7 @@ def _categorize_via_search(name: str) -> str:
 
 
 def _category_cache_path() -> Path | None:
-    return _SNAPSHOT_DIR.parent / "model_categories.json" if _SNAPSHOT_DIR else None
+    return state._SNAPSHOT_DIR.parent / "model_categories.json" if state._SNAPSHOT_DIR else None
 
 
 def _load_category_cache() -> dict:
@@ -4095,7 +4048,7 @@ def _maybe_compact(messages: list, model: str) -> bool:
     if config.AUTO_COMPACT != "on":
         return False
     trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * get_num_ctx(model))
-    current = _LAST_PROMPT_TOKENS or _estimate_tokens(messages)
+    current = state._LAST_PROMPT_TOKENS or _estimate_tokens(messages)
     if current < trigger_tokens:
         return False
     console.print(f"[dim]{t('compact_auto_note', pct=config.COMPACT_THRESHOLD_PCT)}[/dim]")
@@ -4109,10 +4062,9 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     all native + MCP); allowed_tools, if given, is a set of tool names permitted to actually
     execute — a call to anything outside it is refused without running (used by the architect
     phase (B4) to enforce a read-only planning pass even if the model tries a write)."""
-    global _checkpoint_turn, _checkpoint_made_this_turn, _CURRENT_MODEL, _LAST_PROMPT_TOKENS
-    _CURRENT_MODEL = model               # B6 : appels latéraux (vision) savent quel modèle décharger
-    _checkpoint_turn += 1
-    _checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
+    state._CURRENT_MODEL = model               # B6 : appels latéraux (vision) savent quel modèle décharger
+    state._checkpoint_turn += 1
+    state._checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
     rounds = 0
     edited_since_verify = False
     nudges_used = 0
@@ -4150,7 +4102,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             resp = _stream_or_buffer_chat(model, messages, tool_schemas)
             pec = getattr(resp, "prompt_eval_count", 0) or 0
             if pec:
-                _LAST_PROMPT_TOKENS = pec   # the prompt's true token count (for compaction)
+                state._LAST_PROMPT_TOKENS = pec   # the prompt's true token count (for compaction)
         except ollama.ResponseError as e:
             # e.error is a dict ({"code":..., "message":...}) when the Ollama
             # response body is JSON with a nested "error" key (the case for this
@@ -4367,13 +4319,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             # B1: git checkpoint of the state BEFORE this turn's first write (once
             # per turn only). Captures the pre-write state so /undo can go back.
             if name in _EDIT_TOOLS:
-                _make_turn_checkpoint(f"turn {_checkpoint_turn}: before {name}")
+                _make_turn_checkpoint(f"turn {state._checkpoint_turn}: before {name}")
 
             # MCP tools are treated as risky by default in safe mode — an MCP
             # server can do anything a local tool can do, so it must not
             # bypass the existing approval gate.
             is_risky = name in _RISKY_TOOLS or name in MCP_TOOL_MAP
-            if SAFE_MODE and is_risky and not _confirm_risky_call(name, args):
+            if state.SAFE_MODE and is_risky and not _confirm_risky_call(name, args):
                 console.print(f"[dim]{t('safe_mode_denied_console')}[/dim]")
                 result = "⛔ Denied by user (safe mode)."
             elif name in MCP_TOOL_MAP:
@@ -4650,14 +4602,14 @@ def cmd_add(filepaths: str, messages: list):
             console.print(f"  [red]{t('add_not_found')}[/red] {p}")
             continue
         key = str(p.resolve())
-        if key in _context_files:
+        if key in state._context_files:
             console.print(f"  [yellow]{t('add_already')}[/yellow] {p.name}")
             continue
         try:
             lines    = p.read_text(encoding="utf-8").splitlines()
             numbered = "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(lines))
             ext      = p.suffix.lstrip(".") or "text"
-            _context_files[key] = p.name
+            state._context_files[key] = p.name
             newly.append((p.name, f"```{ext}\n{numbered}\n```"))
         except Exception as e:
             console.print(f"  [red]{t('add_error', name=p.name)}[/red] {e}")
@@ -4669,10 +4621,10 @@ def cmd_add(filepaths: str, messages: list):
 
 
 def cmd_diff() -> str:
-    if not _snapshots:
+    if not state._snapshots:
         return t("diff_none_session")
     results = []
-    for path_str, original in _snapshots.items():
+    for path_str, original in state._snapshots.items():
         p = Path(path_str)
         if p.exists():
             current = p.read_text(encoding="utf-8")
@@ -4690,25 +4642,25 @@ def cmd_diff() -> str:
 def cmd_undo_legacy() -> str:
     """The old all-or-nothing in-memory /undo — used only when git is unavailable
     (no shadow checkpoint repository possible)."""
-    if not _snapshots:
+    if not state._snapshots:
         return t("undo_none")
     restored = []
-    for path_str, original in _snapshots.items():
+    for path_str, original in state._snapshots.items():
         try:
             Path(path_str).write_text(original, encoding="utf-8")
             restored.append(Path(path_str).name)
         except Exception as e:
             console.print(f"  [red]{t('undo_restore_error', path=path_str)}[/red] {e}")
-    _snapshots.clear()
+    state._snapshots.clear()
     return t("undo_restored", names=', '.join(restored))
 
 
 def cmd_undo_list() -> str:
     """List available git checkpoints (newest first), or explain there are none."""
-    if not _CHECKPOINTS:
+    if not state._CHECKPOINTS:
         return t("undo_ckpt_none")
     lines = [t("undo_ckpt_header")]
-    for i, ck in enumerate(reversed(_CHECKPOINTS), start=1):
+    for i, ck in enumerate(reversed(state._CHECKPOINTS), start=1):
         marker = " (last)" if i == 1 else ""
         lines.append(f"  [{i}] {ck['ts']} — {ck['label']} [{ck['sha'][:8]}]{marker}")
     lines.append(t("undo_ckpt_usage"))
@@ -4719,9 +4671,9 @@ def cmd_undo_restore(which: str) -> str:
     """Restore a checkpoint. `which` is "last" or a 1-based index as shown by cmd_undo_list
     (1 = newest). Truncates the checkpoint list past the restored point so it stays
     consistent with the actual on-disk state."""
-    if not _CHECKPOINTS:
+    if not state._CHECKPOINTS:
         return t("undo_ckpt_none")
-    n = len(_CHECKPOINTS)
+    n = len(state._CHECKPOINTS)
     if which in ("last", "dernier", ""):
         idx = n - 1
     else:
@@ -4732,12 +4684,12 @@ def cmd_undo_restore(which: str) -> str:
         if not (1 <= disp <= n):
             return t("undo_ckpt_badindex", which=which)
         idx = n - disp  # display index 1 = newest = _CHECKPOINTS[-1]
-    ck = _CHECKPOINTS[idx]
+    ck = state._CHECKPOINTS[idx]
     if not _restore_checkpoint(ck["sha"]):
         return t("undo_ckpt_failed")
     _audit("UNDO_CHECKPOINT", {"sha": ck["sha"][:10], "label": ck["label"]})
-    del _CHECKPOINTS[idx:]  # anything at or beyond this point is no longer reachable
-    _snapshots.clear()      # the session /diff starts over after a rollback
+    del state._CHECKPOINTS[idx:]  # anything at or beyond this point is no longer reachable
+    state._snapshots.clear()      # the session /diff starts over after a rollback
     return t("undo_ckpt_restored", label=ck["label"], ts=ck["ts"])
 
 
@@ -4747,18 +4699,18 @@ def _save_session(messages: list, model: str) -> None:
     """Serialize the current conversation to this session's JSON file (one file per session,
     overwritten as it grows). Called after each completed turn and on exit. Never raises —
     a persistence failure must not break the session. Skips near-empty sessions."""
-    if PRIVATE_MODE or _SESSION_FILE is None or len([m for m in messages if m.get("role") != "system"]) == 0:
+    if state.PRIVATE_MODE or state._SESSION_FILE is None or len([m for m in messages if m.get("role") != "system"]) == 0:
         return
     try:
         payload = {
-            "created": _SESSION_FILE.stem,
+            "created": state._SESSION_FILE.stem,
             "updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "model": model,
-            "project": str(PROJECT_ROOT) if PROJECT_ROOT else "",
+            "project": str(state.PROJECT_ROOT) if state.PROJECT_ROOT else "",
             "lang": config.LANG,
             "messages": messages,
         }
-        _SESSION_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+        state._SESSION_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
     except Exception:
         pass
 
@@ -4766,10 +4718,10 @@ def _save_session(messages: list, model: str) -> None:
 def _list_sessions() -> list[dict]:
     """All saved sessions (this project's .agentic/sessions/), newest-updated first, with a
     short preview of the first user message."""
-    if _SESSION_DIR is None or not _SESSION_DIR.exists():
+    if state._SESSION_DIR is None or not state._SESSION_DIR.exists():
         return []
     out = []
-    for f in _SESSION_DIR.glob("*.json"):
+    for f in state._SESSION_DIR.glob("*.json"):
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
         except Exception:
@@ -4798,7 +4750,7 @@ def cmd_resume_list() -> str:
         return t("resume_none")
     lines = [t("resume_header")]
     for i, s in enumerate(sessions, start=1):
-        cur = "  ← current" if _SESSION_FILE and s["file"] == _SESSION_FILE else ""
+        cur = "  ← current" if state._SESSION_FILE and s["file"] == state._SESSION_FILE else ""
         lines.append(f"  [{i}] {s['updated']} · {s['n_messages']} msgs · {s['model']}{cur}\n"
                      f"        “{s['preview']}”")
     lines.append(t("resume_usage"))
@@ -4833,11 +4785,11 @@ def cmd_resume_load(which: str):
 
 
 def cmd_audit():
-    if not _AUDIT_LOG or not _AUDIT_LOG.exists():
+    if not state._AUDIT_LOG or not state._AUDIT_LOG.exists():
         console.print(f"[dim]{t('audit_none')}[/dim]\n")
         return
-    lines = _AUDIT_LOG.read_text(encoding="utf-8").splitlines()
-    console.print(f"\n[dim]{t('audit_log_line', path=_AUDIT_LOG)}[/dim]")
+    lines = state._AUDIT_LOG.read_text(encoding="utf-8").splitlines()
+    console.print(f"\n[dim]{t('audit_log_line', path=state._AUDIT_LOG)}[/dim]")
     console.print(Rule(f"[bold magenta]{t('audit_title')}[/bold magenta]", style="magenta"))
     for line in lines[-20:]:
         if "BLOCKED" in line:
@@ -4852,12 +4804,12 @@ def make_system_prompt(project_root: Path) -> str:
     base = SYSTEM_PROMPT.get(config.LANG, SYSTEM_PROMPT["en"])
     if config.LANG == "fr":
         suffix = f"\n\nRacine du projet : {project_root}\nToutes les opérations fichiers/dossiers/commandes sont relatives à cette racine."
-        if _memory:
-            suffix += f"\n\nMémoire persistante (sauvegardée lors de sessions précédentes, potentiellement obsolète) :\n{_memory}"
+        if state._memory:
+            suffix += f"\n\nMémoire persistante (sauvegardée lors de sessions précédentes, potentiellement obsolète) :\n{state._memory}"
     else:
         suffix = f"\n\nProject root: {project_root}\nAll file/folder/command operations are relative to this root."
-        if _memory:
-            suffix += f"\n\nPersistent memory (saved during previous sessions, may be outdated):\n{_memory}"
+        if state._memory:
+            suffix += f"\n\nPersistent memory (saved during previous sessions, may be outdated):\n{state._memory}"
     return base + suffix + _skills_prompt_block()   # Tier 1 : découverte des skills (name+desc)
 
 
@@ -5178,7 +5130,6 @@ def run_parameters_menu() -> None:
 # ── Point d'entrée ────────────────────────────────────────────────────────────
 
 def main():
-    global PROJECT_ROOT, _AUDIT_LOG, _SNAPSHOT_DIR, _BG_LOG_DIR, _todo, _memory, SAFE_MODE, SANDBOX_MODE
 
     _load_params()  # réglages /parameters sauvegardés d'une session précédente
     _mc = _load_models_config()
@@ -5193,11 +5144,11 @@ def main():
         pass
     _init_mcp()      # connects the configured MCP servers (silent if absent/not installed)
 
-    global console, PRIVATE_MODE
+    global console
     argv = sys.argv[1:]
-    SAFE_MODE = "--safe" in argv
-    SANDBOX_MODE = "--sandbox" in argv
-    PRIVATE_MODE = "--private" in argv or "--incognito" in argv
+    state.SAFE_MODE = "--safe" in argv
+    state.SANDBOX_MODE = "--sandbox" in argv
+    state.PRIVATE_MODE = "--private" in argv or "--incognito" in argv
 
     # B9: headless mode. --run "prompt" (one prompt) / --recipe file.md (steps).
     run_prompt = None
@@ -5229,40 +5180,39 @@ def main():
         project_root = Path.cwd().resolve()
 
     os.chdir(project_root)
-    PROJECT_ROOT = project_root
+    state.PROJECT_ROOT = project_root
 
     # .agentic/ folder for the audit log and persistent snapshots
     agent_dir    = project_root / ".agentic"
     agent_dir.mkdir(exist_ok=True)
-    global _SESSION_DIR, _SESSION_FILE, _SEMANTIC_DB, _CHECKPOINT_GITDIR
-    if PRIVATE_MODE:
+    if state.PRIVATE_MODE:
         # Ephemeral session: we wire up NO conversation trace on disk.
         # _AUDIT_LOG/_SNAPSHOT_DIR/_SESSION_FILE restent None → _audit/_auto_snapshot/
         # _save_session are no-ops. Git checkpoints disabled (/undo -> RAM fallback).
         # bg_logs in a temporary folder deleted on exit.
-        _AUDIT_LOG = None
-        _SNAPSHOT_DIR = None
-        _SESSION_DIR = None
-        _SESSION_FILE = None
-        _CHECKPOINT_GITDIR = None
-        _BG_LOG_DIR = Path(tempfile.mkdtemp(prefix="agentic_private_bg_"))
+        state._AUDIT_LOG = None
+        state._SNAPSHOT_DIR = None
+        state._SESSION_DIR = None
+        state._SESSION_FILE = None
+        state._CHECKPOINT_GITDIR = None
+        state._BG_LOG_DIR = Path(tempfile.mkdtemp(prefix="agentic_private_bg_"))
     else:
-        _AUDIT_LOG   = agent_dir / f"audit_{datetime.now().strftime('%Y%m%d')}.log"
-        _SNAPSHOT_DIR = agent_dir / "snapshots"
-        _SNAPSHOT_DIR.mkdir(exist_ok=True)
-        _BG_LOG_DIR  = agent_dir / "bg_logs"
-        _BG_LOG_DIR.mkdir(exist_ok=True)
+        state._AUDIT_LOG   = agent_dir / f"audit_{datetime.now().strftime('%Y%m%d')}.log"
+        state._SNAPSHOT_DIR = agent_dir / "snapshots"
+        state._SNAPSHOT_DIR.mkdir(exist_ok=True)
+        state._BG_LOG_DIR  = agent_dir / "bg_logs"
+        state._BG_LOG_DIR.mkdir(exist_ok=True)
         _init_checkpoints()   # B1: shadow git repository for /undo checkpoints (silent if git is absent)
-        _SESSION_DIR = agent_dir / "sessions"   # B3 : persistance de session + /resume
-        _SESSION_DIR.mkdir(exist_ok=True)
-        _SESSION_FILE = _SESSION_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    _SEMANTIC_DB = agent_dir / "semantic_index.db"   # B5: local RAG index (read; re-indexed only if search_semantic is used)
-    _memory = _load_memory()   # read existing memory (context); in private mode _save_memory is blocked
+        state._SESSION_DIR = agent_dir / "sessions"   # B3 : persistance de session + /resume
+        state._SESSION_DIR.mkdir(exist_ok=True)
+        state._SESSION_FILE = state._SESSION_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    state._SEMANTIC_DB = agent_dir / "semantic_index.db"   # B5: local RAG index (read; re-indexed only if search_semantic is used)
+    state._memory = _load_memory()   # read existing memory (context); in private mode _save_memory is blocked
 
     # Private session: typed lines must NOT go into ~/.agentic_1a_history.
     # We recreate the prompt_toolkit session with an in-memory history (cleared on exit).
     global _prompt_session
-    if PRIVATE_MODE and _PROMPT_TOOLKIT_AVAILABLE and _prompt_session is not None:
+    if state.PRIVATE_MODE and _PROMPT_TOOLKIT_AVAILABLE and _prompt_session is not None:
         try:
             _prompt_session = PromptSession(history=InMemoryHistory(),
                                             completer=_SlashCompleter(), complete_while_typing=True)
@@ -5274,7 +5224,7 @@ def main():
         console.print(f"\n[red]{t('no_models')}[/red]")
         sys.exit(1)
 
-    if _prompt_session is None and not PRIVATE_MODE:
+    if _prompt_session is None and not state.PRIVATE_MODE:
         # input()/readline fallback only — prompt_toolkit handles its own
         # history persistence via FileHistory, so the two must not
         # write to the same file in different formats.
@@ -5291,14 +5241,14 @@ def main():
     console.print(f"  [dim]{t('label_project').ljust(w)} :[/dim] [bold white]{project_root}[/bold white]")
     console.print(f"  [dim]{t('label_model').ljust(w)} :[/dim] [cyan]{model}[/cyan]")
     console.print(f"  [dim]{t('label_tools').ljust(w)} :[/dim] [green]{t('tools_suffix', n=len(TOOLS))}[/green]")
-    console.print(f"  [dim]{t('label_audit').ljust(w)} :[/dim] [dim]{_AUDIT_LOG}[/dim]")
+    console.print(f"  [dim]{t('label_audit').ljust(w)} :[/dim] [dim]{state._AUDIT_LOG}[/dim]")
     console.print(f"  [dim]{t('label_help').ljust(w)} :[/dim] {t('help_hint')} [yellow]/help[/yellow]")
     console.print(f"  [dim]{t('esc_hint')}[/dim]")
-    if PRIVATE_MODE:
+    if state.PRIVATE_MODE:
         console.print(f"  [bold magenta]{t('private_mode_on')}[/bold magenta]")
-    if SAFE_MODE:
+    if state.SAFE_MODE:
         console.print(f"  [bold yellow]{t('safe_mode_on')}[/bold yellow]")
-    if SANDBOX_MODE:
+    if state.SANDBOX_MODE:
         console.print(f"  [bold yellow]{t('sandbox_mode_on')}[/bold yellow]")
     console.print(Rule(style="dim"))
     console.print()
@@ -5371,14 +5321,14 @@ def main():
 
         if user_input == "/clear":
             messages = [{"role": "system", "content": system_prompt}]
-            _context_files.clear()
-            _todo = ""
+            state._context_files.clear()
+            state._todo = ""
             globals()["_LAST_PROMPT_TOKENS"] = 0   # nouveau contexte : repart de zéro
             console.print(f"[dim]{t('history_cleared')}[/dim]\n")
             continue
 
         if user_input == "/private":
-            if PRIVATE_MODE:
+            if state.PRIVATE_MODE:
                 console.print(f"[magenta]{t('private_status_on')}[/magenta]\n")
             else:
                 console.print(f"[dim]{t('private_status_off')}[/dim]\n")
@@ -5386,7 +5336,7 @@ def main():
 
         if user_input == "/context":
             cap = get_num_ctx(model)
-            used = _LAST_PROMPT_TOKENS or _estimate_tokens(messages)
+            used = state._LAST_PROMPT_TOKENS or _estimate_tokens(messages)
             pct = int(used / cap * 100) if cap else 0
             console.print(f"[dim]{t('context_usage', used=used, cap=cap, pct=pct, auto=config.AUTO_COMPACT, thr=config.COMPACT_THRESHOLD_PCT)}[/dim]\n")
             continue
@@ -5397,10 +5347,10 @@ def main():
             continue
 
         if user_input == "/todo":
-            if _todo:
+            if state._todo:
                 console.print()
                 console.print(Rule(f"[bold cyan]{t('todo_title')}[/bold cyan]", style="cyan"))
-                console.print(Markdown(_todo))
+                console.print(Markdown(state._todo))
                 console.print(Rule(style="dim"))
                 console.print()
             else:
@@ -5408,10 +5358,10 @@ def main():
             continue
 
         if user_input == "/memory":
-            if _memory:
+            if state._memory:
                 console.print()
                 console.print(Rule(f"[bold cyan]{t('memory_title')}[/bold cyan]", style="cyan"))
-                console.print(Markdown(_memory))
+                console.print(Markdown(state._memory))
                 console.print(Rule(style="dim"))
                 console.print()
             else:
@@ -5419,7 +5369,7 @@ def main():
             continue
 
         if user_input == "/forget":
-            _memory = ""
+            state._memory = ""
             _save_memory()
             system_prompt = make_system_prompt(project_root)
             messages[0] = {"role": "system", "content": system_prompt}
@@ -5428,7 +5378,7 @@ def main():
             continue
 
         if user_input == "/ps":
-            if _bg_processes:
+            if state._bg_processes:
                 console.print()
                 console.print(Rule(f"[bold cyan]{t('ps_title')}[/bold cyan]", style="cyan"))
                 console.print(list_processes(), markup=False)
@@ -5470,16 +5420,16 @@ def main():
             continue
 
         if user_input == "/safe":
-            SAFE_MODE = not SAFE_MODE
-            style = "bold yellow" if SAFE_MODE else "dim"
-            console.print(f"[{style}]{t('safe_mode_on' if SAFE_MODE else 'safe_mode_off')}[/{style}]\n")
+            state.SAFE_MODE = not state.SAFE_MODE
+            style = "bold yellow" if state.SAFE_MODE else "dim"
+            console.print(f"[{style}]{t('safe_mode_on' if state.SAFE_MODE else 'safe_mode_off')}[/{style}]\n")
             continue
 
         if user_input == "/sandbox":
-            SANDBOX_MODE = not SANDBOX_MODE
-            style = "bold yellow" if SANDBOX_MODE else "dim"
-            console.print(f"[{style}]{t('sandbox_mode_on' if SANDBOX_MODE else 'sandbox_mode_off')}[/{style}]\n")
-            if not SANDBOX_MODE:
+            state.SANDBOX_MODE = not state.SANDBOX_MODE
+            style = "bold yellow" if state.SANDBOX_MODE else "dim"
+            console.print(f"[{style}]{t('sandbox_mode_on' if state.SANDBOX_MODE else 'sandbox_mode_off')}[/{style}]\n")
+            if not state.SANDBOX_MODE:
                 _cleanup_sandbox()  # no need to keep the container running once disabled
             continue
 
@@ -5662,19 +5612,19 @@ def main():
             continue
 
         if user_input == "/files":
-            if not _context_files:
+            if not state._context_files:
                 console.print(f"[dim]{t('files_empty')}[/dim]\n")
             else:
-                for key, name in _context_files.items():
+                for key, name in state._context_files.items():
                     console.print(f"  [green]✓[/green] {name}  [dim]{key}[/dim]")
                 console.print()
             continue
 
         if user_input.startswith("/drop "):
             target  = user_input[6:].strip()
-            removed = [k for k, v in _context_files.items() if target in k or target in v]
+            removed = [k for k, v in state._context_files.items() if target in k or target in v]
             for k in removed:
-                del _context_files[k]
+                del state._context_files[k]
             msg = f"[dim]{t('drop_removed', target=target)}[/dim]" if removed else f"[yellow]{t('drop_not_found', target=target)}[/yellow]"
             console.print(msg + "\n")
             continue
@@ -5813,12 +5763,12 @@ def main():
     _cleanup_background_processes(verbose=True)
     _cleanup_sandbox()
     _audit("SESSION_END", {})
-    if PRIVATE_MODE:
+    if state.PRIVATE_MODE:
         # Private session: delete the temporary bg-log folder (nothing else was ever
         # written). Nothing from the conversation survives on disk.
         try:
-            if _BG_LOG_DIR and str(_BG_LOG_DIR).startswith(tempfile.gettempdir()):
-                shutil.rmtree(_BG_LOG_DIR, ignore_errors=True)
+            if state._BG_LOG_DIR and str(state._BG_LOG_DIR).startswith(tempfile.gettempdir()):
+                shutil.rmtree(state._BG_LOG_DIR, ignore_errors=True)
         except Exception:
             pass
     elif _prompt_session is None:

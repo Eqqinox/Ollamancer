@@ -1,8 +1,8 @@
 import os, tempfile, pathlib, types
 import agent
-from agentic import config
+from agentic import config, state
 agent.get_num_ctx = lambda m: 1000   # small window so thresholds are easy to hit in the test
-agent._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
+state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
 def user(c): return {"role": "user", "content": c}
 def asst(c, tc=None): return {"role": "assistant", "content": c, **({"tool_calls": tc} if tc else {})}
@@ -76,23 +76,23 @@ assert len(tiny) == 3  # unchanged
 
 # ---- 6. auto-compact OFF by default → never fires ----
 config.AUTO_COMPACT = "off"
-agent._LAST_PROMPT_TOKENS = 999999
+state._LAST_PROMPT_TOKENS = 999999
 m = build()
 assert agent._maybe_compact(m, "model") is False
 
 # ---- 7. auto-compact ON + over threshold → fires ----
 config.AUTO_COMPACT = "on"
 config.COMPACT_THRESHOLD_PCT = 70
-agent._LAST_PROMPT_TOKENS = 800   # 80% of 1000 > 70%
+state._LAST_PROMPT_TOKENS = 800   # 80% of 1000 > 70%
 m = build()
 assert agent._maybe_compact(m, "model") is True
 assert any(x["content"].startswith(agent._COMPACT_MARKER) for x in m if x["role"]=="user")
 
 # ---- 8. auto-compact ON but under threshold → no-op ----
-agent._LAST_PROMPT_TOKENS = 500   # 50% < 70%
+state._LAST_PROMPT_TOKENS = 500   # 50% < 70%
 m = build()
 assert agent._maybe_compact(m, "model") is False
 
-log = agent._AUDIT_LOG.read_text() if agent._AUDIT_LOG.exists() else ""
+log = state._AUDIT_LOG.read_text() if state._AUDIT_LOG.exists() else ""
 assert "COMPACT" in log
 print("CONTEXT COMPACTION ALL PASS")

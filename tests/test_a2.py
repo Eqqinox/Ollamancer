@@ -1,7 +1,8 @@
 import tempfile, pathlib
 import agent
+from agentic import state
 
-agent._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
+state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
 
 class FakeBlock:
@@ -72,7 +73,7 @@ set_ddg(empty_ddg); patch_searxng(lambda q, c="general": [])
 assert agent.search_web("q") == "No results."
 
 # 8. audit event written
-log = agent._AUDIT_LOG.read_text() if agent._AUDIT_LOG.exists() else ""
+log = state._AUDIT_LOG.read_text() if state._AUDIT_LOG.exists() else ""
 assert "SEARCH_FAILOVER_DDG" in log, log
 
 print("A2 ALL PASS")

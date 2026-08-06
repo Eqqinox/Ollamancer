@@ -1,8 +1,9 @@
 import os, tempfile, pathlib
 import agent
+from agentic import state
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent.SANDBOX_MODE = False
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state.SANDBOX_MODE = False
 
 # 1. state persists across calls
 assert agent.python_repl("x = 40 + 2") == "(no output)", "assignment should have no output"

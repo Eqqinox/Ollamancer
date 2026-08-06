@@ -1,14 +1,14 @@
 import os, tempfile, pathlib
 import agent
-from agentic import config
+from agentic import config, state
 config.STREAM_FINAL = "off"
 config.MAX_VERIFY_NUDGES = 0
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent._AUDIT_LOG = d / "audit.log"
-agent._CHECKPOINT_GITDIR = None   # skip checkpoints in this unit test
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state._AUDIT_LOG = d / "audit.log"
+state._CHECKPOINT_GITDIR = None   # skip checkpoints in this unit test
 
 # 1. read-only toolset excludes the dangerous tools
 ro = {fn.__name__ for fn in agent._read_only_tools()}
@@ -66,7 +66,7 @@ assert unloaded == ["cur:m", "arch:m"], unloaded
 # main history not polluted with the architect's tool spam (only the 2 originals still)
 assert len(msgs) == 2, [m.get("role") for m in msgs]
 
-log = agent._AUDIT_LOG.read_text()
+log = state._AUDIT_LOG.read_text()
 assert "ARCHITECT_START" in log and "ARCHITECT_DONE" in log, log
 assert "architect read-only" in log, "read-only refusal not audited"
 

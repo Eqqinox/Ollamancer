@@ -1,6 +1,6 @@
 import os, tempfile, pathlib, re
 import agent
-from agentic import config
+from agentic import config, state
 
 # Deterministic hashing embedder (bag-of-words over 64 buckets) — same process, so query
 # and chunks share the same mapping; word overlap → high cosine. No real model needed.
@@ -15,8 +15,8 @@ def fake_embed(texts):
     return out
 agent._embed_texts = fake_embed
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent._SEMANTIC_DB = d / "sem.db"
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state._SEMANTIC_DB = d / "sem.db"
 
 # 0. chunking
 chunks = agent._chunk_text("\n".join(f"line{i}" for i in range(130)))

@@ -1,6 +1,7 @@
 import os, tempfile, pathlib
 import agent
-agent._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
+from agentic import state
+state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
 # 1. frontmatter parsing (dependency-free)
 meta, body = agent._parse_skill_frontmatter(
@@ -18,7 +19,7 @@ assert "commit-message" in skills, list(skills)
 assert "commit" in skills["commit-message"]["description"].lower()
 
 # 3. a project-level skill is discovered and OVERRIDES a same-named one (specificity wins)
-proj = pathlib.Path(tempfile.mkdtemp()); agent.PROJECT_ROOT = proj
+proj = pathlib.Path(tempfile.mkdtemp()); state.PROJECT_ROOT = proj
 sk = proj / ".agentic" / "skills" / "deploy"
 sk.mkdir(parents=True)
 (sk / "SKILL.md").write_text("---\nname: deploy\ndescription: Deploy the app safely.\n---\n\n# Deploy\n1. run tests\n2. build\n3. push\n")
@@ -51,10 +52,10 @@ assert agent.load_skill in agent.TOOLS
 assert "load_skill" in agent._READ_ONLY_TOOL_NAMES
 
 # 8. make_system_prompt includes the skills block
-agent._memory = ""
+state._memory = ""
 sp = agent.make_system_prompt(proj)
 assert "Available skills" in sp and "deploy:" in sp
 
-log = agent._AUDIT_LOG.read_text() if agent._AUDIT_LOG.exists() else ""
+log = state._AUDIT_LOG.read_text() if state._AUDIT_LOG.exists() else ""
 assert "LOAD_SKILL" in log
 print("SKILLS ALL PASS")

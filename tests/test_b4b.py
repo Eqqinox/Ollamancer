@@ -1,14 +1,14 @@
 import os, tempfile, pathlib
 import agent
-from agentic import config
+from agentic import config, state
 config.STREAM_FINAL = "off"
 config.MAX_VERIFY_NUDGES = 0
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent._AUDIT_LOG = d / "audit.log"
-agent._CHECKPOINT_GITDIR = None
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state._AUDIT_LOG = d / "audit.log"
+state._CHECKPOINT_GITDIR = None
 agent._unload_model = lambda m: None
 config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "ed:m"
 
@@ -48,7 +48,7 @@ assert not (d / "x.py").exists(), "read-only gate breached"
 # editor did the real write
 assert (d / "result.txt").read_text() == "DONE"
 
-log = agent._AUDIT_LOG.read_text()
+log = state._AUDIT_LOG.read_text()
 assert "READONLY_PLAN_NUDGE" in log, "read-only plan nudge did not fire"
 assert log.count("architect read-only") == 3, log  # exactly 3 refusals
 

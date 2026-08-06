@@ -35,6 +35,7 @@ MAX_MSG_LEN  = 1800   # Max length per iMessage fragment
 sys.path.insert(0, str(AGENT_DIR))
 try:
     import agent as _a
+    from agentic import config as _cfg, state as _st
 except ImportError as e:
     print(f"[Error] Could not import agent.py: {e}")
     sys.exit(1)
@@ -200,9 +201,9 @@ def init_agent(project_root: Path):
     agentic_dir.mkdir(exist_ok=True)
     (agentic_dir / "snapshots").mkdir(exist_ok=True)
 
-    _a.PROJECT_ROOT  = project_root
-    _a._AUDIT_LOG    = agentic_dir / f"imessage_{datetime.now().strftime('%Y%m%d')}.log"
-    _a._SNAPSHOT_DIR = agentic_dir / "snapshots"
+    _st.PROJECT_ROOT  = project_root
+    _st._AUDIT_LOG    = agentic_dir / f"imessage_{datetime.now().strftime('%Y%m%d')}.log"
+    _st._SNAPSHOT_DIR = agentic_dir / "snapshots"
 
     os.chdir(project_root)
 
@@ -225,7 +226,7 @@ def run_agent(command: str, project_root: Path) -> str:
     ]
 
     try:
-        return _a.run_agent(messages, _a.DEFAULT_MODEL)
+        return _a.run_agent(messages, _cfg.DEFAULT_MODEL)
     except Exception as e:
         return f"❌ Error: {e}"
 
@@ -274,7 +275,7 @@ def main():
     console.print(f"[dim]Waiting for messages... (Ctrl+C to stop)[/dim]")
 
     # Check that Ollama is available
-    if not _a.check_ollama(_a.DEFAULT_MODEL):
+    if not _a.check_ollama(_cfg.DEFAULT_MODEL):
         console.print("[red]Start Ollama before launching the bridge: ollama serve[/red]")
         sys.exit(1)
 

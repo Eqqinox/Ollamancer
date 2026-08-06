@@ -1,9 +1,10 @@
 import os, tempfile, pathlib
 import agent
+from agentic import state
 
 d = pathlib.Path(tempfile.mkdtemp())
 os.chdir(d)
-agent.PROJECT_ROOT = d.resolve()
+state.PROJECT_ROOT = d.resolve()
 (d / "src").mkdir()
 (d / "src" / "game.py").write_text("print(1)\n")
 (d / "README.md").write_text("hi\n")

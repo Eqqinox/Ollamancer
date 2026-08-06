@@ -100,7 +100,10 @@ def test_no_local_shadows_a_live_module():
     startup, so the suite stayed green while the agent could not start with MCP configured.
     """
     targets = set(LIVE_MODULES)
-    files = [ROOT / "agent.py"]
+    # tests count too: test_a7 shadowed `state` with its own counter dict and failed the
+    # same way _init_mcp did, so the scan covers every file that imports the live modules.
+    files = [ROOT / "agent.py", ROOT / "imessage_bridge.py"]
+    files += sorted((ROOT / "tests").glob("*.py"))
     if PACKAGE.is_dir():
         files += sorted(PACKAGE.rglob("*.py"))
 
@@ -109,6 +112,14 @@ def test_no_local_shadows_a_live_module():
         if not py.exists():
             continue
         tree = ast.parse(py.read_text(), filename=str(py))
+        # module level: a top-level `state = ...` clobbers the imported module outright
+        for n in tree.body:
+            tgts = n.targets if isinstance(n, ast.Assign) else (
+                [n.target] if isinstance(n, (ast.AugAssign, ast.AnnAssign)) else [])
+            for t_ in tgts:
+                if isinstance(t_, ast.Name) and t_.id in targets:
+                    problems.append(f"{py.relative_to(ROOT)}:{n.lineno}: module-level "
+                                    f"{t_.id!r} overwrites the imported module")
         for fn in ast.walk(tree):
             if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue

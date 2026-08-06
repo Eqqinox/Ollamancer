@@ -1,10 +1,10 @@
 import os, tempfile, pathlib
 import agent
-from agentic import config
+from agentic import config, state
 
 d = pathlib.Path(tempfile.mkdtemp())
 os.chdir(d)
-agent.PROJECT_ROOT = d.resolve()
+state.PROJECT_ROOT = d.resolve()
 
 # 1. append creates a new file
 r1 = agent.append_file("out.txt", "line1\n")

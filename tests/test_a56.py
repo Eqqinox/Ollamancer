@@ -1,6 +1,6 @@
 import os, tempfile, pathlib
 import agent
-from agentic import config
+from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
 # ---------- Unit: _extract_hard_tokens / _grounding_check ----------
@@ -33,10 +33,10 @@ assert agent._claim_without_action("Here is the summary.", had_edit=False, had_v
 assert agent._claim_without_action("I fixed it.", had_edit=True, had_verification=True) is None
 
 # ---------- Integration: monkeypatched run_agent ----------
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
-agent._AUDIT_LOG = d / "audit.log"
+state._AUDIT_LOG = d / "audit.log"
 
 class F:
     def __init__(s, n, a): s.name = n; s.arguments = a
@@ -89,7 +89,7 @@ msgs3 = [{"role": "system", "content": "sys"}, {"role": "user", "content": "summ
 final3 = agent.run_agent(msgs3, "fake-model")
 assert final3 == "Here is a plain summary with no claims or hard tokens.", final3
 
-log = agent._AUDIT_LOG.read_text()
+log = state._AUDIT_LOG.read_text()
 assert "AUTO_CLAIM_ACTION_NUDGE" in log and "AUTO_GROUNDING_CHECK_NUDGE" in log, log
 
 print("A5+A6 ALL PASS")

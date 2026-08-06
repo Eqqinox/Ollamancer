@@ -1,20 +1,20 @@
 import os, tempfile, pathlib, types
 import agent
-from agentic import config
+from agentic import config, state
 config.STREAM_FINAL = "off"
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent._AUDIT_LOG = d / "audit.log"
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state._AUDIT_LOG = d / "audit.log"
 
 # 1. no diff → cmd_review_by returns None
-agent._snapshots = {}
+state._snapshots = {}
 assert agent.cmd_review_by("reviewer:m", [{"role": "user", "content": "task"}], "main:m") is None
 
 # 2. set up a real diff via _snapshots (file changed on disk vs snapshot)
 f = d / "calc.py"; f.write_text("def add(a, b):\n    return a - b\n")   # buggy current content
-agent._snapshots = {str(f.resolve()): "def add(a, b):\n    return a + b\n"}   # original was correct
+state._snapshots = {str(f.resolve()): "def add(a, b):\n    return a + b\n"}   # original was correct
 assert "diff" in agent.cmd_diff().lower() or "```diff" in agent.cmd_diff()
 
 # 3. reviewer critique + sequential unload
@@ -30,7 +30,7 @@ critique = agent.cmd_review_by("reviewer:m", msgs, "main:m")
 assert "subtract" in critique, critique
 assert unloaded == ["main:m", "reviewer:m"], unloaded   # sequential: main out before reviewer, reviewer out after
 
-log = agent._AUDIT_LOG.read_text()
+log = state._AUDIT_LOG.read_text()
 assert "REVIEW_BY_START" in log and "REVIEW_BY_DONE" in log, log
 
 # 4. same model as current → no unload churn

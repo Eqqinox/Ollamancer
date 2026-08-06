@@ -1,12 +1,12 @@
 import os, tempfile, pathlib
 import agent
-from agentic import config
+from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
-agent._AUDIT_LOG = d / "audit.log"
+state._AUDIT_LOG = d / "audit.log"
 
 class Msg:
     def __init__(s, content="", tool_calls=None, thinking=""):
@@ -30,7 +30,7 @@ config.PLUMBING_FAILOVER_MODEL = "backup:model"
 calls = {"models": []}
 # script: primary raises 3x (1 initial + 2 retries exhausts budget=2), then after
 # failover the backup model returns a normal final answer.
-state = {"i": 0}
+call_count = {"i": 0}
 def fake_chat(**kw):
     calls["models"].append(kw["model"])
     # raise while on primary, succeed once we've switched to backup
@@ -42,7 +42,7 @@ msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "do it"}
 final = agent.run_agent(msgs, "primary:model")
 assert final == "Backup model answered fine.", final
 assert "primary:model" in calls["models"] and "backup:model" in calls["models"], calls["models"]
-log = agent._AUDIT_LOG.read_text()
+log = state._AUDIT_LOG.read_text()
 assert "MODEL_FAILOVER" in log and '"trigger": "json_truncation"' in log, log
 
 # --- Scenario 2: failover DISABLED → returns the fallback message, no switch ---

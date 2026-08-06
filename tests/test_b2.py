@@ -1,11 +1,11 @@
 import os, tempfile, pathlib, types
 import agent
-from agentic import config
+from agentic import config, state
 
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent._AUDIT_LOG = d / "audit.log"
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state._AUDIT_LOG = d / "audit.log"
 
 def chunk(content="", tool_calls=None, thinking=None):
     return types.SimpleNamespace(message=types.SimpleNamespace(

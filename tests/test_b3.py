@@ -1,15 +1,16 @@
 import os, tempfile, pathlib, json, time
 import agent
+from agentic import state
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent._AUDIT_LOG = d / "audit.log"
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state._AUDIT_LOG = d / "audit.log"
 sess = d / ".agentic" / "sessions"; sess.mkdir(parents=True)
-agent._SESSION_DIR = sess
+state._SESSION_DIR = sess
 
 # 1. save skips a system-only conversation
-agent._SESSION_FILE = sess / "20260101_000000.json"
+state._SESSION_FILE = sess / "20260101_000000.json"
 agent._save_session([{"role": "system", "content": "s"}], "m")
-assert not agent._SESSION_FILE.exists(), "empty session should not be saved"
+assert not state._SESSION_FILE.exists(), "empty session should not be saved"
 
 # 2. save a real conversation
 msgs = [
@@ -20,13 +21,13 @@ msgs = [
     {"role": "assistant", "content": "It is 2026."},
 ]
 agent._save_session(msgs, "primary:model")
-assert agent._SESSION_FILE.exists()
-data = json.loads(agent._SESSION_FILE.read_text())
+assert state._SESSION_FILE.exists()
+data = json.loads(state._SESSION_FILE.read_text())
 assert data["model"] == "primary:model" and len(data["messages"]) == 5
 
 # 3. a second, newer session
 time.sleep(0.05)
-agent._SESSION_FILE = sess / "20260102_000000.json"
+state._SESSION_FILE = sess / "20260102_000000.json"
 msgs2 = [{"role": "system", "content": "s"}, {"role": "user", "content": "second session topic"},
          {"role": "assistant", "content": "ok"}]
 agent._save_session(msgs2, "backup:model")
@@ -55,6 +56,6 @@ assert agent.cmd_resume_load("nope") is None
 # 8. tool_calls survive the round trip (JSON serializable)
 assert any(x.get("tool_calls") for x in loaded2[0])
 
-log = agent._AUDIT_LOG.read_text()
+log = state._AUDIT_LOG.read_text()
 assert "RESUME_SESSION" in log, log
 print("B3 ALL PASS")

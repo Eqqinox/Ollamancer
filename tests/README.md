@@ -48,10 +48,32 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_private` | `--private` writes nothing to disk |
 | `test_skills` | skills discovery / `load_skill` |
 
+## Structural guardrails
+
+Two of the tests are not behavioural — they exist to make the ongoing modularization safe:
+
+| File | Enforces |
+|---|---|
+| `test_structure.py` | Golden master over the agent's *shape*: the 34-tool registry, the 36 slash commands, EN/FR parity across `STR`/`SYSTEM_PROMPT`/`HELP_TEXT`, and the 30-entry `/parameters` schema — including a live write/read round-trip proving the menu is still wired to the variables the agent reads. |
+| `test_import_rules.py` | `config` and `state` must always be reached through the module object (`config.X`), never `from config import X`, which copies a value that never sees a later rebinding. Also bans `globals()[...]` across module boundaries and any local shadowing those module names. |
+
+Both were verified *negatively* — each fails on the bug it exists to catch.
+
 ## TODO (roadmap #3 — CI)
 
 These were written as fast standalone verification scripts. To formalize:
 1. Wrap each script's body in `def test_*()` functions.
-2. Add fixtures that reset mutated globals between tests (or keep per-module isolation).
+2. Add fixtures that reset mutated globals between tests. **`agentic.state.reset()` does this in
+   one call** — it restores every per-session global to its startup default and clears the caches
+   in place, without touching `config` (settings survive). So the fixture is roughly:
+   ```python
+   @pytest.fixture(autouse=True)
+   def clean_state():
+       state.reset()
+       yield
+       state.reset()
+   ```
+   Note some tests also monkeypatch `agent.ollama.chat`, which is not state — restore that separately.
 3. Add a `conftest.py` that puts the project root on `sys.path`.
-4. Wire up a **GitHub Actions** workflow running them on push.
+4. Wire up a **GitHub Actions** workflow running them on push (matrix: Python 3.12 and 3.14, to
+   prove the declared 3.12 floor).

@@ -1,9 +1,9 @@
 import os, tempfile, pathlib, types
 import agent
-from agentic import config
+from agentic import config, state
 
-d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
-agent._AUDIT_LOG = d / "audit.log"
+d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
+state._AUDIT_LOG = d / "audit.log"
 
 # a real (tiny) image file + a non-image
 img = d / "shot.png"; img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 32)
@@ -44,7 +44,7 @@ assert agent._detect_vision_model() == "llama3-vl:8b"   # name-hint fallback pic
 
 # 4. happy path: sequential load/unload + images passed to the model
 config.VISION_MODEL = "vis:model"
-agent._CURRENT_MODEL = "main:model"
+state._CURRENT_MODEL = "main:model"
 unloaded = []
 agent._unload_model = lambda m: unloaded.append(m)
 captured = {}
@@ -78,6 +78,6 @@ assert "vis:model" in unloaded, unloaded
 # registration
 assert agent.analyze_image in agent.TOOLS
 assert "analyze_image" not in agent._READ_ONLY_TOOL_NAMES  # heavy side-call, excluded from architect
-log = agent._AUDIT_LOG.read_text()
+log = state._AUDIT_LOG.read_text()
 assert "ANALYZE_IMAGE" in log
 print("B6 ALL PASS")
