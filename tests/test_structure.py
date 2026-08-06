@@ -127,7 +127,7 @@ def test_interface_is_bilingual():
 
 def test_param_schema():
     """The /parameters schema is frozen at 30 tunables, each well-formed."""
-    params = agent._all_params()
+    params = ui._all_params()
     variables = {p["var"] for p in params}
     assert variables == EXPECTED_PARAM_VARS, (
         f"tunables changed\n  missing: {sorted(EXPECTED_PARAM_VARS - variables)}"
@@ -159,15 +159,15 @@ def test_params_are_live():
 
     saved = {}
     try:
-        for p in agent._all_params():
+        for p in ui._all_params():
             var = p["var"]
             # Readable through the same path the menu formats from.
-            before = agent._param_format(p)
+            before = ui._param_format(p)
             saved[var] = getattr(config, var)
             assert before is not None
 
             # Nudge it and confirm the change is observable, then nudge it back.
-            agent._param_adjust(p, +1)
+            ui._param_adjust(p, +1)
             bumped = getattr(config, var)
             if p["kind"] == "enum":
                 assert bumped in p["options"], f"{var}: adjust produced {bumped!r}"

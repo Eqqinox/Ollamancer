@@ -1,6 +1,6 @@
 import os, tempfile, pathlib
 import agent
-from agentic import tools
+from agentic import commands, tools
 from agentic import state, skills
 state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
@@ -54,7 +54,7 @@ assert "load_skill" in tools._READ_ONLY_TOOL_NAMES
 
 # 8. make_system_prompt includes the skills block
 state._memory = ""
-sp = agent.make_system_prompt(proj)
+sp = commands.make_system_prompt(proj)
 assert "Available skills" in sp and "deploy:" in sp
 
 log = state._AUDIT_LOG.read_text() if state._AUDIT_LOG.exists() else ""

@@ -1,6 +1,6 @@
 import os, tempfile, pathlib
 import agent
-from agentic import tools
+from agentic import commands, tools
 from agentic.tools import rag
 from agentic import config, models, state
 config.STREAM_FINAL = "off"
@@ -21,9 +21,9 @@ for ok in ("read_file", "search_in_files", "find_references", "list_directory"):
 
 # 2. model resolution
 config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "editor:m"
-assert agent._architect_models("cur:m") == ("arch:m", "editor:m")
+assert commands._architect_models("cur:m") == ("arch:m", "editor:m")
 config.ARCHITECT_MODEL = ""; config.EDITOR_MODEL = ""
-assert agent._architect_models("cur:m") == ("cur:m", "cur:m")   # degenerate fallback
+assert commands._architect_models("cur:m") == ("cur:m", "cur:m")   # degenerate fallback
 config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "editor:m"
 
 # 3. record unload order (sequential loading guarantee)
@@ -55,7 +55,7 @@ def router(**kw):
 rag.ollama.chat = router
 
 msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "prior context"}]
-plan, result = agent.cmd_architect("build the thing", msgs, "cur:m")
+plan, result = commands.cmd_architect("build the thing", msgs, "cur:m")
 
 assert "PLAN:" in plan, plan
 assert result == "done", result

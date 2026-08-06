@@ -1,6 +1,6 @@
 import sys, tempfile, pathlib, io, contextlib
 import agent
-from agentic import ui
+from agentic import commands, ui
 from agentic.tools import notes
 from agentic import models
 from agentic import mcp_client
@@ -44,7 +44,7 @@ if agdir.exists():
 # guards: _save_session and _save_memory are no-ops under PRIVATE_MODE
 state.PRIVATE_MODE = True
 state._SESSION_FILE = proj / "should_not_be_written.json"
-agent._save_session([{"role": "system", "content": "s"}, {"role": "user", "content": "secret"},
+commands._save_session([{"role": "system", "content": "s"}, {"role": "user", "content": "secret"},
                      {"role": "assistant", "content": "reply"}], "m")
 assert not state._SESSION_FILE.exists(), "private _save_session must not write"
 state._memory = "a private secret to remember"

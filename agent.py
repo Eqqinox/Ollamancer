@@ -51,6 +51,7 @@ from rich.table import Table
 # `from agentic.config import X` — a frozen copy would never see a change.
 # Voir agentic/config.py et tests/test_import_rules.py.
 from agentic import loop
+from agentic import commands
 from agentic import checkpoints, config, i18n, mcp_client, models, safety, skills, state, ui
 from agentic import tools
 from agentic.tools import exec as toolexec
@@ -137,165 +138,7 @@ atexit.register(mcp_client._cleanup_mcp)
 # ── Vérification Ollama ──────────────────────────────────────────────────────
 
 
-def _architect_models(current_model: str) -> tuple[str, str]:
-    """Resolve the (architect, editor) pair — configured names, or the current model as a
-    degenerate fallback so /architect always runs even before /architect-models is set."""
-    return (config.ARCHITECT_MODEL or current_model, config.EDITOR_MODEL or current_model)
-
-
-def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, str]:
-    """Two-model plan-then-execute pass. Model A (architect) plans with read-only tools;
-    model B (editor) executes the plan with full tools. STRICTLY sequential loading — the
-    previous model is unloaded before the next loads, so never two resident at once. Runs
-    each phase on a *copy* of the conversation so the main history isn't polluted with the
-    architect's read-only tool spam; returns (plan_text, editor_result) for the caller to
-    fold into history. See improvement_plusFixes.md 1.3 / 2.1 (aider architect/editor)."""
-    architect_model, editor_model = _architect_models(current_model)
-    safety._audit("ARCHITECT_START", {"architect": architect_model, "editor": editor_model, "task": task[:120]})
-
-    if config.LANG == "fr":
-        arch_instr = (
-            "PHASE DE PLANIFICATION — tu es l'ARCHITECTE. Tu peux LIRE le code (read_file, "
-            "read_file_lines, search_in_files, find_references, find_files, list_directory, "
-            "search_semantic, lint_file, recherche web) mais tu n'as AUCUN outil d'écriture ou "
-            "d'exécution : write_file, edit_file, append_file, run_command et run_tests sont "
-            "indisponibles ici et TOUTE tentative de les appeler sera refusée. N'essaie pas de "
-            "les appeler, ni de contourner (ex : écrire un fichier via run_command). Ton unique "
-            "livrable est un plan d'implémentation précis et numéroté, écrit en TEXTE dans ta "
-            "réponse : quels fichiers et fonctions modifier, en quoi consiste chaque changement, "
-            "et dans quel ordre. Lis d'abord ce qu'il te faut, puis termine ton tour par le plan "
-            f"numéroté en texte, rien d'autre — c'est le modèle éditeur qui écrira le code.\n\nTâche : {task}")
-    else:
-        arch_instr = (
-            "PLANNING PHASE — you are the ARCHITECT. You may READ the code (read_file, "
-            "read_file_lines, search_in_files, find_references, find_files, list_directory, "
-            "search_semantic, lint_file, web search) but you have NO write or execute tools: "
-            "write_file, edit_file, append_file, run_command and run_tests are unavailable here "
-            "and ANY attempt to call them WILL be refused. Do not try to call them, and do not "
-            "try to work around this (e.g. writing a file via run_command). Your only deliverable "
-            "is a precise, numbered implementation plan written as TEXT in your reply: which files "
-            "and functions to change, what each change is, and in what order. Read what you need "
-            "first, then end your turn with the numbered plan as text and nothing else — the editor "
-            f"model will write the code.\n\nTask: {task}")
-
-    # ── Phase 1 : architecte (lecture seule) ──
-    if architect_model != current_model:
-        models._unload_model(current_model)   # jamais deux modèles résidents
-    ui.console.print(f"\n[bold magenta]{t('architect_planning', model=architect_model)}[/bold magenta]")
-    arch_messages = list(messages) + [{"role": "user", "content": arch_instr}]
-    plan = loop.run_agent(arch_messages, architect_model,
-                     tool_schemas=tools._read_only_tools(), allowed_tools=tools._READ_ONLY_TOOL_NAMES)
-    ui.console.print()
-    ui.console.print(Rule(f"[bold magenta] {t('architect_plan_title', model=architect_model)} [/bold magenta]", style="magenta"))
-    ui.console.print(Markdown(plan))
-    ui.console.print(Rule(style="dim"))
-
-    # ── Phase 2: editor (all tools) — sequential loading ──
-    if editor_model != architect_model:
-        models._unload_model(architect_model)
-    if config.LANG == "fr":
-        editor_instr = (
-            "PHASE D'EXÉCUTION — tu es l'ÉDITEUR. Voici un plan d'implémentation approuvé, "
-            "produit par l'architecte. Exécute-le étape par étape avec tous tes outils "
-            "(write_file/append_file/edit_file/run_command...), en vérifiant au fur et à mesure. "
-            "Si une étape est erronée ou impossible, adapte-toi mais reste proche du plan.\n\n"
-            f"Plan :\n{plan}\n\nTâche d'origine : {task}")
-    else:
-        editor_instr = (
-            "EXECUTION PHASE — you are the EDITOR. Here is an approved implementation plan from "
-            "the architect. Execute it step by step using your full tools "
-            "(write_file/append_file/edit_file/run_command...), verifying as you go. If a step "
-            "is wrong or impossible, adapt but stay close to the plan.\n\n"
-            f"Plan:\n{plan}\n\nOriginal task: {task}")
-    ui.console.print(f"\n[bold green]{t('architect_executing', model=editor_model)}[/bold green]")
-    editor_messages = list(messages) + [{"role": "user", "content": editor_instr}]
-    result = loop.run_agent(editor_messages, editor_model)
-    safety._audit("ARCHITECT_DONE", {"architect": architect_model, "editor": editor_model})
-    return plan, result
-
-
-def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> str | None:
-    """Cross-model review (B8): a second model critiques this session's /diff, then the primary
-    model responds and can fix real issues. One read-only reviewer call (no tools), sequential
-    loading (current model unloaded first). Returns the critique text, or None if there's no
-    diff to review. See improvement_plusFixes.md 2.8 — an *independent* judge, the only kind
-    the research says works at all."""
-    diff = cmd_diff()
-    if diff in (t("diff_none_session"), t("diff_none_detected")):
-        return None
-    last_user = next((m["content"] for m in reversed(messages)
-                      if m.get("role") == "user" and not str(m.get("content", "")).startswith("/")), "")
-    if config.LANG == "fr":
-        review_prompt = (
-            "Tu es un relecteur de code senior et indépendant. Voici le diff des changements "
-            "faits dans cette session, et la tâche d'origine. Critique-le : bugs de correction, "
-            "cas limites manqués, régressions, style. Sois précis et concis ; cite les lignes. "
-            "Si c'est correct, dis-le.\n\n"
-            f"Tâche d'origine : {last_user}\n\nDiff :\n{diff}")
-    else:
-        review_prompt = (
-            "You are a senior, independent code reviewer. Here is the diff of changes made in "
-            "this session, plus the original task. Critique it: correctness bugs, missed edge "
-            "cases, regressions, style. Be specific and concise; cite lines. If it's fine, say "
-            "so.\n\n"
-            f"Original task: {last_user}\n\nDiff:\n{diff}")
-
-    safety._audit("REVIEW_BY_START", {"reviewer": reviewer_model})
-    if reviewer_model != current_model:
-        models._unload_model(current_model)
-    ui.console.print(f"\n[bold magenta]{t('review_by_running', model=reviewer_model)}[/bold magenta]")
-    try:
-        resp = loop._chat_with_live_ram(
-            "thinking_status",
-            lambda: ollama.chat(model=reviewer_model,
-                                 messages=[{"role": "user", "content": review_prompt}],
-                                 stream=False, options=models._gen_options(reviewer_model)),
-        )
-        critique = (resp.message.content or "").strip()
-    except Exception as e:
-        return f"⚠️ Reviewer model error ({type(e).__name__}: {e}). Is '{reviewer_model}' installed and tool-free chat working?"
-    if reviewer_model != current_model:
-        models._unload_model(reviewer_model)   # sequential: the main model reloads to answer
-    ui.console.print()
-    ui.console.print(Rule(f"[bold magenta] {t('review_by_title', model=reviewer_model)} [/bold magenta]", style="magenta"))
-    ui.console.print(Markdown(critique or "(the reviewer returned no text)"))
-    ui.console.print(Rule(style="dim"))
-    safety._audit("REVIEW_BY_DONE", {"reviewer": reviewer_model})
-    return critique
-
-
 # ── Boucle ReAct ─────────────────────────────────────────────────────────────
-
-
-def _parse_recipe(path: str) -> list[str]:
-    """Parse a recipe markdown file into a list of step prompts. Recognizes a 'Constraints'
-    heading (applied to every step) and a 'Steps' heading (ordered/unordered list = the
-    steps). With no such headings, top-level list items are the steps; failing that, the
-    whole file is a single step."""
-    text = Path(path).expanduser().read_text(encoding="utf-8")
-    constraints: list[str] = []
-    steps: list[str] = []
-    section = None
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("#"):
-            low = stripped.lower()
-            section = "c" if "constraint" in low else ("s" if "step" in low else None)
-            continue
-        m = re.match(r'\s*(?:\d+[.)]|[-*])\s+(.*)', line)
-        if section == "c" and stripped:
-            constraints.append(re.sub(r'^\s*(?:\d+[.)]|[-*])\s+', '', line).strip())
-        elif section == "s" and m:
-            steps.append(m.group(1).strip())
-        elif section is None and m:
-            steps.append(m.group(1).strip())
-    if not steps:
-        steps = [text.strip()]
-    if constraints:
-        preamble = ("Constraints that apply to every step:\n"
-                    + "\n".join(f"- {c}" for c in constraints) + "\n\n")
-        steps = [preamble + "Step: " + s for s in steps]
-    return steps
 
 
 # ── Compaction de contexte (v3.0) ────────────────────────────────────────────────
@@ -310,259 +153,7 @@ def _parse_recipe(path: str) -> list[str]:
 # ── Commandes slash ──────────────────────────────────────────────────────────
 
 
-def show_tools():
-    for name, fn in tools.TOOL_MAP.items():
-        doc = (fn.__doc__ or "").strip().split("\n")[0]
-        ui.console.print(f"  [yellow]{name}[/yellow] — {doc}")
-
-
-def show_mcp():
-    if not mcp_client._MCP_AVAILABLE:
-        ui.console.print("  [dim]MCP support not installed. Run: pip install mcp[/dim]")
-        return
-    if not mcp_client.MCP_CONNECTIONS:
-        ui.console.print(f"  [dim]No MCP servers connected. Configure them in {config.MCP_CONFIG_FILE} "
-                       f"(same \"mcpServers\" format as Claude Desktop/Claude Code) and restart.[/dim]")
-        return
-    for server_name in mcp_client.MCP_CONNECTIONS:
-        ui.console.print(f"  [bold cyan]{server_name}[/bold cyan]")
-        for qualified_name, (conn, real_name) in mcp_client.MCP_TOOL_MAP.items():
-            if conn.name == server_name:
-                schema = next((s for s in mcp_client.MCP_TOOL_SCHEMAS if s["function"]["name"] == qualified_name), None)
-                desc = (schema["function"]["description"].strip().split("\n")[0] if schema else "")
-                ui.console.print(f"    [yellow]{qualified_name}[/yellow] — {desc}")
-
-
-def show_history(messages: list, n: int = 8):
-    for msg in messages[-n:]:
-        role    = msg.get("role", "?")
-        content = str(msg.get("content", ""))[:200]
-        color   = {"user": "cyan", "assistant": "green", "tool": "yellow", "system": "dim"}.get(role, "white")
-        ui.console.print(f"[{color}][{role}][/{color}] {rich_escape(content)}")
-
-
-def cmd_add(filepaths: str, messages: list):
-    paths = filepaths.strip().split()
-    newly = []
-    for ps in paths:
-        p = Path(ps).expanduser()
-        safe, reason = safety._check_file_path(ps)
-        if not safe:
-            ui.console.print(f"  [red]{t('add_blocked')}[/red] {p.name} — {reason}")
-            continue
-        if not p.exists():
-            ui.console.print(f"  [red]{t('add_not_found')}[/red] {p}")
-            continue
-        key = str(p.resolve())
-        if key in state._context_files:
-            ui.console.print(f"  [yellow]{t('add_already')}[/yellow] {p.name}")
-            continue
-        try:
-            lines    = p.read_text(encoding="utf-8").splitlines()
-            numbered = "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(lines))
-            ext      = p.suffix.lstrip(".") or "text"
-            state._context_files[key] = p.name
-            newly.append((p.name, f"```{ext}\n{numbered}\n```"))
-        except Exception as e:
-            ui.console.print(f"  [red]{t('add_error', name=p.name)}[/red] {e}")
-    if newly:
-        parts = [f"**{n}**\n{fmt}" for n, fmt in newly]
-        messages.append({"role": "user", "content": t("add_user_wrapper") + "\n\n---\n\n".join(parts)})
-        messages.append({"role": "assistant", "content": t("add_assistant_ack", names=', '.join(n for n,_ in newly))})
-        ui.console.print(f"  [green]{t('add_added')}[/green] {', '.join(n for n,_ in newly)}\n")
-
-
-def cmd_diff() -> str:
-    if not state._snapshots:
-        return t("diff_none_session")
-    results = []
-    for path_str, original in state._snapshots.items():
-        p = Path(path_str)
-        if p.exists():
-            current = p.read_text(encoding="utf-8")
-            if current != original:
-                diff = list(difflib.unified_diff(
-                    original.splitlines(keepends=True),
-                    current.splitlines(keepends=True),
-                    fromfile=f"a/{p.name}", tofile=f"b/{p.name}", n=3,
-                ))
-                if diff:
-                    results.append("```diff\n" + "".join(diff[:60]) + "\n```")
-    return "\n\n".join(results) if results else t("diff_none_detected")
-
-
-def cmd_undo_legacy() -> str:
-    """The old all-or-nothing in-memory /undo — used only when git is unavailable
-    (no shadow checkpoint repository possible)."""
-    if not state._snapshots:
-        return t("undo_none")
-    restored = []
-    for path_str, original in state._snapshots.items():
-        try:
-            Path(path_str).write_text(original, encoding="utf-8")
-            restored.append(Path(path_str).name)
-        except Exception as e:
-            ui.console.print(f"  [red]{t('undo_restore_error', path=path_str)}[/red] {e}")
-    state._snapshots.clear()
-    return t("undo_restored", names=', '.join(restored))
-
-
-def cmd_undo_list() -> str:
-    """List available git checkpoints (newest first), or explain there are none."""
-    if not state._CHECKPOINTS:
-        return t("undo_ckpt_none")
-    lines = [t("undo_ckpt_header")]
-    for i, ck in enumerate(reversed(state._CHECKPOINTS), start=1):
-        marker = " (last)" if i == 1 else ""
-        lines.append(f"  [{i}] {ck['ts']} — {ck['label']} [{ck['sha'][:8]}]{marker}")
-    lines.append(t("undo_ckpt_usage"))
-    return "\n".join(lines)
-
-
-def cmd_undo_restore(which: str) -> str:
-    """Restore a checkpoint. `which` is "last" or a 1-based index as shown by cmd_undo_list
-    (1 = newest). Truncates the checkpoint list past the restored point so it stays
-    consistent with the actual on-disk state."""
-    if not state._CHECKPOINTS:
-        return t("undo_ckpt_none")
-    n = len(state._CHECKPOINTS)
-    if which in ("last", "dernier", ""):
-        idx = n - 1
-    else:
-        try:
-            disp = int(which)
-        except ValueError:
-            return t("undo_ckpt_badindex", which=which)
-        if not (1 <= disp <= n):
-            return t("undo_ckpt_badindex", which=which)
-        idx = n - disp  # display index 1 = newest = _CHECKPOINTS[-1]
-    ck = state._CHECKPOINTS[idx]
-    if not checkpoints._restore_checkpoint(ck["sha"]):
-        return t("undo_ckpt_failed")
-    safety._audit("UNDO_CHECKPOINT", {"sha": ck["sha"][:10], "label": ck["label"]})
-    del state._CHECKPOINTS[idx:]  # anything at or beyond this point is no longer reachable
-    state._snapshots.clear()      # the session /diff starts over after a rollback
-    return t("undo_ckpt_restored", label=ck["label"], ts=ck["ts"])
-
-
 # ── Persistance de session (B3) ─────────────────────────────────────────────────
-
-def _save_session(messages: list, model: str) -> None:
-    """Serialize the current conversation to this session's JSON file (one file per session,
-    overwritten as it grows). Called after each completed turn and on exit. Never raises —
-    a persistence failure must not break the session. Skips near-empty sessions."""
-    if state.PRIVATE_MODE or state._SESSION_FILE is None or len([m for m in messages if m.get("role") != "system"]) == 0:
-        return
-    try:
-        payload = {
-            "created": state._SESSION_FILE.stem,
-            "updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "model": model,
-            "project": str(state.PROJECT_ROOT) if state.PROJECT_ROOT else "",
-            "lang": config.LANG,
-            "messages": messages,
-        }
-        state._SESSION_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
-    except Exception:
-        pass
-
-
-def _list_sessions() -> list[dict]:
-    """All saved sessions (this project's .agentic/sessions/), newest-updated first, with a
-    short preview of the first user message."""
-    if state._SESSION_DIR is None or not state._SESSION_DIR.exists():
-        return []
-    out = []
-    for f in state._SESSION_DIR.glob("*.json"):
-        try:
-            data = json.loads(f.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        msgs = data.get("messages", [])
-        first_user = next((m.get("content", "") for m in msgs if m.get("role") == "user"), "")
-        try:
-            mtime = f.stat().st_mtime
-        except OSError:
-            mtime = 0.0
-        out.append({
-            "file": f,
-            "updated": data.get("updated", ""),
-            "model": data.get("model", ""),
-            "n_messages": len(msgs),
-            "preview": (first_user or "").strip().replace("\n", " ")[:60],
-            "_mtime": mtime,
-        })
-    out.sort(key=lambda s: s["_mtime"], reverse=True)   # mtime = sub-second resolution, more reliable than the text field
-    return out
-
-
-def cmd_resume_list() -> str:
-    sessions = _list_sessions()
-    if not sessions:
-        return t("resume_none")
-    lines = [t("resume_header")]
-    for i, s in enumerate(sessions, start=1):
-        cur = "  ← current" if state._SESSION_FILE and s["file"] == state._SESSION_FILE else ""
-        lines.append(f"  [{i}] {s['updated']} · {s['n_messages']} msgs · {s['model']}{cur}\n"
-                     f"        “{s['preview']}”")
-    lines.append(t("resume_usage"))
-    return "\n".join(lines)
-
-
-def cmd_resume_load(which: str):
-    """Load a saved session. `which` = "last" or a 1-based index from cmd_resume_list.
-    Returns (messages, model) on success, or None on failure (caller reports)."""
-    sessions = _list_sessions()
-    if not sessions:
-        return None
-    if which in ("last", "dernier", ""):
-        chosen = sessions[0]
-    else:
-        try:
-            idx = int(which)
-        except ValueError:
-            return None
-        if not (1 <= idx <= len(sessions)):
-            return None
-        chosen = sessions[idx - 1]
-    try:
-        data = json.loads(chosen["file"].read_text(encoding="utf-8"))
-    except Exception:
-        return None
-    msgs = data.get("messages", [])
-    if not msgs:
-        return None
-    safety._audit("RESUME_SESSION", {"file": chosen["file"].name, "n_messages": len(msgs)})
-    return msgs, data.get("model", "")
-
-
-def cmd_audit():
-    if not state._AUDIT_LOG or not state._AUDIT_LOG.exists():
-        ui.console.print(f"[dim]{t('audit_none')}[/dim]\n")
-        return
-    lines = state._AUDIT_LOG.read_text(encoding="utf-8").splitlines()
-    ui.console.print(f"\n[dim]{t('audit_log_line', path=state._AUDIT_LOG)}[/dim]")
-    ui.console.print(Rule(f"[bold magenta]{t('audit_title')}[/bold magenta]", style="magenta"))
-    for line in lines[-20:]:
-        if "BLOCKED" in line:
-            ui.console.print(f"[red]{line}[/red]")
-        else:
-            ui.console.print(f"[dim]{line}[/dim]")
-    ui.console.print(Rule(style="dim"))
-    ui.console.print()
-
-
-def make_system_prompt(project_root: Path) -> str:
-    base = i18n.SYSTEM_PROMPT.get(config.LANG, i18n.SYSTEM_PROMPT["en"])
-    if config.LANG == "fr":
-        suffix = f"\n\nRacine du projet : {project_root}\nToutes les opérations fichiers/dossiers/commandes sont relatives à cette racine."
-        if state._memory:
-            suffix += f"\n\nMémoire persistante (sauvegardée lors de sessions précédentes, potentiellement obsolète) :\n{state._memory}"
-    else:
-        suffix = f"\n\nProject root: {project_root}\nAll file/folder/command operations are relative to this root."
-        if state._memory:
-            suffix += f"\n\nPersistent memory (saved during previous sessions, may be outdated):\n{state._memory}"
-    return base + suffix + skills._skills_prompt_block()   # Tier 1 : découverte des skills (name+desc)
 
 
 # ── /parameters : menu interactif de réglages ────────────────────────────────
@@ -570,320 +161,12 @@ def make_system_prompt(project_root: Path) -> str:
 # value is always read/written via getattr/setattr on `config`, so no declaration-order
 # dependency is needed here.
 
-_PARAM_SCHEMA = [
-    ("Model Generation", [
-        {"var": "GEN_TEMPERATURE", "label": "Temperature", "kind": "float",
-         "min": 0.0, "max": 2.0, "step": 0.05, "default": 0.8,
-         "help": "Randomness of the output. Lower = focused and deterministic. "
-                 "Higher = more creative and unpredictable. 0 always picks the single most likely next word."},
-        {"var": "GEN_TOP_P", "label": "Top P", "kind": "float",
-         "min": 0.0, "max": 1.0, "step": 0.05, "default": 0.9,
-         "help": "Nucleus sampling — only considers the smallest set of tokens whose combined "
-                 "probability reaches this value. Lower = narrower, safer word choices."},
-        {"var": "GEN_TOP_K", "label": "Top K", "kind": "int",
-         "min": 0, "max": 100, "step": 1, "default": 40,
-         "help": "Only considers the K most likely next tokens at each step. Lower = more focused. "
-                 "0 disables this filter (Top P alone decides)."},
-        {"var": "GEN_REPEAT_PENALTY", "label": "Repeat Penalty", "kind": "float",
-         "min": 1.0, "max": 2.0, "step": 0.05, "default": 1.1,
-         "help": "Penalizes tokens already used, to reduce repetition. 1.0 = no penalty. "
-                 "Too high can make text feel unnatural or avoid necessary repeated words."},
-        {"var": "GEN_NUM_PREDICT", "label": "Max Output Tokens", "kind": "int",
-         "min": -1, "max": 8192, "step": 128, "default": -1, "special_min_label": "unlimited",
-         "help": "Maximum tokens the model can generate in one reply. "
-                 "-1 (unlimited) = stops naturally or when context runs out."},
-        {"var": "GEN_SEED", "label": "Seed", "kind": "int",
-         "min": -1, "max": 999999, "step": 1, "default": -1, "special_min_label": "random",
-         "help": "Fixed seed for reproducible outputs (same input -> same output). "
-                 "-1 (random) = a different seed every request."},
-        {"var": "STREAM_FINAL", "label": "Stream Final Answer", "kind": "enum",
-         "options": ["on", "off"], "default": "on",
-         "help": "Stream the model's answer live as it generates instead of showing it all at "
-                 "once. Tool-call rounds are still buffered. Set to \"off\" to fall back to the "
-                 "classic buffered call if a model's tool calling regresses while streaming "
-                 "(historical Ollama bug #12557)."},
-    ]),
-    ("Context & Safety Limits", [
-        {"var": "SAFE_NUM_CTX", "label": "Context Window Cap", "kind": "int",
-         "min": 4096, "max": 131072, "step": 4096, "default": 65536,
-         "help": "Maximum context window requested from Ollama, capped for RAM safety. "
-                 "Lower = less RAM used, but the model \"forgets\" more of a long conversation. "
-                 "Default is 64K; raise toward 128K only if you have RAM headroom."},
-        {"var": "MAX_TOOL_ROUNDS", "label": "Max Tool-Call Rounds", "kind": "int",
-         "min": 5, "max": 50, "step": 5, "default": 25,
-         "help": "Safety limit: how many tool-call rounds the agent can run in a single turn "
-                 "before stopping automatically, to prevent an infinite loop."},
-        {"var": "MAX_BACKGROUND_PROCESSES", "label": "Max Background Processes", "kind": "int",
-         "min": 1, "max": 10, "step": 1, "default": 5,
-         "help": "How many run_background processes can be active at once before new ones are blocked."},
-        {"var": "MAX_VERIFY_NUDGES", "label": "Max Self-Verification Nudges", "kind": "int",
-         "min": 0, "max": 5, "step": 1, "default": 2,
-         "help": "How many times the agent auto-nudges itself to verify its own edit "
-                 "(lint/tests) before giving up and answering anyway."},
-        {"var": "MAX_FAKE_TOOLCALL_RETRIES", "label": "Max Fake-Tool-Call Retries", "kind": "int",
-         "min": 0, "max": 5, "step": 1, "default": 2,
-         "help": "How many times the agent asks a model to retry for real when it writes "
-                 "a tool call as plain text (e.g. \"<function=...>\") instead of actually "
-                 "invoking it, before giving up with an explicit error."},
-        {"var": "MAX_CITATION_NUDGES", "label": "Max Citation Nudges", "kind": "int",
-         "min": 0, "max": 3, "step": 1, "default": 1,
-         "help": "How many times the agent nudges the model to add [Source: URL] "
-                 "citations when it used search/fetch results but the final answer "
-                 "cited none. A soft quality nudge, not a hard requirement — set to 0 "
-                 "to disable."},
-        {"var": "MAX_GROUNDING_NUDGES", "label": "Max Grounding Nudges", "kind": "int",
-         "min": 0, "max": 3, "step": 1, "default": 1,
-         "help": "How many times the agent nudges the model when it describes a "
-                 "hypothetical tool result (\"returns something like this\") with "
-                 "invented specific values instead of actually calling the tool or "
-                 "clearly labeling the example as made up. Set to 0 to disable."},
-        {"var": "MAX_GROUNDING_CHECK_NUDGES", "label": "Max Unsupported-Value Nudges", "kind": "int",
-         "min": 0, "max": 3, "step": 1, "default": 1,
-         "help": "Deterministic post-answer check: how many times the agent nudges when the "
-                 "final answer contains hard tokens (numbers, dates, URLs, quoted names) that "
-                 "appear in NONE of this turn's raw tool results. A nudge, not a gate (derived "
-                 "or paraphrased values may false-positive). Set to 0 to disable."},
-        {"var": "MAX_CLAIM_ACTION_NUDGES", "label": "Max Claim-vs-Action Nudges", "kind": "int",
-         "min": 0, "max": 3, "step": 1, "default": 1,
-         "help": "How many times the agent nudges when the answer claims a fix ("
-                 "\"fixed\", \"corrigé\") with no successful edit this turn, or claims "
-                 "verification (\"verified\", \"tested\") with no verification tool call this "
-                 "turn. Set to 0 to disable."},
-        {"var": "MAX_READONLY_REFUSALS", "label": "Architect Read-Only Refusals", "kind": "int",
-         "min": 1, "max": 8, "step": 1, "default": 3,
-         "help": "In /architect planning, how many refused write/execute tool calls the "
-                 "architect model may make before it is told once to stop calling tools and "
-                 "write the plan as text. Lower = nudge sooner (helps small architect models)."},
-        {"var": "SEMANTIC_TOP_K", "label": "Semantic Search Results", "kind": "int",
-         "min": 1, "max": 15, "step": 1, "default": 5,
-         "help": "How many closest chunks search_semantic (local RAG over the project) returns."},
-        {"var": "SEMANTIC_CHUNK_LINES", "label": "Semantic Chunk Lines", "kind": "int",
-         "min": 20, "max": 200, "step": 10, "default": 60,
-         "help": "Line count per indexed chunk for search_semantic. Smaller = more precise "
-                 "matches but a bigger index; larger = more context per hit."},
-        {"var": "AUTO_COMPACT", "label": "Auto-Compact Context", "kind": "enum",
-         "options": ["off", "on"], "default": "off",
-         "help": "When on, once the conversation passes the threshold below, the oldest turns are "
-                 "replaced by a structured summary (system prompt + recent turns kept verbatim). "
-                 "OFF by default — compaction is lossy, so it never fires unless you enable it. "
-                 "Use /compact for manual, on-demand compaction regardless of this setting."},
-        {"var": "COMPACT_THRESHOLD_PCT", "label": "Compact At (% of Context)", "kind": "int",
-         "min": 50, "max": 95, "step": 5, "default": 70,
-         "help": "Auto-compact fires when the real prompt token count passes this % of the context "
-                 "window. Earlier (70%) is safer than late (95%) — a model near its ceiling writes "
-                 "worse summaries."},
-        {"var": "COMPACT_KEEP_TURNS", "label": "Keep Recent Turns", "kind": "int",
-         "min": 1, "max": 12, "step": 1, "default": 3,
-         "help": "How many of the most recent user turns are kept verbatim during compaction. "
-                 "Everything older is folded into the structured summary."},
-    ]),
-    ("Web Search", [
-        {"var": "SEARCH_LANGUAGE", "label": "Search Language", "kind": "enum",
-         "options": ["en-US", "fr-FR", "auto"], "default": "en-US",
-         "help": "Language bias applied to every SearXNG query. \"auto\" lets the SearXNG "
-                 "instance's own default decide (can drift toward whatever the instance is configured for)."},
-        {"var": "SEARCH_RESULT_CAP", "label": "Search Results Kept", "kind": "int",
-         "min": 3, "max": 15, "step": 1, "default": 5,
-         "help": "How many raw search results search_web keeps per call. "
-                 "More = broader coverage, more tokens spent."},
-        {"var": "DEEP_SEARCH_FETCH_COUNT", "label": "Deep Search: Pages Fetched", "kind": "int",
-         "min": 1, "max": 6, "step": 1, "default": 3,
-         "help": "How many top results search_web_deep actually opens and reads in full, in parallel."},
-        {"var": "DEEP_SEARCH_CHAR_BUDGET", "label": "Deep Search: Chars per Page", "kind": "int",
-         "min": 500, "max": 5000, "step": 250, "default": 2000,
-         "help": "How much cleaned article text is kept per fetched page in search_web_deep."},
-        {"var": "DEEP_SEARCH_TIMEOUT", "label": "Deep Search: Fetch Timeout (s)", "kind": "int",
-         "min": 2, "max": 15, "step": 1, "default": 5,
-         "help": "How long to wait for each page fetch in search_web_deep before giving up on that source."},
-        {"var": "DEEP_SEARCH_THIN_THRESHOLD", "label": "Deep Search: Thin-Content Threshold", "kind": "int",
-         "min": 50, "max": 1000, "step": 50, "default": 200,
-         "help": "If a fetched page's extracted text is shorter than this (likely a JS-only "
-                 "shell), search_web_deep automatically retries it through a real headless "
-                 "browser instead of giving up."},
-        {"var": "RSS_ENABLED", "label": "News RSS Feeds", "kind": "enum",
-         "options": ["on", "off"], "default": "on",
-         "help": "For news-shaped queries, also pull matching headlines from major-outlet RSS "
-                 "feeds (Reuters, AP, BBC, Al Jazeera, NPR, Guardian, Fox) — real publisher "
-                 "dates, no JavaScript/anti-bot problem, since RSS is served for machine "
-                 "consumption. Mainstream coverage only; doesn't help for independent/underground sources."},
-        {"var": "MAX_DEEP_SEARCHES", "label": "Max Deep Searches per Turn", "kind": "int",
-         "min": 2, "max": 15, "step": 1, "default": 6,
-         "help": "How many search_web_deep calls the agent can make in one turn before being "
-                 "told to stop and answer with what it has — triggers even if every result was "
-                 "real content, unlike the thin-search circuit breaker, since a long chain of "
-                 "real-but-unconverging deep searches can otherwise exhaust the whole time budget."},
-    ]),
-]
-
-
-def _param_format(p: dict) -> str:
-    val = getattr(config, p["var"])
-    if p["kind"] == "enum":
-        return str(val)
-    if p.get("special_min_label") and val == p["min"]:
-        return f"{val} ({p['special_min_label']})"
-    if p["kind"] == "float":
-        return f"{val:.2f}"
-    return str(val)
-
-
-def _param_adjust(p: dict, direction: int) -> None:
-    """direction: -1 (left) or +1 (right)."""
-    var = p["var"]
-    if p["kind"] == "enum":
-        opts = p["options"]
-        idx = (opts.index(getattr(config, var)) + direction) % len(opts)
-        setattr(config, var, opts[idx])
-    else:
-        step = p["step"]
-        new_val = getattr(config, var) + direction * step
-        new_val = max(p["min"], min(p["max"], new_val))
-        if p["kind"] == "float":
-            new_val = round(new_val, 2)
-        setattr(config, var, new_val)
-    _save_params()
-
-
-def _flatten_schema():
-    """Return a flat list of rows: ('header', text) or ('param', dict)."""
-    rows = []
-    for section, params in _PARAM_SCHEMA:
-        rows.append(("header", section))
-        for p in params:
-            rows.append(("param", p))
-    return rows
-
-
-def _all_params() -> list:
-    """All the parameter dicts (without the section headers)."""
-    return [p for kind, p in _flatten_schema() if kind == "param"]
-
-
-def _save_params() -> None:
-    """Save the current value of every /parameters setting to PARAMS_FILE
-    (user level, not per project — these are taste/hardware settings, not
-    project settings)."""
-    try:
-        data = {p["var"]: getattr(config, p["var"]) for p in _all_params()}
-        config.PARAMS_FILE.write_text(json.dumps(data, indent=2))
-    except Exception:
-        pass  # non-blocking: a failed save must never break the session
-
-
-def _load_params() -> None:
-    """Reload the saved values at startup. Silently ignores unknown/obsolete keys
-    (e.g. a setting renamed or removed since) instead of crashing on an old
-    file."""
-    if not config.PARAMS_FILE.exists():
-        return
-    try:
-        data = json.loads(config.PARAMS_FILE.read_text())
-    except Exception:
-        return
-    known_vars = {p["var"] for p in _all_params()}
-    for var, value in data.items():
-        if var in known_vars:
-            setattr(config, var, value)
-
-
-def _parameters_curses_main(stdscr):
-    curses.curs_set(0)
-    stdscr.keypad(True)
-    has_color = curses.has_colors()
-    if has_color:
-        curses.start_color()
-        curses.use_default_colors()
-        curses.init_pair(1, curses.COLOR_CYAN, -1)    # section headers
-        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_CYAN)  # selected row
-        curses.init_pair(3, curses.COLOR_YELLOW, -1)  # help text
-
-    rows = _flatten_schema()
-    selectable = [i for i, (kind, _) in enumerate(rows) if kind == "param"]
-    sel_pos = 0  # index into `selectable`
-
-    while True:
-        stdscr.erase()
-        h, w = stdscr.getmaxyx()
-        stdscr.addstr(0, 2, "Agentic_1A — /parameters  (↑/↓ move, ←/→ adjust, r reset, q/Enter exit)",
-                      curses.A_BOLD)
-        y = 2
-        cur_row_idx = selectable[sel_pos]
-        for i, (kind, content) in enumerate(rows):
-            if y >= h - 4:
-                break
-            if kind == "header":
-                attr = curses.color_pair(1) | curses.A_BOLD if has_color else curses.A_BOLD
-                stdscr.addstr(y, 2, content, attr)
-                y += 1
-            else:
-                is_sel = (i == cur_row_idx)
-                label = content["label"]
-                value = _param_format(content)
-                line = f"  {label:<32}{value:>15}"
-                if is_sel:
-                    attr = curses.color_pair(2) if has_color else curses.A_REVERSE
-                    stdscr.addstr(y, 2, line.ljust(w - 4), attr)
-                else:
-                    stdscr.addstr(y, 2, line)
-                y += 1
-
-        # help bar at the bottom, for the selected parameter
-        _, sel_param = rows[cur_row_idx]
-        help_text = sel_param["help"]
-        default = sel_param["default"]
-        default_str = f"default: {default}" if sel_param["kind"] != "enum" else f"default: {default}"
-        footer_attr = curses.color_pair(3) if has_color else curses.A_DIM
-        stdscr.addstr(h - 3, 2, "─" * min(w - 4, 100))
-        for j, chunk_line in enumerate(_wrap_text(help_text, w - 4)[:2]):
-            stdscr.addstr(h - 2 + j if h - 2 + j < h else h - 1, 2, chunk_line, footer_attr)
-        stdscr.addstr(h - 1, max(w - len(default_str) - 3, 2), default_str, footer_attr)
-
-        stdscr.refresh()
-        key = stdscr.getch()
-
-        if key in (curses.KEY_UP, ord('k')):
-            sel_pos = (sel_pos - 1) % len(selectable)
-        elif key in (curses.KEY_DOWN, ord('j')):
-            sel_pos = (sel_pos + 1) % len(selectable)
-        elif key in (curses.KEY_LEFT, ord('h')):
-            _param_adjust(sel_param, -1)
-        elif key in (curses.KEY_RIGHT, ord('l')):
-            _param_adjust(sel_param, +1)
-        elif key == ord('r'):
-            setattr(config, sel_param["var"], sel_param["default"])
-        elif key in (ord('q'), 27, ord('\n'), curses.KEY_ENTER):
-            break
-
-
-def _wrap_text(text: str, width: int) -> list:
-    words = text.split()
-    lines, cur = [], ""
-    for word in words:
-        if len(cur) + len(word) + 1 > max(width, 10):
-            lines.append(cur)
-            cur = word
-        else:
-            cur = f"{cur} {word}".strip()
-    if cur:
-        lines.append(cur)
-    return lines
-
-
-def run_parameters_menu() -> None:
-    """Lance le menu interactif /parameters (plein écran, curses)."""
-    try:
-        curses.wrapper(_parameters_curses_main)
-    except curses.error as e:
-        ui.console.print(f"[red]Could not open the parameters menu (terminal too small or unsupported): {e}[/red]\n")
-        return
-    ui.console.print(f"[dim]Parameters updated — saved automatically to {config.PARAMS_FILE}.[/dim]\n")
-
 
 # ── Point d'entrée ────────────────────────────────────────────────────────────
 
 def main():
 
-    _load_params()  # réglages /parameters sauvegardés d'une session précédente
+    ui._load_params()  # réglages /parameters sauvegardés d'une session précédente
     _mc = models._load_models_config()
     config.PLUMBING_FAILOVER_MODEL = _mc.get("failover", "")  # A7: persisted backup model
     config.ARCHITECT_MODEL = _mc.get("architect", "")          # B4
@@ -1004,7 +287,7 @@ def main():
     if not models.check_ollama(model):
         sys.exit(1)
 
-    system_prompt = make_system_prompt(project_root)
+    system_prompt = commands.make_system_prompt(project_root)
     messages = [{"role": "system", "content": system_prompt}]
 
     # Session-start log entry
@@ -1014,7 +297,7 @@ def main():
     if headless:
         if recipe_file is not None:
             try:
-                prompts = _parse_recipe(recipe_file)
+                prompts = commands._parse_recipe(recipe_file)
             except Exception as e:
                 ui.console.print(f"[red]Recipe error: {e}[/red]")
                 sys.exit(2)
@@ -1035,7 +318,7 @@ def main():
             print(final)            # -> stdout (the only thing on stdout)
             if loop._looks_like_failure(final):
                 all_ok = False
-        _save_session(messages, model)
+        commands._save_session(messages, model)
         toolexec._cleanup_background_processes(verbose=False)
         safety._cleanup_sandbox()
         toolexec._repl_stop()
@@ -1091,7 +374,7 @@ def main():
 
         if user_input == "/compact":
             ui.console.print(f"[cyan]{loop._compact_now(messages, model, forced=True)}[/cyan]\n")
-            _save_session(messages, model)
+            commands._save_session(messages, model)
             continue
 
         if user_input == "/todo":
@@ -1119,7 +402,7 @@ def main():
         if user_input == "/forget":
             state._memory = ""
             notes._save_memory()
-            system_prompt = make_system_prompt(project_root)
+            system_prompt = commands.make_system_prompt(project_root)
             messages[0] = {"role": "system", "content": system_prompt}
             safety._audit("FORGET", {})
             ui.console.print(f"[dim]{t('forget_done')}[/dim]\n")
@@ -1149,7 +432,7 @@ def main():
             choice = ui._prompt(t("lang_prompt")).strip().lower()
             if choice in config.SUPPORTED_LANGS:
                 config.LANG = choice
-                system_prompt = make_system_prompt(project_root)
+                system_prompt = commands.make_system_prompt(project_root)
                 messages[0] = {"role": "system", "content": system_prompt}
                 ui.console.print(f"[cyan]{t('lang_set', lang=config.SUPPORTED_LANGS[config.LANG])}[/cyan]\n")
             elif choice:
@@ -1160,7 +443,7 @@ def main():
             choice = user_input[6:].strip().lower()
             if choice in config.SUPPORTED_LANGS:
                 config.LANG = choice
-                system_prompt = make_system_prompt(project_root)
+                system_prompt = commands.make_system_prompt(project_root)
                 messages[0] = {"role": "system", "content": system_prompt}
                 ui.console.print(f"[cyan]{t('lang_set', lang=config.SUPPORTED_LANGS[config.LANG])}[/cyan]\n")
             else:
@@ -1182,7 +465,7 @@ def main():
             continue
 
         if user_input in ("/parameters", "/params"):
-            run_parameters_menu()
+            ui.run_parameters_menu()
             continue
 
         if user_input in ("/model", "/models"):
@@ -1256,7 +539,7 @@ def main():
                 ui.console.print(f"[yellow]{t('architect_usage')}[/yellow]\n")
                 continue
             try:
-                plan, final = cmd_architect(task, messages, model)
+                plan, final = commands.cmd_architect(task, messages, model)
             except (loop._UserAbort, KeyboardInterrupt):
                 ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
                 continue
@@ -1274,7 +557,7 @@ def main():
             # Main history: the task + a plan/result summary (without the tool spam)
             messages.append({"role": "user", "content": f"/architect {task}"})
             messages.append({"role": "assistant", "content": f"**Plan (architect)**\n\n{plan}\n\n**Result (editor)**\n\n{final}"})
-            _save_session(messages, model)
+            commands._save_session(messages, model)
             continue
 
         if user_input in ("/vision-model", "/visionmodel") or user_input.startswith("/vision-model "):
@@ -1299,7 +582,7 @@ def main():
             continue
 
         if user_input == "/tools":
-            show_tools()
+            commands.show_tools()
             ui.console.print()
             continue
 
@@ -1325,22 +608,22 @@ def main():
             continue
 
         if user_input == "/mcp":
-            show_mcp()
+            commands.show_mcp()
             ui.console.print()
             continue
 
         if user_input == "/history":
-            show_history(messages)
+            commands.show_history(messages)
             ui.console.print()
             continue
 
         if user_input == "/resume" or user_input.startswith("/resume "):
             arg = user_input[8:].strip() if user_input.startswith("/resume ") else ""
             if not arg:
-                ui.console.print(cmd_resume_list())
+                ui.console.print(commands.cmd_resume_list())
                 ui.console.print()
             else:
-                loaded = cmd_resume_load(arg)
+                loaded = commands.cmd_resume_load(arg)
                 if loaded is None:
                     ui.console.print(f"[yellow]{t('resume_badindex', which=arg)}[/yellow]\n")
                 else:
@@ -1356,7 +639,7 @@ def main():
             continue
 
         if user_input.startswith("/add "):
-            cmd_add(user_input[5:], messages)
+            commands.cmd_add(user_input[5:], messages)
             continue
 
         if user_input == "/files":
@@ -1418,7 +701,7 @@ def main():
         if user_input == "/diff":
             ui.console.print()
             ui.console.print(Rule("[bold magenta] Diff [/bold magenta]", style="magenta"))
-            ui.console.print(Markdown(cmd_diff()))
+            ui.console.print(Markdown(commands.cmd_diff()))
             ui.console.print(Rule(style="dim"))
             ui.console.print()
             continue
@@ -1428,7 +711,7 @@ def main():
             if not reviewer:
                 ui.console.print(f"[yellow]{t('review_by_usage')}[/yellow]\n")
                 continue
-            critique = cmd_review_by(reviewer, messages, model)
+            critique = commands.cmd_review_by(reviewer, messages, model)
             if critique is None:
                 ui.console.print(f"[yellow]{t('review_by_no_diff')}[/yellow]\n")
                 continue
@@ -1458,23 +741,23 @@ def main():
             ui.console.print(Rule(style="dim"))
             ui.console.print()
             messages.append({"role": "assistant", "content": final})
-            _save_session(messages, model)
+            commands._save_session(messages, model)
             continue
 
         if user_input == "/undo" or user_input.startswith("/undo "):
             if not checkpoints._checkpoints_available():
-                ui.console.print(f"[cyan]{cmd_undo_legacy()}[/cyan]\n")
+                ui.console.print(f"[cyan]{commands.cmd_undo_legacy()}[/cyan]\n")
                 continue
             arg = user_input[6:].strip() if user_input.startswith("/undo ") else ""
             if not arg:
-                ui.console.print(cmd_undo_list())
+                ui.console.print(commands.cmd_undo_list())
                 ui.console.print()
             else:
-                ui.console.print(f"[cyan]{cmd_undo_restore(arg)}[/cyan]\n")
+                ui.console.print(f"[cyan]{commands.cmd_undo_restore(arg)}[/cyan]\n")
             continue
 
         if user_input == "/audit":
-            cmd_audit()
+            commands.cmd_audit()
             continue
 
         # ── Message normal ───────────────────────────────────────────────────
@@ -1505,9 +788,9 @@ def main():
 
         messages.append({"role": "assistant", "content": final})
         loop._maybe_compact(messages, model)  # auto-compaction if enabled and the context is above the threshold
-        _save_session(messages, model)   # B3: persist after each turn (crash-safe)
+        commands._save_session(messages, model)   # B3: persist after each turn (crash-safe)
 
-    _save_session(messages, model)       # B3: final save on exit (no-op in private mode)
+    commands._save_session(messages, model)       # B3: final save on exit (no-op in private mode)
     toolexec._cleanup_background_processes(verbose=True)
     safety._cleanup_sandbox()
     safety._audit("SESSION_END", {})

@@ -1,7 +1,7 @@
 import os, tempfile, pathlib
 import agent
 from agentic.tools import rag
-from agentic import loop, models
+from agentic import commands, loop, models
 from agentic import checkpoints
 from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
@@ -38,11 +38,11 @@ assert len(state._CHECKPOINTS) == 1, state._CHECKPOINTS
 (d / "a.txt").write_text("v2-MODIFIED")
 (d / "b.txt").write_text("brand new file")
 
-lst = agent.cmd_undo_list()
+lst = commands.cmd_undo_list()
 assert "turn 1: before write_file" in lst, lst
 
 # ---- Undo last ----
-msg = agent.cmd_undo_restore("last")
+msg = commands.cmd_undo_restore("last")
 assert "Restored the project" in msg, msg
 assert (d / "a.txt").read_text() == "v1", "a.txt not reverted"
 assert not (d / "b.txt").exists(), "b.txt (created this turn) should be removed"
@@ -64,7 +64,7 @@ checkpoints._make_turn_checkpoint("turn 3")
 (d / "a.txt").write_text("C")
 assert len(state._CHECKPOINTS) == 2
 # /undo 2 = the older one (display index 2 = turn 2 checkpoint) → a.txt back to "A"
-r = agent.cmd_undo_restore("2")
+r = commands.cmd_undo_restore("2")
 assert (d / "a.txt").read_text() == "A", (d/"a.txt").read_text()
 assert state._CHECKPOINTS == [], state._CHECKPOINTS
 
@@ -91,7 +91,7 @@ rag.ollama.chat = lambda **kw: Resp(next(script))
 loop.run_agent([{"role":"system","content":"s"},{"role":"user","content":"edit c"}], "m")
 assert len(state._CHECKPOINTS) == 1, state._CHECKPOINTS
 # undo should bring c.txt back to "original"
-agent.cmd_undo_restore("last")
+commands.cmd_undo_restore("last")
 assert (d / "c.txt").read_text() == "original", (d/"c.txt").read_text()
 
 log = state._AUDIT_LOG.read_text()

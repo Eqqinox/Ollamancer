@@ -1,7 +1,7 @@
 import os, sys, tempfile, pathlib, io, types, contextlib
 import agent
 from agentic.tools import rag
-from agentic import loop, models
+from agentic import commands, loop, models
 from agentic import mcp_client
 
 # 1. failure heuristic
@@ -20,19 +20,19 @@ rp.write_text("""# My recipe
 1. read config.py
 2. add a --verbose flag
 """)
-steps = agent._parse_recipe(str(rp))
+steps = commands._parse_recipe(str(rp))
 assert len(steps) == 2, steps
 assert "read config.py" in steps[0] and "do not touch tests" in steps[0], steps[0]
 assert "--verbose flag" in steps[1]
 
 # plain list, no headings → each item a step
 rp2 = d / "plain.md"; rp2.write_text("- first thing\n- second thing\n")
-s2 = agent._parse_recipe(str(rp2))
+s2 = commands._parse_recipe(str(rp2))
 assert s2 == ["first thing", "second thing"], s2
 
 # no list at all → whole file is one step
 rp3 = d / "prose.md"; rp3.write_text("Just do the whole thing please.")
-s3 = agent._parse_recipe(str(rp3))
+s3 = commands._parse_recipe(str(rp3))
 assert s3 == ["Just do the whole thing please."], s3
 
 # 3. end-to-end headless --run via main(), catching SystemExit

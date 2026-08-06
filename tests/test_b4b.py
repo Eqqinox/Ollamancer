@@ -1,7 +1,7 @@
 import os, tempfile, pathlib
 import agent
 from agentic.tools import rag
-from agentic import config, models, state
+from agentic import commands, config, models, state
 config.STREAM_FINAL = "off"
 config.MAX_VERIFY_NUDGES = 0
 models.get_num_ctx = lambda m: 4096
@@ -40,7 +40,7 @@ scripts = {
 rag.ollama.chat = lambda **kw: Resp(next(scripts[kw["model"]]))
 
 msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "prior"}]
-plan, result = agent.cmd_architect("build the thing", msgs, "cur:m")
+plan, result = commands.cmd_architect("build the thing", msgs, "cur:m")
 
 assert plan.strip() == "PLAN:\n1. create result.txt containing DONE", repr(plan)
 assert result == "executed", result
