@@ -1,9 +1,10 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic.tools import rag
 from agentic import config, models, state
 config.STREAM_FINAL = "off"
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 state._AUDIT_LOG = d / "audit.log"
@@ -24,7 +25,7 @@ def fake_chat(**kw):
     assert kw["model"] == "reviewer:m"
     return types.SimpleNamespace(message=types.SimpleNamespace(
         content="Bug: add() now subtracts instead of adds — line `return a - b` is wrong."))
-agent.ollama.chat = fake_chat
+rag.ollama.chat = fake_chat
 msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "make add() work"}]
 critique = agent.cmd_review_by("reviewer:m", msgs, "main:m")
 assert "subtract" in critique, critique
@@ -35,7 +36,7 @@ assert "REVIEW_BY_START" in log and "REVIEW_BY_DONE" in log, log
 
 # 4. same model as current → no unload churn
 unloaded.clear()
-agent.ollama.chat = lambda **kw: types.SimpleNamespace(message=types.SimpleNamespace(content="looks fine"))
+rag.ollama.chat = lambda **kw: types.SimpleNamespace(message=types.SimpleNamespace(content="looks fine"))
 agent.cmd_review_by("main:m", msgs, "main:m")
 assert unloaded == [], unloaded
 

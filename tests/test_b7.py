@@ -1,5 +1,7 @@
 import os, tempfile, pathlib
 import agent
+from agentic import tools
+from agentic import safety
 from agentic.tools import exec as execmod
 from agentic import state
 
@@ -44,9 +46,9 @@ execmod._repl_read_until_done = _orig
 assert execmod.python_repl("1 + 1").strip() == "2"
 
 # registration + risky
-assert execmod.python_repl in agent.TOOLS
-assert "python_repl" in agent._RISKY_TOOLS
-assert "append_file" in agent._RISKY_TOOLS  # also hardened in B7
+assert execmod.python_repl in tools.TOOLS
+assert "python_repl" in safety._RISKY_TOOLS
+assert "append_file" in safety._RISKY_TOOLS  # also hardened in B7
 
 execmod._repl_stop()
 print("B7 ALL PASS")

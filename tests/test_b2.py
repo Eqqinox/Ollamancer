@@ -1,9 +1,11 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic.tools import rag
+from agentic import models
 from agentic import config, state
 
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 state._AUDIT_LOG = d / "audit.log"
 
@@ -36,7 +38,7 @@ calls = []
 def fake_chat_buf(**kw):
     calls.append(kw.get("stream"))
     return types.SimpleNamespace(message=types.SimpleNamespace(content="buffered", tool_calls=None, thinking=None))
-agent.ollama.chat = fake_chat_buf
+rag.ollama.chat = fake_chat_buf
 r = agent._stream_or_buffer_chat("m", [{"role": "user", "content": "hi"}])
 assert r.message.content == "buffered"
 assert calls == [False], calls
@@ -46,7 +48,7 @@ config.STREAM_FINAL = "on"
 def fake_chat_stream(**kw):
     assert kw.get("stream") is True
     return iter([chunk("streamed "), chunk("answer")])
-agent.ollama.chat = fake_chat_stream
+rag.ollama.chat = fake_chat_stream
 r2 = agent._stream_or_buffer_chat("m", [{"role": "user", "content": "hi"}])
 assert r2.message.content == "streamed answer", r2.message.content
 
@@ -58,7 +60,7 @@ def make_router(rounds):
         return iter(item) if kw.get("stream") else item
     return router
 config.MAX_VERIFY_NUDGES = 0
-agent.ollama.chat = make_router([
+rag.ollama.chat = make_router([
     [chunk(tool_calls=[F("todo_write", {"checklist": "- [ ] go"})])],   # tool round (streamed)
     [chunk("Final "), chunk("streamed "), chunk("reply.")],              # final answer (streamed)
 ])
@@ -69,10 +71,10 @@ assert final == "Final streamed reply.", repr(final)
 def boom_stream(**kw):
     def gen():
         yield chunk("partial")
-        raise agent.ollama.ResponseError("unexpected end of JSON input")
+        raise rag.ollama.ResponseError("unexpected end of JSON input")
     return gen() if kw.get("stream") else None
 config.PLUMBING_FAILOVER_MODEL = ""
-agent.ollama.chat = boom_stream
+rag.ollama.chat = boom_stream
 final2 = agent.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "do"}], "m")
 assert "truncated" in final2 or "tronquée" in final2, final2
 

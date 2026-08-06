@@ -1,7 +1,9 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic.tools import rag
+from agentic import models
 from agentic import config, state
-agent.get_num_ctx = lambda m: 1000   # small window so thresholds are easy to hit in the test
+models.get_num_ctx = lambda m: 1000   # small window so thresholds are easy to hit in the test
 state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
 def user(c): return {"role": "user", "content": c}
@@ -42,8 +44,8 @@ def fake_chat(**kw):
     captured["prompt"] = kw["messages"][0]["content"]
     return types.SimpleNamespace(message=types.SimpleNamespace(
         content="## Session Intent\ndid stuff\n## Files Modified\na.py\n## Key Decisions\nuse bcrypt"))
-agent.ollama.chat = fake_chat
-agent.ollama_runner_rss_gb = lambda: None
+rag.ollama.chat = fake_chat
+models.ollama_runner_rss_gb = lambda: None
 m = build()
 n_before = len(m)
 status = agent._compact_now(m, "model", forced=True)

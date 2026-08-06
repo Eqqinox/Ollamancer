@@ -1,5 +1,7 @@
 import os, tempfile, pathlib
 import agent
+from agentic.tools import files
+from agentic.tools import exec as execmod
 from agentic import state
 
 d = pathlib.Path(tempfile.mkdtemp())
@@ -11,32 +13,32 @@ state.PROJECT_ROOT = d.resolve()
 (d / "utils.py").write_text("x=1\n")
 
 # 1. read_file with a misspelled basename → hint points at the real file
-r = agent.read_file("src/gaem.py")
+r = files.read_file("src/gaem.py")
 assert r.startswith("File not found:"), r
 assert "game.py" in r and "Did you mean" in r, r
 
 # 2. edit_file with a typo path → hint
-r = agent.edit_file("READNE.md", "hi", "bye")
+r = files.edit_file("READNE.md", "hi", "bye")
 assert r.startswith("File not found:"), r
 assert "README.md" in r, r
 
 # 3. lint_file with a typo → hint
-r = agent.lint_file("utisl.py")
+r = execmod.lint_file("utisl.py")
 assert r.startswith("File not found:"), r
 assert "utils.py" in r, r
 
 # 4. Existing file: no hint, normal behavior
-r = agent.read_file("utils.py")
+r = files.read_file("utils.py")
 assert "Did you mean" not in r and "x=1" in r, r
 
 # 5. Totally unrelated garbage name → no false suggestion
-r = agent.read_file("zzzzzzzzzzqqqqq.xyz")
+r = files.read_file("zzzzzzzzzzqqqqq.xyz")
 assert r.startswith("File not found:"), r
 assert "Did you mean" not in r, r
 
 # 6. The documented Ornith case: mistyped a path segment
 (d / "mounirmeknaci_notes.txt").write_text("note\n")
-r = agent.read_file("mounirekknaci_notes.txt")
+r = files.read_file("mounirekknaci_notes.txt")
 assert "mounirmeknaci_notes.txt" in r, r
 
 print("A4 ALL PASS")

@@ -1,11 +1,14 @@
 import sys, tempfile, pathlib, io, contextlib
 import agent
+from agentic import ui
+from agentic import models
+from agentic import mcp_client
 
 # Patch the heavy startup bits so main() runs without a real model/MCP.
-agent.check_ollama = lambda m: True
-agent._resolve_startup_model = lambda: "fake:model"
-agent._init_mcp = lambda: None
-agent.get_num_ctx = lambda m: 4096
+models.check_ollama = lambda m: True
+models._resolve_startup_model = lambda: "fake:model"
+mcp_client._init_mcp = lambda: None
+models.get_num_ctx = lambda m: 4096
 
 def run_main_with_inputs(items):
     """Drive main()'s input loop with a scripted _prompt. Items may be strings (returned) or
@@ -18,7 +21,7 @@ def run_main_with_inputs(items):
         if isinstance(x, type) and issubclass(x, BaseException):
             raise x()
         return x
-    agent._prompt = scripted
+    ui._prompt = scripted
     proj = tempfile.mkdtemp()
     old_argv = sys.argv
     sys.argv = ["agent.py", proj]

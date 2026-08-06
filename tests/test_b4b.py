@@ -1,10 +1,11 @@
 import os, tempfile, pathlib
 import agent
+from agentic.tools import rag
 from agentic import config, models, state
 config.STREAM_FINAL = "off"
 config.MAX_VERIFY_NUDGES = 0
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 state._AUDIT_LOG = d / "audit.log"
@@ -36,7 +37,7 @@ scripts = {
         Msg(content="executed", tool_calls=None),
     ]),
 }
-agent.ollama.chat = lambda **kw: Resp(next(scripts[kw["model"]]))
+rag.ollama.chat = lambda **kw: Resp(next(scripts[kw["model"]]))
 
 msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "prior"}]
 plan, result = agent.cmd_architect("build the thing", msgs, "cur:m")

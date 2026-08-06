@@ -20,6 +20,9 @@ import pathlib
 import tempfile
 
 import agent
+from agentic import ui
+from agentic import tools
+from agentic import safety
 from agentic import config, i18n
 
 # ── The tool registry ────────────────────────────────────────────────────────
@@ -70,14 +73,14 @@ EXPECTED_PARAM_VARS = {
 
 def test_tool_registry():
     """TOOLS and TOOL_MAP agree with each other and with the documented 34."""
-    names = {fn.__name__ for fn in agent.TOOLS}
+    names = {fn.__name__ for fn in tools.TOOLS}
     assert names == EXPECTED_TOOLS, (
         f"tool set changed\n  missing: {sorted(EXPECTED_TOOLS - names)}"
         f"\n  unexpected: {sorted(names - EXPECTED_TOOLS)}")
-    assert len(agent.TOOLS) == 34, f"expected 34 tools, got {len(agent.TOOLS)}"
-    assert set(agent.TOOL_MAP) == names, "TOOL_MAP is out of sync with TOOLS"
+    assert len(tools.TOOLS) == 34, f"expected 34 tools, got {len(tools.TOOLS)}"
+    assert set(tools.TOOL_MAP) == names, "TOOL_MAP is out of sync with TOOLS"
     # Every entry must be callable — catches a name that survived as a stale string/None.
-    for name, fn in agent.TOOL_MAP.items():
+    for name, fn in tools.TOOL_MAP.items():
         assert callable(fn), f"TOOL_MAP[{name!r}] is not callable"
 
 
@@ -87,25 +90,25 @@ def test_tool_subsets_are_real_tools():
     A typo here fails open: a risky tool that isn't in _RISKY_TOOLS silently skips the
     safe-mode approval prompt.
     """
-    unknown_risky = agent._RISKY_TOOLS - set(agent.TOOL_MAP)
+    unknown_risky = safety._RISKY_TOOLS - set(tools.TOOL_MAP)
     assert not unknown_risky, f"_RISKY_TOOLS names non-existent tools: {sorted(unknown_risky)}"
-    unknown_ro = agent._READ_ONLY_TOOL_NAMES - set(agent.TOOL_MAP)
+    unknown_ro = tools._READ_ONLY_TOOL_NAMES - set(tools.TOOL_MAP)
     assert not unknown_ro, f"_READ_ONLY_TOOL_NAMES names non-existent tools: {sorted(unknown_ro)}"
     # The architect phase must actually be read-only.
     writers = {"write_file", "append_file", "edit_file", "create_directory",
                "run_command", "run_tests", "python_repl", "git_commit", "run_background"}
-    leaked = agent._READ_ONLY_TOOL_NAMES & writers
+    leaked = tools._READ_ONLY_TOOL_NAMES & writers
     assert not leaked, f"write-capable tools leaked into the read-only set: {sorted(leaked)}"
 
 
 def test_slash_commands():
     """The command set is frozen, and autocomplete descriptions stay bilingual."""
-    cmds = {c for c, _en, _fr in agent._SLASH_COMMANDS}
+    cmds = {c for c, _en, _fr in ui._SLASH_COMMANDS}
     assert cmds == EXPECTED_SLASH_COMMANDS, (
         f"slash commands changed\n  missing: {sorted(EXPECTED_SLASH_COMMANDS - cmds)}"
         f"\n  unexpected: {sorted(cmds - EXPECTED_SLASH_COMMANDS)}")
-    assert len(agent._SLASH_COMMANDS) == 36
-    for cmd, en, fr in agent._SLASH_COMMANDS:
+    assert len(ui._SLASH_COMMANDS) == 36
+    for cmd, en, fr in ui._SLASH_COMMANDS:
         assert cmd.startswith("/"), f"{cmd!r} is not a slash command"
         assert en and fr, f"{cmd} is missing an EN or FR description"
 
@@ -185,9 +188,9 @@ def test_no_duplicate_tool_docstrings():
 
     A copy-pasted docstring is a real reliability bug: the model picks tools by description.
     """
-    for fn in agent.TOOLS:
+    for fn in tools.TOOLS:
         assert fn.__doc__ and fn.__doc__.strip(), f"{fn.__name__} has no docstring"
-    docs = [fn.__doc__.strip()[:120] for fn in agent.TOOLS]
+    docs = [fn.__doc__.strip()[:120] for fn in tools.TOOLS]
     assert len(set(docs)) == len(docs), "two tools share an identical description"
 
 

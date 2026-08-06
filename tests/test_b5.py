@@ -1,5 +1,6 @@
 import os, tempfile, pathlib, re
 import agent
+from agentic import tools
 from agentic import config, state
 from agentic.tools import rag
 
@@ -59,7 +60,7 @@ conn.close()
 assert not any("retry.py" in p for p in paths), paths
 
 # 5. embedding-model-missing path returns a clear message, never crashes
-def boom(texts): raise agent.ollama.ResponseError("model 'bge-m3' not found")
+def boom(texts): raise rag.ollama.ResponseError("model 'bge-m3' not found")
 rag._embed_texts = boom
 msg = rag.search_semantic("anything")
 assert "bge-m3" in msg and ("not be installed" in msg or "installed" in msg), msg
@@ -69,6 +70,6 @@ assert abs(rag._cosine([1.0, 0.0], [1.0, 0.0]) - 1.0) < 1e-6
 assert abs(rag._cosine([1.0, 0.0], [0.0, 1.0])) < 1e-6
 
 # registration
-assert rag.search_semantic in agent.TOOLS
-assert "search_semantic" in agent._READ_ONLY_TOOL_NAMES
+assert rag.search_semantic in tools.TOOLS
+assert "search_semantic" in tools._READ_ONLY_TOOL_NAMES
 print("B5 ALL PASS")

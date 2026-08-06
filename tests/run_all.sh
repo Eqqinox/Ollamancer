@@ -13,7 +13,9 @@ home_snapshot() { for f in "$HOME"/.agentic_1a_params.json "$HOME"/.agentic_1a_h
                   done; }
 HOME_BEFORE="$(home_snapshot)"
 for t in "$ROOT"/tests/test_*.py; do
-    if PYTHONPATH="$ROOT" "$PY" "$t" >/dev/null 2>&1; then
+    # stdin closed: a test that accidentally reaches the real _prompt() should FAIL fast,
+    # not block forever waiting for input (test_ctrlc did exactly that once).
+    if PYTHONPATH="$ROOT" "$PY" "$t" >/dev/null 2>&1 </dev/null; then
         pass=$((pass+1))
     else
         fail=$((fail+1)); failed="$failed $(basename "$t")"

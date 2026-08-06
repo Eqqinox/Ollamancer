@@ -1,15 +1,19 @@
 import sys, tempfile, pathlib, io, contextlib
 import agent
+from agentic import ui
+from agentic.tools import notes
+from agentic import models
+from agentic import mcp_client
 from agentic import state
 
-agent.check_ollama = lambda m: True
-agent._resolve_startup_model = lambda: "fake:model"
-agent._init_mcp = lambda: None
-agent.get_num_ctx = lambda m: 4096
+models.check_ollama = lambda m: True
+models._resolve_startup_model = lambda: "fake:model"
+mcp_client._init_mcp = lambda: None
+models.get_num_ctx = lambda m: 4096
 
 def run_main(args, inputs):
     it = iter(inputs)
-    agent._prompt = lambda label: next(it)
+    ui._prompt = lambda label: next(it)
     old = sys.argv
     sys.argv = ["agent.py"] + args
     try:
@@ -46,7 +50,7 @@ assert not state._SESSION_FILE.exists(), "private _save_session must not write"
 state._memory = "a private secret to remember"
 mp = proj / ".agentic" / "memory.md"
 state.PROJECT_ROOT = proj
-agent._save_memory()
+notes._save_memory()
 assert not mp.exists(), "private _save_memory must not write"
 
 # ---------- NORMAL MODE (control): logs ARE created ----------

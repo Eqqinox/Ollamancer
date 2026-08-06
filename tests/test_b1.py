@@ -1,9 +1,12 @@
 import os, tempfile, pathlib
 import agent
+from agentic.tools import rag
+from agentic import models
+from agentic import checkpoints
 from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
-assert agent._git_available(), "git binary required for this test"
+assert checkpoints._git_available(), "git binary required for this test"
 
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d)
 state.PROJECT_ROOT = d.resolve()
@@ -13,8 +16,8 @@ state._CHECKPOINTS = []
 state._checkpoint_turn = 0
 state._checkpoint_made_this_turn = False
 
-agent._init_checkpoints()
-assert agent._checkpoints_available(), "checkpoints should be available with git"
+checkpoints._init_checkpoints()
+assert checkpoints._checkpoints_available(), "checkpoints should be available with git"
 
 # initial project state
 (d / "a.txt").write_text("v1")
@@ -26,9 +29,9 @@ assert agent._checkpoints_available(), "checkpoints should be available with git
 # ---- Turn 1: checkpoint BEFORE first write, then writes happen ----
 state._checkpoint_turn = 1
 state._checkpoint_made_this_turn = False
-agent._make_turn_checkpoint("turn 1: before write_file")
+checkpoints._make_turn_checkpoint("turn 1: before write_file")
 # guard: a second call same turn is a no-op
-agent._make_turn_checkpoint("turn 1: before edit_file")
+checkpoints._make_turn_checkpoint("turn 1: before edit_file")
 assert len(state._CHECKPOINTS) == 1, state._CHECKPOINTS
 
 # the turn's writes: modify a.txt, create b.txt
@@ -54,10 +57,10 @@ assert state._CHECKPOINTS == [], state._CHECKPOINTS
 state._CHECKPOINTS = []
 (d / "a.txt").write_text("A")
 state._checkpoint_turn = 2; state._checkpoint_made_this_turn = False
-agent._make_turn_checkpoint("turn 2")
+checkpoints._make_turn_checkpoint("turn 2")
 (d / "a.txt").write_text("B")
 state._checkpoint_turn = 3; state._checkpoint_made_this_turn = False
-agent._make_turn_checkpoint("turn 3")
+checkpoints._make_turn_checkpoint("turn 3")
 (d / "a.txt").write_text("C")
 assert len(state._CHECKPOINTS) == 2
 # /undo 2 = the older one (display index 2 = turn 2 checkpoint) → a.txt back to "A"
@@ -66,8 +69,8 @@ assert (d / "a.txt").read_text() == "A", (d/"a.txt").read_text()
 assert state._CHECKPOINTS == [], state._CHECKPOINTS
 
 # ---- Integration: run_agent makes a checkpoint before a real write_file ----
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 config.MAX_VERIFY_NUDGES = 0  # keep the scripted turn count deterministic
 state._CHECKPOINTS = []; state._checkpoint_turn = 3
 (d / "c.txt").write_text("original")
@@ -84,7 +87,7 @@ script = iter([
     Msg(tool_calls=[TC("write_file", {"path": "c.txt", "content": "changed by model"})]),
     Msg(content="Done.", tool_calls=None),
 ])
-agent.ollama.chat = lambda **kw: Resp(next(script))
+rag.ollama.chat = lambda **kw: Resp(next(script))
 agent.run_agent([{"role":"system","content":"s"},{"role":"user","content":"edit c"}], "m")
 assert len(state._CHECKPOINTS) == 1, state._CHECKPOINTS
 # undo should bring c.txt back to "original"

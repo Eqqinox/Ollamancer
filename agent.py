@@ -50,45 +50,12 @@ from rich.table import Table
 # Settings (values are rebound at runtime): always via the module, never
 # `from agentic.config import X` — a frozen copy would never see a change.
 # Voir agentic/config.py et tests/test_import_rules.py.
-from agentic import config, state, ui
-from agentic.ui import _PROMPT_TOOLKIT_AVAILABLE, _SLASH_COMMANDS, _prompt
-from agentic.tools.vcs import git_commit, git_diff, git_log, git_status
-from agentic.tools.notes import (
-    _load_memory, _save_memory, get_datetime, memory_read, memory_write, todo_read,
-    todo_write)
-from agentic.tools.files import (
-    _closest_path_hint, append_file, create_directory, edit_file, list_directory,
-    read_file, read_file_lines, write_file)
-from agentic.tools.vision import _detect_vision_model, _model_has_vision, analyze_image
+from agentic import checkpoints, config, i18n, mcp_client, models, safety, skills, state, ui
+from agentic import tools
+from agentic.tools import exec as toolexec
+from agentic.tools import notes, web
+from agentic.i18n import t   # called 200+ times, never patched — by-name is fine here
 from agentic import models
-from agentic.tools.codenav import (
-    _iter_source_files, find_files, find_references, search_in_files)
-from agentic.tools.rag import (
-    _chunk_text, _cosine, _embed_texts, _open_semantic_db, _reindex_semantic,
-    search_semantic)
-from agentic.tools.exec import (
-    _cleanup_background_processes, _repl_stop, check_process, kill_process,
-    lint_file, list_processes, python_repl, run_background, run_command, run_tests)
-from agentic.tools.web import (
-    _extract_with_meta, _maybe_force_search, _searxng_fetch, fetch_url,
-    fetch_url_rendered, search_web, search_web_deep)
-from agentic.models import (
-    _category_cache_path, _gen_options, _load_models_config, _plumbing_failover_target,
-    _resolve_startup_model, _save_default_model, _save_models_config, _tool_capable_models,
-    check_ollama, classify_model_by_name, get_chip_name, get_num_ctx,
-    get_system_ram_gb, ollama_runner_rss_gb, pick_model_interactive, usage_tier)
-from agentic.mcp_client import (
-    MCP_CONNECTIONS, MCP_TOOL_MAP, MCP_TOOL_SCHEMAS, _MCP_AVAILABLE, _cleanup_mcp,
-    _init_mcp, _mcp_result_to_text)
-from agentic.skills import _discover_skills, _skills_prompt_block, load_skill
-from agentic.checkpoints import (
-    _checkpoints_available, _git_available, _init_checkpoints, _make_turn_checkpoint,
-    _restore_checkpoint)
-from agentic.safety import (
-    _RISKY_TOOLS, _audit, _auto_snapshot, _check_command, _check_file_path, _check_robots,
-    _check_url, _cleanup_sandbox, _confirm_risky_call, _docker_available,
-    _ensure_sandbox_container, _ensure_sandbox_image, _run_shell, _sandbox_image_tag)
-from agentic.i18n import SYSTEM_PROMPT, t, get_help_text
 
 try:
     import ollama
@@ -138,25 +105,13 @@ _COMPACT_MARKER = "[⎗ Summary of earlier conversation (auto-compacted to save 
 # would be lost if we silently fell back to local execution.
 
 
-atexit.register(_cleanup_sandbox)
+atexit.register(safety._cleanup_sandbox)
 
 
-atexit.register(_repl_stop)
+atexit.register(toolexec._repl_stop)
 
 
-atexit.register(_cleanup_background_processes)
-
-
-TOOLS = [
-    search_web, search_web_deep, fetch_url, fetch_url_rendered,
-    read_file, read_file_lines, write_file, append_file, edit_file, create_directory, list_directory,
-    search_in_files, find_files, find_references, search_semantic, load_skill,
-    git_status, git_diff, git_log, git_commit,
-    lint_file, run_tests, run_command, python_repl, get_datetime, analyze_image,
-    todo_write, todo_read, memory_write, memory_read,
-    run_background, check_process, kill_process, list_processes,
-]
-TOOL_MAP = {fn.__name__: fn for fn in TOOLS}
+atexit.register(toolexec._cleanup_background_processes)
 
 
 # ── MCP (Model Context Protocol) — outils tiers optionnels ─────────────────────
@@ -178,27 +133,10 @@ TOOL_MAP = {fn.__name__: fn for fn in TOOLS}
 # and clean failure — not a crash — when a server fails to start).
 
 
-atexit.register(_cleanup_mcp)
+atexit.register(mcp_client._cleanup_mcp)
 
 
 # ── Vérification Ollama ──────────────────────────────────────────────────────
-
-
-# ── Mode architecte/éditeur (B4) ────────────────────────────────────────────────
-# Read-only tools allowed during the architect phase: navigation/search/
-# reading/linting, but nothing that writes or executes code (no write/append/edit/
-# create_directory/run_command/run_tests/run_background/kill/git_commit/memory_write,
-# and no MCP tools, which are potentially destructive).
-_READ_ONLY_TOOL_NAMES = {
-    "search_web", "search_web_deep", "fetch_url", "fetch_url_rendered",
-    "read_file", "read_file_lines", "list_directory", "search_in_files",
-    "find_files", "find_references", "search_semantic", "load_skill", "git_status", "git_diff", "git_log",
-    "lint_file", "get_datetime", "todo_write", "todo_read", "memory_read",
-}
-
-
-def _read_only_tools() -> list:
-    return [fn for fn in TOOLS if fn.__name__ in _READ_ONLY_TOOL_NAMES]
 
 
 def _architect_models(current_model: str) -> tuple[str, str]:
@@ -215,7 +153,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
     architect's read-only tool spam; returns (plan_text, editor_result) for the caller to
     fold into history. See improvement_plusFixes.md 1.3 / 2.1 (aider architect/editor)."""
     architect_model, editor_model = _architect_models(current_model)
-    _audit("ARCHITECT_START", {"architect": architect_model, "editor": editor_model, "task": task[:120]})
+    safety._audit("ARCHITECT_START", {"architect": architect_model, "editor": editor_model, "task": task[:120]})
 
     if config.LANG == "fr":
         arch_instr = (
@@ -248,7 +186,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
     ui.console.print(f"\n[bold magenta]{t('architect_planning', model=architect_model)}[/bold magenta]")
     arch_messages = list(messages) + [{"role": "user", "content": arch_instr}]
     plan = run_agent(arch_messages, architect_model,
-                     tool_schemas=_read_only_tools(), allowed_tools=_READ_ONLY_TOOL_NAMES)
+                     tool_schemas=tools._read_only_tools(), allowed_tools=tools._READ_ONLY_TOOL_NAMES)
     ui.console.print()
     ui.console.print(Rule(f"[bold magenta] {t('architect_plan_title', model=architect_model)} [/bold magenta]", style="magenta"))
     ui.console.print(Markdown(plan))
@@ -274,7 +212,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
     ui.console.print(f"\n[bold green]{t('architect_executing', model=editor_model)}[/bold green]")
     editor_messages = list(messages) + [{"role": "user", "content": editor_instr}]
     result = run_agent(editor_messages, editor_model)
-    _audit("ARCHITECT_DONE", {"architect": architect_model, "editor": editor_model})
+    safety._audit("ARCHITECT_DONE", {"architect": architect_model, "editor": editor_model})
     return plan, result
 
 
@@ -304,7 +242,7 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
             "so.\n\n"
             f"Original task: {last_user}\n\nDiff:\n{diff}")
 
-    _audit("REVIEW_BY_START", {"reviewer": reviewer_model})
+    safety._audit("REVIEW_BY_START", {"reviewer": reviewer_model})
     if reviewer_model != current_model:
         models._unload_model(current_model)
     ui.console.print(f"\n[bold magenta]{t('review_by_running', model=reviewer_model)}[/bold magenta]")
@@ -313,7 +251,7 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
             "thinking_status",
             lambda: ollama.chat(model=reviewer_model,
                                  messages=[{"role": "user", "content": review_prompt}],
-                                 stream=False, options=_gen_options(reviewer_model)),
+                                 stream=False, options=models._gen_options(reviewer_model)),
         )
         critique = (resp.message.content or "").strip()
     except Exception as e:
@@ -324,7 +262,7 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
     ui.console.print(Rule(f"[bold magenta] {t('review_by_title', model=reviewer_model)} [/bold magenta]", style="magenta"))
     ui.console.print(Markdown(critique or "(the reviewer returned no text)"))
     ui.console.print(Rule(style="dim"))
-    _audit("REVIEW_BY_DONE", {"reviewer": reviewer_model})
+    safety._audit("REVIEW_BY_DONE", {"reviewer": reviewer_model})
     return critique
 
 
@@ -335,7 +273,7 @@ def _chat_with_live_ram(status_key: str, chat_fn):
 
         def _poll():
             while not stop.is_set():
-                rss = ollama_runner_rss_gb()
+                rss = models.ollama_runner_rss_gb()
                 label = t(status_key)
                 if rss is not None:
                     label += f"  [dim]· {rss:.1f} GB RAM[/dim]"
@@ -437,7 +375,7 @@ def _start_ram_spinner():
 
     def _poll():
         while not stop_evt.is_set():
-            rss = ollama_runner_rss_gb()
+            rss = models.ollama_runner_rss_gb()
             label = t("thinking_status")
             if rss is not None:
                 label += f"  [dim]· {rss:.1f} GB RAM[/dim]"
@@ -511,13 +449,13 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
     call with the live-RAM spinner. Any streaming failure degrades to the buffered path.
     tool_schemas defaults to all native + MCP tools; the architect phase (B4) passes a
     read-only subset."""
-    tools = TOOLS + MCP_TOOL_SCHEMAS if tool_schemas is None else tool_schemas
+    tool_list = tools.TOOLS + mcp_client.MCP_TOOL_SCHEMAS if tool_schemas is None else tool_schemas
 
     def _buffered():
         return _chat_with_live_ram(
             "thinking_status",
-            lambda: ollama.chat(model=model, messages=messages, tools=tools,
-                                 stream=False, options=_gen_options(model)),
+            lambda: ollama.chat(model=model, messages=messages, tools=tool_list,
+                                 stream=False, options=models._gen_options(model)),
         )
 
     if config.STREAM_FINAL != "on":
@@ -525,8 +463,8 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
 
     from rich.live import Live
     try:
-        stream = ollama.chat(model=model, messages=messages, tools=tools,
-                              stream=True, options=_gen_options(model))
+        stream = ollama.chat(model=model, messages=messages, tools=tool_list,
+                              stream=True, options=models._gen_options(model))
     except TypeError:
         return _buffered()   # SDK without stream support — fallback
 
@@ -828,7 +766,7 @@ def _summarize_span(span: list, model: str) -> str:
         resp = _chat_with_live_ram(
             "compacting_status",
             lambda: ollama.chat(model=model, messages=[{"role": "user", "content": instr}],
-                                 stream=False, options=_gen_options(model)),
+                                 stream=False, options=models._gen_options(model)),
         )
         return (resp.message.content or "").strip()
     except Exception:
@@ -846,9 +784,9 @@ def _compact_now(messages: list, model: str, forced: bool = False) -> str:
     before_est = _estimate_tokens(messages)
     # Step 1: deterministic lossless cleanup.
     saved = _cleanup_old_tool_results(messages, keep_from)
-    trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * get_num_ctx(model))
+    trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * models.get_num_ctx(model))
     if not forced and _estimate_tokens(messages) < trigger_tokens:
-        _audit("COMPACT_CLEANUP", {"chars_saved": saved})
+        safety._audit("COMPACT_CLEANUP", {"chars_saved": saved})
         return t("compact_cleanup_only", saved=saved)
     # Step 2: structured summary of the oldest turns (system + recent tail preserved).
     summary = _summarize_span(messages[1:keep_from], model)
@@ -857,7 +795,7 @@ def _compact_now(messages: list, model: str, forced: bool = False) -> str:
     block = {"role": "user", "content": _COMPACT_MARKER + summary}
     messages[:] = [messages[0], block] + messages[keep_from:]
     after_est = _estimate_tokens(messages)
-    _audit("COMPACT", {"before_est_tokens": before_est, "after_est_tokens": after_est,
+    safety._audit("COMPACT", {"before_est_tokens": before_est, "after_est_tokens": after_est,
                        "kept_turns": config.COMPACT_KEEP_TURNS, "forced": forced})
     return t("compact_done", before=before_est, after=after_est)
 
@@ -867,7 +805,7 @@ def _maybe_compact(messages: list, model: str) -> bool:
     Ollama's true prompt_eval_count, falling back to a character-based estimate."""
     if config.AUTO_COMPACT != "on":
         return False
-    trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * get_num_ctx(model))
+    trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * models.get_num_ctx(model))
     current = state._LAST_PROMPT_TOKENS or _estimate_tokens(messages)
     if current < trigger_tokens:
         return False
@@ -943,21 +881,21 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 if template_parser_retries < config.MAX_TEMPLATE_PARSER_RETRIES:
                     template_parser_retries += 1
                     ui.console.print(f"[dim]{t('template_parser_retry_note', n=template_parser_retries, max=config.MAX_TEMPLATE_PARSER_RETRIES)}[/dim]")
-                    _audit("TEMPLATE_PARSER_RETRY", {"round": rounds, "retry": template_parser_retries, "error_preview": err_text[:200]})
+                    safety._audit("TEMPLATE_PARSER_RETRY", {"round": rounds, "retry": template_parser_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
                     rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
                     continue
-                target = None if plumbing_failover_used else _plumbing_failover_target(model)
+                target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
                     ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
-                    _audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "template_parser"})
+                    safety._audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "template_parser"})
                     model = target
                     template_parser_retries = 0
                     rounds -= 1
                     continue
                 ui.console.print(f"[red]{t('template_parser_fallback', error=err_text[:200])}[/red]")
-                _audit("TEMPLATE_PARSER_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
+                safety._audit("TEMPLATE_PARSER_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("template_parser_fallback", error=err_text[:200])
             if "xml syntax error" in err_text.lower():
                 # Bug modèle confirmé (ollama/ollama#14834, #16383, #16810) : contrairement
@@ -976,21 +914,21 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 if xml_parse_retries < config.MAX_XML_PARSE_RETRIES:
                     xml_parse_retries += 1
                     ui.console.print(f"[dim]{t('xml_parse_retry_note', n=xml_parse_retries, max=config.MAX_XML_PARSE_RETRIES)}[/dim]")
-                    _audit("XML_PARSE_RETRY", {"round": rounds, "retry": xml_parse_retries, "error_preview": err_text[:200]})
+                    safety._audit("XML_PARSE_RETRY", {"round": rounds, "retry": xml_parse_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
                     rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
                     continue
-                target = None if plumbing_failover_used else _plumbing_failover_target(model)
+                target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
                     ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
-                    _audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "xml_parse"})
+                    safety._audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "xml_parse"})
                     model = target
                     xml_parse_retries = 0
                     rounds -= 1
                     continue
                 ui.console.print(f"[red]{t('xml_parse_fallback', error=err_text[:200])}[/red]")
-                _audit("XML_PARSE_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
+                safety._audit("XML_PARSE_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("xml_parse_fallback", error=err_text[:200])
             if "unexpected end of json input" in err_text.lower():
                 # A third Ollama failure signature, distinct from the two above — see the
@@ -1002,21 +940,21 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 if json_truncation_retries < config.MAX_JSON_TRUNCATION_RETRIES:
                     json_truncation_retries += 1
                     ui.console.print(f"[dim]{t('json_truncation_retry_note', n=json_truncation_retries, max=config.MAX_JSON_TRUNCATION_RETRIES)}[/dim]")
-                    _audit("JSON_TRUNCATION_RETRY", {"round": rounds, "retry": json_truncation_retries, "error_preview": err_text[:200]})
+                    safety._audit("JSON_TRUNCATION_RETRY", {"round": rounds, "retry": json_truncation_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
                     rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
                     continue
-                target = None if plumbing_failover_used else _plumbing_failover_target(model)
+                target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
                     ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
-                    _audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "json_truncation"})
+                    safety._audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "json_truncation"})
                     model = target
                     json_truncation_retries = 0
                     rounds -= 1
                     continue
                 ui.console.print(f"[red]{t('json_truncation_fallback', error=err_text[:200])}[/red]")
-                _audit("JSON_TRUNCATION_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
+                safety._audit("JSON_TRUNCATION_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("json_truncation_fallback", error=err_text[:200])
             raise
 
@@ -1029,18 +967,18 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             if _looks_like_fake_tool_call(msg.content) and fake_toolcall_retries < config.MAX_FAKE_TOOLCALL_RETRIES:
                 fake_toolcall_retries += 1
                 ui.console.print(f"[dim]{t('fake_toolcall_retry_note', n=fake_toolcall_retries, max=config.MAX_FAKE_TOOLCALL_RETRIES)}[/dim]")
-                _audit("FAKE_TOOLCALL_RETRY", {"round": rounds, "retry": fake_toolcall_retries, "content_preview": (msg.content or "")[:200]})
+                safety._audit("FAKE_TOOLCALL_RETRY", {"round": rounds, "retry": fake_toolcall_retries, "content_preview": (msg.content or "")[:200]})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("fake_toolcall_nudge")})
                 continue
             if _looks_like_fake_tool_call(msg.content) and fake_toolcall_retries >= config.MAX_FAKE_TOOLCALL_RETRIES:
                 ui.console.print(f"[red]{t('fake_toolcall_fallback')}[/red]")
-                _audit("FAKE_TOOLCALL_GIVEUP", {"round": rounds, "content_preview": (msg.content or "")[:200]})
+                safety._audit("FAKE_TOOLCALL_GIVEUP", {"round": rounds, "content_preview": (msg.content or "")[:200]})
                 return t("fake_toolcall_fallback")
             if edited_since_verify and nudges_used < config.MAX_VERIFY_NUDGES:
                 nudges_used += 1
                 ui.console.print(f"[dim]{t('auto_verify_note', n=nudges_used, max=config.MAX_VERIFY_NUDGES)}[/dim]")
-                _audit("AUTO_VERIFY_NUDGE", {"round": rounds, "nudge": nudges_used})
+                safety._audit("AUTO_VERIFY_NUDGE", {"round": rounds, "nudge": nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("verify_nudge")})
                 continue
@@ -1055,17 +993,17 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 if empty_retries < config.MAX_EMPTY_RETRIES:
                     empty_retries += 1
                     ui.console.print(f"[dim]{t('empty_retry_note', n=empty_retries, max=config.MAX_EMPTY_RETRIES)}[/dim]")
-                    _audit("EMPTY_RESPONSE_RETRY", {"round": rounds, "retry": empty_retries, "thinking_preview": thinking_preview})
+                    safety._audit("EMPTY_RESPONSE_RETRY", {"round": rounds, "retry": empty_retries, "thinking_preview": thinking_preview})
                     messages.append({"role": "user", "content": t("empty_retry_nudge")})
                     continue
                 ui.console.print(f"[red]{t('empty_response_fallback')}[/red]")
-                _audit("EMPTY_RESPONSE", {"round": rounds, "thinking_preview": thinking_preview})
+                safety._audit("EMPTY_RESPONSE", {"round": rounds, "thinking_preview": thinking_preview})
                 return t("empty_response_fallback")
             if (searched_since_cite and "http" not in msg.content
                     and citation_nudges_used < config.MAX_CITATION_NUDGES):
                 citation_nudges_used += 1
                 ui.console.print(f"[dim]{t('auto_citation_note', n=citation_nudges_used, max=config.MAX_CITATION_NUDGES)}[/dim]")
-                _audit("AUTO_CITATION_NUDGE", {"round": rounds, "nudge": citation_nudges_used})
+                safety._audit("AUTO_CITATION_NUDGE", {"round": rounds, "nudge": citation_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("citation_nudge")})
                 continue
@@ -1073,7 +1011,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     and grounding_nudges_used < config.MAX_GROUNDING_NUDGES):
                 grounding_nudges_used += 1
                 ui.console.print(f"[dim]{t('auto_grounding_note', n=grounding_nudges_used, max=config.MAX_GROUNDING_NUDGES)}[/dim]")
-                _audit("AUTO_GROUNDING_NUDGE", {"round": rounds, "nudge": grounding_nudges_used})
+                safety._audit("AUTO_GROUNDING_NUDGE", {"round": rounds, "nudge": grounding_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("grounding_nudge")})
                 continue
@@ -1083,7 +1021,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             if claim_kind is not None and claim_action_nudges_used < config.MAX_CLAIM_ACTION_NUDGES:
                 claim_action_nudges_used += 1
                 ui.console.print(f"[dim]{t('auto_claim_action_note', n=claim_action_nudges_used, max=config.MAX_CLAIM_ACTION_NUDGES)}[/dim]")
-                _audit("AUTO_CLAIM_ACTION_NUDGE", {"round": rounds, "kind": claim_kind, "nudge": claim_action_nudges_used})
+                safety._audit("AUTO_CLAIM_ACTION_NUDGE", {"round": rounds, "kind": claim_kind, "nudge": claim_action_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t(f"claim_action_nudge_{claim_kind}")})
                 continue
@@ -1095,7 +1033,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     grounding_check_nudges_used += 1
                     shown = ", ".join(unsupported[:8])
                     ui.console.print(f"[dim]{t('auto_grounding_check_note', n=grounding_check_nudges_used, max=config.MAX_GROUNDING_CHECK_NUDGES)}[/dim]")
-                    _audit("AUTO_GROUNDING_CHECK_NUDGE", {"round": rounds, "unsupported": unsupported[:12], "nudge": grounding_check_nudges_used})
+                    safety._audit("AUTO_GROUNDING_CHECK_NUDGE", {"round": rounds, "unsupported": unsupported[:12], "nudge": grounding_check_nudges_used})
                     messages.append({"role": "assistant", "content": msg.content or ""})
                     messages.append({"role": "user", "content": t("grounding_check_nudge", values=shown)})
                     continue
@@ -1127,10 +1065,10 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             # B4: architect phase = read-only. Even if the model attempts a write,
             # we refuse without executing (the tool schema does not expose it, this is the
             # ceinture-et-bretelles côté exécution).
-            if allowed_tools is not None and name not in allowed_tools and name not in MCP_TOOL_MAP:
+            if allowed_tools is not None and name not in allowed_tools and name not in mcp_client.MCP_TOOL_MAP:
                 readonly_refusals += 1
                 result = f"⛔ Read-only planning phase — '{name}' is not allowed here. Produce the plan; the editor model will make the changes."
-                _audit(name, args, blocked=True, reason="architect read-only")
+                safety._audit(name, args, blocked=True, reason="architect read-only")
                 messages.append({"role": "tool", "content": result})
                 ui.console.print(Panel(f"[red]{rich_escape(result)}[/red]",
                                     title=f"[cyan]{t('result_panel_title')}[/cyan]", border_style="dim green", expand=False))
@@ -1139,24 +1077,24 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             # B1: git checkpoint of the state BEFORE this turn's first write (once
             # per turn only). Captures the pre-write state so /undo can go back.
             if name in _EDIT_TOOLS:
-                _make_turn_checkpoint(f"turn {state._checkpoint_turn}: before {name}")
+                checkpoints._make_turn_checkpoint(f"turn {state._checkpoint_turn}: before {name}")
 
             # MCP tools are treated as risky by default in safe mode — an MCP
             # server can do anything a local tool can do, so it must not
             # bypass the existing approval gate.
-            is_risky = name in _RISKY_TOOLS or name in MCP_TOOL_MAP
-            if state.SAFE_MODE and is_risky and not _confirm_risky_call(name, args):
+            is_risky = name in safety._RISKY_TOOLS or name in mcp_client.MCP_TOOL_MAP
+            if state.SAFE_MODE and is_risky and not safety._confirm_risky_call(name, args):
                 ui.console.print(f"[dim]{t('safe_mode_denied_console')}[/dim]")
                 result = "⛔ Denied by user (safe mode)."
-            elif name in MCP_TOOL_MAP:
-                conn, real_name = MCP_TOOL_MAP[name]
+            elif name in mcp_client.MCP_TOOL_MAP:
+                conn, real_name = mcp_client.MCP_TOOL_MAP[name]
                 try:
                     mcp_result, progress_events = conn.call_tool(real_name, args)
-                    result = _mcp_result_to_text(mcp_result, progress_events)
+                    result = mcp_client._mcp_result_to_text(mcp_result, progress_events)
                 except Exception as e:
                     result = f"⚠️ MCP tool call failed: {type(e).__name__}: {e}. Check the arguments and try again."
             else:
-                fn = TOOL_MAP.get(name)
+                fn = tools.TOOL_MAP.get(name)
                 if fn is None:
                     result = f"Unknown tool: {name}"
                 else:
@@ -1167,7 +1105,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
 
             # Journaliser l'action
             blocked = str(result).startswith("⛔")
-            _audit(name, args, blocked=blocked, reason=str(result)[:100] if blocked else "")
+            safety._audit(name, args, blocked=blocked, reason=str(result)[:100] if blocked else "")
 
             # This turn's raw results (for the post-answer _grounding_check) — MCP included;
             # blocked/⛔ results carry no facts, so we keep them as-is
@@ -1188,7 +1126,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     stuck_search_nudges_used += 1
                     result = str(result) + _stuck_search_nudge_suffix()
                     ui.console.print(f"[dim]{t('stuck_search_nudge_note', n=stuck_search_nudges_used, max=config.MAX_STUCK_SEARCH_NUDGES)}[/dim]")
-                    _audit("STUCK_SEARCH_NUDGE", {"round": rounds, "signature": sig, "nudge": stuck_search_nudges_used})
+                    safety._audit("STUCK_SEARCH_NUDGE", {"round": rounds, "signature": sig, "nudge": stuck_search_nudges_used})
                 last_failure_signature = sig
 
             # Circuit breaker for fruitless searches: stops a model from chaining
@@ -1229,13 +1167,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             search_stop_nudged = True
             consecutive_thin_searches = 0
             ui.console.print(f"[dim]{t('search_stop_note')}[/dim]")
-            _audit("SEARCH_STOP_NUDGE", {"round": rounds})
+            safety._audit("SEARCH_STOP_NUDGE", {"round": rounds})
             messages.append({"role": "user", "content": t("search_stop_nudge")})
 
         if deep_search_count >= config.MAX_DEEP_SEARCHES and not deep_search_stop_nudged:
             deep_search_stop_nudged = True
             ui.console.print(f"[dim]{t('deep_search_stop_note')}[/dim]")
-            _audit("DEEP_SEARCH_STOP_NUDGE", {"round": rounds, "count": deep_search_count})
+            safety._audit("DEEP_SEARCH_STOP_NUDGE", {"round": rounds, "count": deep_search_count})
             messages.append({"role": "user", "content": t("deep_search_stop_nudge")})
 
         # B4: architect phase — if the model insists on calling write/execute tools
@@ -1246,7 +1184,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 and not readonly_nudged):
             readonly_nudged = True
             ui.console.print(f"[dim]{t('readonly_plan_note')}[/dim]")
-            _audit("READONLY_PLAN_NUDGE", {"round": rounds, "refusals": readonly_refusals})
+            safety._audit("READONLY_PLAN_NUDGE", {"round": rounds, "refusals": readonly_refusals})
             messages.append({"role": "user", "content": t("readonly_plan_nudge")})
 
 
@@ -1254,24 +1192,24 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
 
 
 def show_tools():
-    for name, fn in TOOL_MAP.items():
+    for name, fn in tools.TOOL_MAP.items():
         doc = (fn.__doc__ or "").strip().split("\n")[0]
         ui.console.print(f"  [yellow]{name}[/yellow] — {doc}")
 
 
 def show_mcp():
-    if not _MCP_AVAILABLE:
+    if not mcp_client._MCP_AVAILABLE:
         ui.console.print("  [dim]MCP support not installed. Run: pip install mcp[/dim]")
         return
-    if not MCP_CONNECTIONS:
+    if not mcp_client.MCP_CONNECTIONS:
         ui.console.print(f"  [dim]No MCP servers connected. Configure them in {config.MCP_CONFIG_FILE} "
                        f"(same \"mcpServers\" format as Claude Desktop/Claude Code) and restart.[/dim]")
         return
-    for server_name in MCP_CONNECTIONS:
+    for server_name in mcp_client.MCP_CONNECTIONS:
         ui.console.print(f"  [bold cyan]{server_name}[/bold cyan]")
-        for qualified_name, (conn, real_name) in MCP_TOOL_MAP.items():
+        for qualified_name, (conn, real_name) in mcp_client.MCP_TOOL_MAP.items():
             if conn.name == server_name:
-                schema = next((s for s in MCP_TOOL_SCHEMAS if s["function"]["name"] == qualified_name), None)
+                schema = next((s for s in mcp_client.MCP_TOOL_SCHEMAS if s["function"]["name"] == qualified_name), None)
                 desc = (schema["function"]["description"].strip().split("\n")[0] if schema else "")
                 ui.console.print(f"    [yellow]{qualified_name}[/yellow] — {desc}")
 
@@ -1289,7 +1227,7 @@ def cmd_add(filepaths: str, messages: list):
     newly = []
     for ps in paths:
         p = Path(ps).expanduser()
-        safe, reason = _check_file_path(ps)
+        safe, reason = safety._check_file_path(ps)
         if not safe:
             ui.console.print(f"  [red]{t('add_blocked')}[/red] {p.name} — {reason}")
             continue
@@ -1380,9 +1318,9 @@ def cmd_undo_restore(which: str) -> str:
             return t("undo_ckpt_badindex", which=which)
         idx = n - disp  # display index 1 = newest = _CHECKPOINTS[-1]
     ck = state._CHECKPOINTS[idx]
-    if not _restore_checkpoint(ck["sha"]):
+    if not checkpoints._restore_checkpoint(ck["sha"]):
         return t("undo_ckpt_failed")
-    _audit("UNDO_CHECKPOINT", {"sha": ck["sha"][:10], "label": ck["label"]})
+    safety._audit("UNDO_CHECKPOINT", {"sha": ck["sha"][:10], "label": ck["label"]})
     del state._CHECKPOINTS[idx:]  # anything at or beyond this point is no longer reachable
     state._snapshots.clear()      # the session /diff starts over after a rollback
     return t("undo_ckpt_restored", label=ck["label"], ts=ck["ts"])
@@ -1475,7 +1413,7 @@ def cmd_resume_load(which: str):
     msgs = data.get("messages", [])
     if not msgs:
         return None
-    _audit("RESUME_SESSION", {"file": chosen["file"].name, "n_messages": len(msgs)})
+    safety._audit("RESUME_SESSION", {"file": chosen["file"].name, "n_messages": len(msgs)})
     return msgs, data.get("model", "")
 
 
@@ -1496,7 +1434,7 @@ def cmd_audit():
 
 
 def make_system_prompt(project_root: Path) -> str:
-    base = SYSTEM_PROMPT.get(config.LANG, SYSTEM_PROMPT["en"])
+    base = i18n.SYSTEM_PROMPT.get(config.LANG, i18n.SYSTEM_PROMPT["en"])
     if config.LANG == "fr":
         suffix = f"\n\nRacine du projet : {project_root}\nToutes les opérations fichiers/dossiers/commandes sont relatives à cette racine."
         if state._memory:
@@ -1505,7 +1443,7 @@ def make_system_prompt(project_root: Path) -> str:
         suffix = f"\n\nProject root: {project_root}\nAll file/folder/command operations are relative to this root."
         if state._memory:
             suffix += f"\n\nPersistent memory (saved during previous sessions, may be outdated):\n{state._memory}"
-    return base + suffix + _skills_prompt_block()   # Tier 1 : découverte des skills (name+desc)
+    return base + suffix + skills._skills_prompt_block()   # Tier 1 : découverte des skills (name+desc)
 
 
 # ── /parameters : menu interactif de réglages ────────────────────────────────
@@ -1827,7 +1765,7 @@ def run_parameters_menu() -> None:
 def main():
 
     _load_params()  # réglages /parameters sauvegardés d'une session précédente
-    _mc = _load_models_config()
+    _mc = models._load_models_config()
     config.PLUMBING_FAILOVER_MODEL = _mc.get("failover", "")  # A7: persisted backup model
     config.ARCHITECT_MODEL = _mc.get("architect", "")          # B4
     config.EDITOR_MODEL = _mc.get("editor", "")                # B4
@@ -1865,7 +1803,7 @@ def main():
         ui.use_stderr_console()
         config.STREAM_FINAL = "off"
 
-    _init_mcp()      # connects the configured MCP servers (silent if absent/not installed)
+    mcp_client._init_mcp()      # connects the configured MCP servers (silent if absent/not installed)
 
     if argv:
         project_root = Path(argv[0]).expanduser().resolve()
@@ -1898,19 +1836,19 @@ def main():
         state._SNAPSHOT_DIR.mkdir(exist_ok=True)
         state._BG_LOG_DIR  = agent_dir / "bg_logs"
         state._BG_LOG_DIR.mkdir(exist_ok=True)
-        _init_checkpoints()   # B1: shadow git repository for /undo checkpoints (silent if git is absent)
+        checkpoints._init_checkpoints()   # B1: shadow git repository for /undo checkpoints (silent if git is absent)
         state._SESSION_DIR = agent_dir / "sessions"   # B3 : persistance de session + /resume
         state._SESSION_DIR.mkdir(exist_ok=True)
         state._SESSION_FILE = state._SESSION_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     state._SEMANTIC_DB = agent_dir / "semantic_index.db"   # B5: local RAG index (read; re-indexed only if search_semantic is used)
-    state._memory = _load_memory()   # read existing memory (context); in private mode _save_memory is blocked
+    state._memory = notes._load_memory()   # read existing memory (context); in private mode _save_memory is blocked
 
     # Private session: typed lines must NOT go into ~/.agentic_1a_history.
     # We recreate the prompt_toolkit session with an in-memory history (cleared on exit).
     if state.PRIVATE_MODE:
         ui.use_ephemeral_history()
 
-    model = _resolve_startup_model()
+    model = models._resolve_startup_model()
     if model is None:
         ui.console.print(f"\n[red]{t('no_models')}[/red]")
         sys.exit(1)
@@ -1931,7 +1869,7 @@ def main():
     w = max(len(l) for l in labels)
     ui.console.print(f"  [dim]{t('label_project').ljust(w)} :[/dim] [bold white]{project_root}[/bold white]")
     ui.console.print(f"  [dim]{t('label_model').ljust(w)} :[/dim] [cyan]{model}[/cyan]")
-    ui.console.print(f"  [dim]{t('label_tools').ljust(w)} :[/dim] [green]{t('tools_suffix', n=len(TOOLS))}[/green]")
+    ui.console.print(f"  [dim]{t('label_tools').ljust(w)} :[/dim] [green]{t('tools_suffix', n=len(tools.TOOLS))}[/green]")
     ui.console.print(f"  [dim]{t('label_audit').ljust(w)} :[/dim] [dim]{state._AUDIT_LOG}[/dim]")
     ui.console.print(f"  [dim]{t('label_help').ljust(w)} :[/dim] {t('help_hint')} [yellow]/help[/yellow]")
     ui.console.print(f"  [dim]{t('esc_hint')}[/dim]")
@@ -1944,14 +1882,14 @@ def main():
     ui.console.print(Rule(style="dim"))
     ui.console.print()
 
-    if not check_ollama(model):
+    if not models.check_ollama(model):
         sys.exit(1)
 
     system_prompt = make_system_prompt(project_root)
     messages = [{"role": "system", "content": system_prompt}]
 
     # Session-start log entry
-    _audit("SESSION_START", {"project": str(project_root), "model": model})
+    safety._audit("SESSION_START", {"project": str(project_root), "model": model})
 
     # ── B9: headless execution (one prompt or a recipe), then exit ──
     if headless:
@@ -1963,7 +1901,7 @@ def main():
                 sys.exit(2)
         else:
             prompts = [run_prompt]
-        _audit("HEADLESS_START", {"mode": "recipe" if recipe_file else "run", "steps": len(prompts)})
+        safety._audit("HEADLESS_START", {"mode": "recipe" if recipe_file else "run", "steps": len(prompts)})
         all_ok = True
         for step in prompts:
             messages.append({"role": "user", "content": step})
@@ -1979,15 +1917,15 @@ def main():
             if _looks_like_failure(final):
                 all_ok = False
         _save_session(messages, model)
-        _cleanup_background_processes(verbose=False)
-        _cleanup_sandbox()
-        _repl_stop()
-        _audit("HEADLESS_END", {"ok": all_ok})
+        toolexec._cleanup_background_processes(verbose=False)
+        safety._cleanup_sandbox()
+        toolexec._repl_stop()
+        safety._audit("HEADLESS_END", {"ok": all_ok})
         sys.exit(0 if all_ok else 1)
 
     while True:
         try:
-            user_input = _prompt(t("prompt_user")).strip()
+            user_input = ui._prompt(t("prompt_user")).strip()
         except KeyboardInterrupt:
             # Ctrl+C at the prompt: cancels the current line, does NOT quit (consistent with
             # Ctrl+C = "stop" during generation, and it avoids accidental exits).
@@ -2007,7 +1945,7 @@ def main():
             break
 
         if user_input == "/help":
-            ui.console.print(get_help_text())
+            ui.console.print(i18n.get_help_text())
             continue
 
         if user_input == "/clear":
@@ -2026,7 +1964,7 @@ def main():
             continue
 
         if user_input == "/context":
-            cap = get_num_ctx(model)
+            cap = models.get_num_ctx(model)
             used = state._LAST_PROMPT_TOKENS or _estimate_tokens(messages)
             pct = int(used / cap * 100) if cap else 0
             ui.console.print(f"[dim]{t('context_usage', used=used, cap=cap, pct=pct, auto=config.AUTO_COMPACT, thr=config.COMPACT_THRESHOLD_PCT)}[/dim]\n")
@@ -2061,10 +1999,10 @@ def main():
 
         if user_input == "/forget":
             state._memory = ""
-            _save_memory()
+            notes._save_memory()
             system_prompt = make_system_prompt(project_root)
             messages[0] = {"role": "system", "content": system_prompt}
-            _audit("FORGET", {})
+            safety._audit("FORGET", {})
             ui.console.print(f"[dim]{t('forget_done')}[/dim]\n")
             continue
 
@@ -2089,7 +2027,7 @@ def main():
 
         if user_input == "/lang":
             ui.console.print(f"[dim]{t('lang_current', lang=config.SUPPORTED_LANGS[config.LANG])}[/dim]")
-            choice = _prompt(t("lang_prompt")).strip().lower()
+            choice = ui._prompt(t("lang_prompt")).strip().lower()
             if choice in config.SUPPORTED_LANGS:
                 config.LANG = choice
                 system_prompt = make_system_prompt(project_root)
@@ -2121,7 +2059,7 @@ def main():
             style = "bold yellow" if state.SANDBOX_MODE else "dim"
             ui.console.print(f"[{style}]{t('sandbox_mode_on' if state.SANDBOX_MODE else 'sandbox_mode_off')}[/{style}]\n")
             if not state.SANDBOX_MODE:
-                _cleanup_sandbox()  # no need to keep the container running once disabled
+                safety._cleanup_sandbox()  # no need to keep the container running once disabled
             continue
 
         if user_input in ("/parameters", "/params"):
@@ -2129,7 +2067,7 @@ def main():
             continue
 
         if user_input in ("/model", "/models"):
-            picked = pick_model_interactive(model)
+            picked = models.pick_model_interactive(model)
             if picked:
                 model = picked
                 ui.console.print(f"[cyan]{t('model_switch', model=model)}[/cyan]\n")
@@ -2139,15 +2077,15 @@ def main():
 
         if user_input.startswith("/model "):
             nm = user_input[7:].strip()
-            if check_ollama(nm):
+            if models.check_ollama(nm):
                 model = nm
                 ui.console.print(f"[cyan]{t('model_switch', model=model)}[/cyan]\n")
             continue
 
         if user_input in ("/default-model", "/defaultmodel"):
-            picked = pick_model_interactive(model)
+            picked = models.pick_model_interactive(model)
             if picked:
-                _save_default_model(picked)
+                models._save_default_model(picked)
                 model = picked
                 ui.console.print(f"[cyan]{t('default_model_set', model=picked)}[/cyan]\n")
             else:
@@ -2158,19 +2096,19 @@ def main():
             arg = user_input.split(" ", 1)[1].strip() if " " in user_input else ""
             if arg.lower() in ("off", "none", "disable", "disabled", "désactiver"):
                 config.PLUMBING_FAILOVER_MODEL = ""
-                _save_models_config({"failover": ""})
+                models._save_models_config({"failover": ""})
                 ui.console.print(f"[cyan]{t('failover_model_off')}[/cyan]\n")
             elif arg:
                 config.PLUMBING_FAILOVER_MODEL = arg
-                _save_models_config({"failover": arg})
+                models._save_models_config({"failover": arg})
                 ui.console.print(f"[cyan]{t('failover_model_set', model=arg)}[/cyan]\n")
             else:
                 cur = t("failover_model_current", model=config.PLUMBING_FAILOVER_MODEL) if config.PLUMBING_FAILOVER_MODEL else t("failover_model_none")
                 ui.console.print(f"[dim]{cur}[/dim]")
-                picked = pick_model_interactive(model)
+                picked = models.pick_model_interactive(model)
                 if picked:
                     config.PLUMBING_FAILOVER_MODEL = picked
-                    _save_models_config({"failover": picked})
+                    models._save_models_config({"failover": picked})
                     ui.console.print(f"[cyan]{t('failover_model_set', model=picked)}[/cyan]\n")
                 else:
                     ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
@@ -2179,13 +2117,13 @@ def main():
         if user_input in ("/architect-models", "/architectmodels"):
             ui.console.print(f"[dim]{t('architect_models_current', arch=config.ARCHITECT_MODEL or '(current)', editor=config.EDITOR_MODEL or '(current)')}[/dim]")
             ui.console.print(f"[bold]{t('architect_pick_arch')}[/bold]")
-            a = pick_model_interactive(model)
+            a = models.pick_model_interactive(model)
             if a:
                 ui.console.print(f"[bold]{t('architect_pick_editor')}[/bold]")
-                e = pick_model_interactive(model)
+                e = models.pick_model_interactive(model)
                 if e:
                     config.ARCHITECT_MODEL, config.EDITOR_MODEL = a, e
-                    _save_models_config({"architect": a, "editor": e})
+                    models._save_models_config({"architect": a, "editor": e})
                     ui.console.print(f"[cyan]{t('architect_models_saved', arch=a, editor=e)}[/cyan]\n")
                 else:
                     ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
@@ -2225,19 +2163,19 @@ def main():
             if arg.lower() in ("auto", "off", "none", ""):
                 if arg:
                     config.VISION_MODEL = ""
-                    _save_models_config({"vision": ""})
+                    models._save_models_config({"vision": ""})
                     ui.console.print(f"[cyan]{t('vision_model_auto')}[/cyan]\n")
                 else:
-                    picked = pick_model_interactive(model)
+                    picked = models.pick_model_interactive(model)
                     if picked:
                         config.VISION_MODEL = picked
-                        _save_models_config({"vision": picked})
+                        models._save_models_config({"vision": picked})
                         ui.console.print(f"[cyan]{t('vision_model_set', model=picked)}[/cyan]\n")
                     else:
                         ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
             else:
                 config.VISION_MODEL = arg
-                _save_models_config({"vision": arg})
+                models._save_models_config({"vision": arg})
                 ui.console.print(f"[cyan]{t('vision_model_set', model=arg)}[/cyan]\n")
             continue
 
@@ -2247,12 +2185,12 @@ def main():
             continue
 
         if user_input == "/skills":
-            skills = _discover_skills()
-            if not skills:
+            found_skills = skills._discover_skills()
+            if not found_skills:
                 ui.console.print(f"[dim]{t('skills_none', dir=config.SKILLS_GLOBAL_DIR)}[/dim]\n")
             else:
                 ui.console.print(f"[bold cyan]{t('skills_header')}[/bold cyan]")
-                for name, info in sorted(skills.items()):
+                for name, info in sorted(found_skills.items()):
                     ui.console.print(f"  [yellow]{name}[/yellow] — {info['description']}")
                 ui.console.print(f"[dim]{t('skills_usage')}[/dim]\n")
             continue
@@ -2347,7 +2285,7 @@ def main():
             resp = _chat_with_live_ram(
                 "planning_status",
                 lambda: ollama.chat(model=model, messages=messages, stream=False,
-                                     options=_gen_options(model)),
+                                     options=models._gen_options(model)),
             )
             plan_content = resp.message.content or ""
             ui.console.print()
@@ -2405,7 +2343,7 @@ def main():
             continue
 
         if user_input == "/undo" or user_input.startswith("/undo "):
-            if not _checkpoints_available():
+            if not checkpoints._checkpoints_available():
                 ui.console.print(f"[cyan]{cmd_undo_legacy()}[/cyan]\n")
                 continue
             arg = user_input[6:].strip() if user_input.startswith("/undo ") else ""
@@ -2422,12 +2360,12 @@ def main():
 
         # ── Message normal ───────────────────────────────────────────────────
         messages.append({"role": "user", "content": user_input})
-        _maybe_force_search(user_input, messages)
+        web._maybe_force_search(user_input, messages)
         try:
             final = run_agent(messages, model)
         except (_UserAbort, KeyboardInterrupt):
             ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
-            _audit("USER_ABORT", {})
+            safety._audit("USER_ABORT", {})
             continue   # session reste vivante ; on revient à l'invite
         except ollama.ResponseError as e:
             ui.console.print(f"\n[red]{t('model_error', model=model)}[/red] {e.error}\n")
@@ -2451,9 +2389,9 @@ def main():
         _save_session(messages, model)   # B3: persist after each turn (crash-safe)
 
     _save_session(messages, model)       # B3: final save on exit (no-op in private mode)
-    _cleanup_background_processes(verbose=True)
-    _cleanup_sandbox()
-    _audit("SESSION_END", {})
+    toolexec._cleanup_background_processes(verbose=True)
+    safety._cleanup_sandbox()
+    safety._audit("SESSION_END", {})
     if state.PRIVATE_MODE:
         # Private session: delete the temporary bg-log folder (nothing else was ever
         # written). Nothing from the conversation survives on disk.

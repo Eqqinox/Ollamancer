@@ -1,5 +1,8 @@
 import os, sys, tempfile, pathlib, io, types, contextlib
 import agent
+from agentic.tools import rag
+from agentic import models
+from agentic import mcp_client
 
 # 1. failure heuristic
 assert agent._looks_like_failure("⚠️ Stopped after 25 rounds")
@@ -34,11 +37,11 @@ assert s3 == ["Just do the whole thing please."], s3
 
 # 3. end-to-end headless --run via main(), catching SystemExit
 proj = pathlib.Path(tempfile.mkdtemp())
-agent.check_ollama = lambda m: True
-agent._resolve_startup_model = lambda: "fake:model"
-agent._init_mcp = lambda: None
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.check_ollama = lambda m: True
+models._resolve_startup_model = lambda: "fake:model"
+mcp_client._init_mcp = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 
 class Msg:
     def __init__(s, content="", tool_calls=None, thinking=""):
@@ -48,7 +51,7 @@ class Resp:
 
 def run_main(argv, responses):
     it = iter(responses)
-    agent.ollama.chat = lambda **kw: Resp(next(it))
+    rag.ollama.chat = lambda **kw: Resp(next(it))
     old = sys.argv
     sys.argv = ["agent.py"] + argv
     buf = io.StringIO()
@@ -89,13 +92,13 @@ from agentic import ui as _ui
 _ui.console = _ui.Console()
 def _noisy_init_mcp():
     _ui.console.print("MCP: connected 'everything' (13 tool(s)).")
-agent._init_mcp = _noisy_init_mcp
+mcp_client._init_mcp = _noisy_init_mcp
 code4, out4 = run_main(["--run", "say hi", str(proj)], [Msg(content="Clean answer.")])
 assert code4 == 0, code4
 assert "Clean answer." in out4, repr(out4)
 assert "MCP: connected" not in out4, (
     "headless stdout is polluted by startup chrome — the console must be switched to "
     "stderr before anything prints:\n" + repr(out4))
-agent._init_mcp = lambda: None
+mcp_client._init_mcp = lambda: None
 
 print("B9 ALL PASS")

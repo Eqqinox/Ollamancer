@@ -1,5 +1,7 @@
 import os, tempfile, pathlib
 import agent
+from agentic.tools import rag
+from agentic import models
 from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
@@ -34,8 +36,8 @@ assert agent._claim_without_action("I fixed it.", had_edit=True, had_verificatio
 
 # ---------- Integration: monkeypatched run_agent ----------
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 state._AUDIT_LOG = d / "audit.log"
 
 class F:
@@ -59,7 +61,7 @@ script_a = [
     Msg(content="I fixed the bug.", tool_calls=None),                          # unbacked fix claim
     Msg(content="Sorry, it is not actually fixed yet — I only inspected it.", tool_calls=None),
 ]
-agent.ollama.chat = make_chat(script_a)
+rag.ollama.chat = make_chat(script_a)
 msgs = [{"role": "system", "content": "sys"}, {"role": "user", "content": "fix it"}]
 final = agent.run_agent(msgs, "fake-model")
 assert "not actually fixed" in final, final
@@ -72,7 +74,7 @@ script_b = [
     Msg(content="The population is 8,340,000 as of 2021-03-05.", tool_calls=None),
     Msg(content="I could not confirm those figures from any source.", tool_calls=None),
 ]
-agent.ollama.chat = make_chat(script_b)
+rag.ollama.chat = make_chat(script_b)
 msgs2 = [{"role": "system", "content": "sys"}, {"role": "user", "content": "population?"}]
 final2 = agent.run_agent(msgs2, "fake-model")
 assert "could not confirm" in final2, final2
@@ -84,7 +86,7 @@ script_c = [
     Msg(tool_calls=[TC("todo_write", {"checklist": "- [x] done"})]),
     Msg(content="Here is a plain summary with no claims or hard tokens.", tool_calls=None),
 ]
-agent.ollama.chat = make_chat(script_c)
+rag.ollama.chat = make_chat(script_c)
 msgs3 = [{"role": "system", "content": "sys"}, {"role": "user", "content": "summarize"}]
 final3 = agent.run_agent(msgs3, "fake-model")
 assert final3 == "Here is a plain summary with no claims or hard tokens.", final3

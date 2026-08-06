@@ -1,5 +1,6 @@
 import os, tempfile, pathlib
 import agent
+from agentic import tools
 from agentic import state, skills
 state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
@@ -37,19 +38,19 @@ assert "deploy: Deploy the app safely." in block
 assert "load_skill" in block   # tells the model how to activate
 
 # 5. load_skill returns the full body + the skill's dir (Tier 2 activation)
-out = agent.load_skill("deploy")
+out = skills.load_skill("deploy")
 assert "run tests" in out and "build" in out
 assert str(sk) in out   # points at the skill folder for reference files
 # fuzzy match on a near name
-assert "run tests" in agent.load_skill("deploi")   # typo tolerated
+assert "run tests" in skills.load_skill("deploi")   # typo tolerated
 
 # 6. unknown skill → helpful message listing available ones (no crash)
-r = agent.load_skill("nonexistent")
+r = skills.load_skill("nonexistent")
 assert r.startswith("No skill named") and "deploy" in r
 
 # 7. registration + read-only (usable by the architect)
-assert agent.load_skill in agent.TOOLS
-assert "load_skill" in agent._READ_ONLY_TOOL_NAMES
+assert skills.load_skill in tools.TOOLS
+assert "load_skill" in tools._READ_ONLY_TOOL_NAMES
 
 # 8. make_system_prompt includes the skills block
 state._memory = ""

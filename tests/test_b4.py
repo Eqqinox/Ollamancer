@@ -1,17 +1,19 @@
 import os, tempfile, pathlib
 import agent
+from agentic import tools
+from agentic.tools import rag
 from agentic import config, models, state
 config.STREAM_FINAL = "off"
 config.MAX_VERIFY_NUDGES = 0
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 state._AUDIT_LOG = d / "audit.log"
 state._CHECKPOINT_GITDIR = None   # skip checkpoints in this unit test
 
 # 1. read-only toolset excludes the dangerous tools
-ro = {fn.__name__ for fn in agent._read_only_tools()}
+ro = {fn.__name__ for fn in tools._read_only_tools()}
 for banned in ("write_file", "append_file", "edit_file", "run_command", "run_tests", "git_commit", "create_directory"):
     assert banned not in ro, banned
 for ok in ("read_file", "search_in_files", "find_references", "list_directory"):
@@ -50,7 +52,7 @@ scripts = {
 }
 def router(**kw):
     return Resp(next(scripts[kw["model"]]))
-agent.ollama.chat = router
+rag.ollama.chat = router
 
 msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "prior context"}]
 plan, result = agent.cmd_architect("build the thing", msgs, "cur:m")

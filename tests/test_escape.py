@@ -1,8 +1,10 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic.tools import rag
+from agentic import models
 from agentic import config, state
-agent.get_num_ctx = lambda m: 4096
-agent.ollama_runner_rss_gb = lambda: None
+models.get_num_ctx = lambda m: 4096
+models.ollama_runner_rss_gb = lambda: None
 config.STREAM_FINAL = "on"
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 state._AUDIT_LOG = d / "audit.log"
@@ -42,7 +44,7 @@ orig_pressed = agent._EscapeWatcher.pressed
 agent._EscapeWatcher.pressed = lambda self: True
 def fake_stream(**kw):
     return ClosableIter([chunk("partial answer being streamed…")])
-agent.ollama.chat = fake_stream
+rag.ollama.chat = fake_stream
 try:
     agent.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "do a long thing"}], "m")
     assert False, "run_agent should propagate _UserAbort"
@@ -52,7 +54,7 @@ agent._EscapeWatcher.pressed = orig_pressed   # restore
 
 # 5. run_agent completes normally when no key is pressed (watcher no-op in tests)
 seq = iter([ClosableIter([chunk("final answer")])])
-agent.ollama.chat = lambda **kw: next(seq)
+rag.ollama.chat = lambda **kw: next(seq)
 final = agent.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "hi"}], "m")
 assert final == "final answer", final
 
