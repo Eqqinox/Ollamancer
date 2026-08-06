@@ -25,8 +25,19 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PACKAGE = ROOT / "agentic"
 
-# Modules whose contents must always be reached through the module object.
+# Modules whose contents must ALWAYS be reached through the module object: everything in
+# them is rebound at runtime, so no by-name import is ever correct.
 LIVE_MODULES = {"config", "state"}
+
+# `ui` is mixed: most of it is stable (the _SLASH_COMMANDS table, the _prompt helper), but
+# two names really are rebound mid-run and must never be imported by name.
+#   console         -> swapped for a stderr console in headless mode
+#   _prompt_session -> rebuilt with an in-memory history under --private
+REBOUND_NAMES = {"ui": {"console", "_prompt_session"}}
+
+# Binding a local with one of these names hides the module inside that function/scope.
+# `ui` is included because `ui.console` is used ~230 times; a stray `ui = ...` would be fatal.
+SHADOW_MODULES = LIVE_MODULES | {"ui"}
 
 
 def _offending_imports(path: pathlib.Path) -> list[str]:
@@ -59,6 +70,37 @@ def test_no_by_name_imports_from_live_modules():
         "(a `from x import NAME` copy never sees a later rebinding):\n  "
         + "\n  ".join(problems)
         + "\n\nUse `from . import config` and read `config.NAME` at the point of use."
+    )
+
+
+def test_no_by_name_imports_of_rebound_names():
+    """Names that are rebound at runtime must not be imported by name, even from a module
+    that is otherwise safe to import from.
+
+    `from agentic.ui import console` looks harmless and is not: headless mode replaces
+    ui.console with one writing to stderr, and a by-name copy would keep printing the banner
+    to stdout, corrupting the only thing --run is supposed to emit.
+    """
+    files = [ROOT / "agent.py", ROOT / "imessage_bridge.py"]
+    files += sorted((ROOT / "tests").glob("*.py"))
+    if PACKAGE.is_dir():
+        files += sorted(PACKAGE.rglob("*.py"))
+    problems = []
+    for py in files:
+        if not py.exists():
+            continue
+        for node in ast.walk(ast.parse(py.read_text(), filename=str(py))):
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            mod = (node.module or "").split(".")[-1]
+            banned = REBOUND_NAMES.get(mod, set())
+            hit = {a.name for a in node.names} & banned
+            if hit:
+                problems.append(f"{py.relative_to(ROOT)}:{node.lineno}: "
+                                f"from ...{mod} import {', '.join(sorted(hit))}")
+    assert not problems, (
+        "these names are rebound at runtime and must be read through the module:\n  "
+        + "\n  ".join(problems) + "\n\nUse `from agentic import ui` and read `ui.console`."
     )
 
 
@@ -99,7 +141,7 @@ def test_no_local_shadows_a_live_module():
     used `config` as the name of the parsed MCP JSON — and no behavioural test covered MCP
     startup, so the suite stayed green while the agent could not start with MCP configured.
     """
-    targets = set(LIVE_MODULES)
+    targets = set(SHADOW_MODULES)
     # tests count too: test_a7 shadowed `state` with its own counter dict and failed the
     # same way _init_mcp did, so the scan covers every file that imports the live modules.
     files = [ROOT / "agent.py", ROOT / "imessage_bridge.py"]
@@ -152,5 +194,6 @@ def test_no_local_shadows_a_live_module():
 if __name__ == "__main__":
     test_no_by_name_imports_from_live_modules()
     test_no_globals_mutation_of_live_values()
+    test_no_by_name_imports_of_rebound_names()
     test_no_local_shadows_a_live_module()
     print("test_import_rules: ALL PASS")

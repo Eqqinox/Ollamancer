@@ -77,4 +77,25 @@ code3, out3 = run_main(["--recipe", str(rp), str(proj)],
 assert code3 == 0, code3
 assert "step one done" in out3 and "step two done" in out3, repr(out3)
 
+# 4. stdout purity: in headless mode stdout must carry ONLY the final answer.
+# Regression guard — _init_mcp() prints one line per connected server, and it used to run
+# *before* the console was switched to stderr, so every MCP user's `--run` output was
+# polluted with "MCP: connected ..." lines. The stub above hid it from this test; here we
+# make the stub print the way the real thing does.
+from agentic import ui as _ui
+# The console swap is sticky and process-wide: an earlier --run in this same process already
+# pointed ui.console at stderr, so without restoring a stdout console first this assertion
+# would pass no matter what the ordering is (it did, when this test was written).
+_ui.console = _ui.Console()
+def _noisy_init_mcp():
+    _ui.console.print("MCP: connected 'everything' (13 tool(s)).")
+agent._init_mcp = _noisy_init_mcp
+code4, out4 = run_main(["--run", "say hi", str(proj)], [Msg(content="Clean answer.")])
+assert code4 == 0, code4
+assert "Clean answer." in out4, repr(out4)
+assert "MCP: connected" not in out4, (
+    "headless stdout is polluted by startup chrome — the console must be switched to "
+    "stderr before anything prints:\n" + repr(out4))
+agent._init_mcp = lambda: None
+
 print("B9 ALL PASS")

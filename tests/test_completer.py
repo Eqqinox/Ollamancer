@@ -1,8 +1,8 @@
 import agent
-from agentic import config
+from agentic import config, ui
 from prompt_toolkit.document import Document
 
-comp = agent._SlashCompleter()
+comp = ui._SlashCompleter()
 
 def completions_for(text):
     doc = Document(text=text, cursor_position=len(text))
@@ -10,7 +10,7 @@ def completions_for(text):
 
 # 1. typing "/" lists ALL commands
 allc = completions_for("/")
-assert len(allc) == len(agent._SLASH_COMMANDS), (len(allc), len(agent._SLASH_COMMANDS))
+assert len(allc) == len(ui._SLASH_COMMANDS), (len(allc), len(ui._SLASH_COMMANDS))
 assert "/compact" in allc and "/architect" in allc and "/help" in allc
 
 # 2. refining narrows the list — "/c" → only /clear, /context, /compact

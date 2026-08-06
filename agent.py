@@ -54,7 +54,8 @@ from rich.table import Table
 # Settings (values are rebound at runtime): always via the module, never
 # `from agentic.config import X` — a frozen copy would never see a change.
 # Voir agentic/config.py et tests/test_import_rules.py.
-from agentic import config, state
+from agentic import config, state, ui
+from agentic.ui import _PROMPT_TOOLKIT_AVAILABLE, _SLASH_COMMANDS, _prompt
 from agentic.i18n import STR, SYSTEM_PROMPT, HELP_TEXT, t, get_help_text
 
 try:
@@ -79,98 +80,12 @@ try:
 except ImportError:
     _MCP_AVAILABLE = False  # MCP support silently disables itself; rest of the agent unaffected
 
-try:
-    from prompt_toolkit import PromptSession
-    from prompt_toolkit.history import FileHistory, InMemoryHistory
-    from prompt_toolkit.completion import Completer, Completion
-    _PROMPT_TOOLKIT_AVAILABLE = True
-except ImportError:
-    _PROMPT_TOOLKIT_AVAILABLE = False  # repli sur input()/readline — voir _prompt()
-
-# Auto-complétion des commandes slash : (commande, description EN, description FR). Taper "/"
-# lists every command; each extra character filters the list. Source of
-# truth for the completion menu — keep in sync with main()'s dispatch and HELP_TEXT.
-_SLASH_COMMANDS = [
-    ("/help", "Show all commands", "Afficher toutes les commandes"),
-    ("/exit", "Quit", "Quitter"),
-    ("/clear", "Clear history & context", "Effacer l'historique & le contexte"),
-    ("/history", "Show the last messages", "Afficher les derniers messages"),
-    ("/context", "Show context usage (tokens vs cap)", "Afficher l'usage du contexte"),
-    ("/compact", "Compact the conversation now", "Compacter la conversation maintenant"),
-    ("/resume", "List/reload a saved session", "Lister/recharger une session sauvegardée"),
-    ("/private", "Is this session logged? (--private = no)", "Session journalisée ? (--private = non)"),
-    ("/lang", "Change interface language (en/fr)", "Changer la langue (en/fr)"),
-    ("/safe", "Toggle safe mode (approve risky tools)", "Basculer le mode sûr"),
-    ("/sandbox", "Toggle Docker sandbox", "Basculer le sandbox Docker"),
-    ("/parameters", "Open the settings menu", "Ouvrir le menu de réglages"),
-    ("/model", "Switch model this session", "Changer de modèle (cette session)"),
-    ("/default-model", "Set the persistent default model", "Définir le modèle par défaut persistant"),
-    ("/failover-model", "Set the plumbing-bug backup model", "Définir le modèle de secours"),
-    ("/architect", "Dual-model plan+execute a task", "Bi-modèle : planifier + exécuter une tâche"),
-    ("/architect-models", "Configure the architect/editor pair", "Configurer la paire architecte/éditeur"),
-    ("/review-by", "Second model reviews the diff", "Un second modèle relit le diff"),
-    ("/vision-model", "Set the multimodal (image) model", "Définir le modèle vision"),
-    ("/skills", "List available skills (reusable workflows)", "Lister les skills (workflows réutilisables)"),
-    ("/skill", "Load a skill into context", "Charger un skill dans le contexte"),
-    ("/tools", "List available tools", "Lister les outils disponibles"),
-    ("/mcp", "List connected MCP servers", "Lister les serveurs MCP connectés"),
-    ("/pwd", "Show the project root", "Afficher la racine du projet"),
-    ("/add", "Inject file(s) into context", "Injecter des fichiers dans le contexte"),
-    ("/files", "List injected files", "Lister les fichiers injectés"),
-    ("/drop", "Remove a file from context", "Retirer un fichier du contexte"),
-    ("/plan", "Plan a task without acting", "Planifier une tâche sans agir"),
-    ("/todo", "Show the task checklist", "Afficher la checklist de tâche"),
-    ("/memory", "Show persistent memory", "Afficher la mémoire persistante"),
-    ("/forget", "Clear persistent memory", "Effacer la mémoire persistante"),
-    ("/ps", "List background processes", "Lister les processus en arrière-plan"),
-    ("/kill", "Stop a background process", "Arrêter un processus en arrière-plan"),
-    ("/diff", "View this session's changes", "Voir les changements de la session"),
-    ("/undo", "List/restore git checkpoints", "Lister/restaurer les checkpoints git"),
-    ("/audit", "Show the audit log", "Afficher le journal d'audit"),
-]
-
-if _PROMPT_TOOLKIT_AVAILABLE:
-    class _SlashCompleter(Completer):
-        """Live completion for slash commands: typing '/' lists every command, and each extra
-        character narrows the list. Only fires while typing the command word itself (no space
-        yet), so ordinary prose input is never interrupted. Descriptions follow the current
-        interface language."""
-        def get_completions(self, document, complete_event):
-            text = document.text_before_cursor
-            if not text.startswith("/") or " " in text:
-                return
-            lang = getattr(config, "LANG", "en")
-            for cmd, en, fr in _SLASH_COMMANDS:
-                if cmd.startswith(text):
-                    yield Completion(cmd, start_position=-len(text),
-                                     display=cmd, display_meta=(fr if lang == "fr" else en))
 
 
-# Interactive input: prompt_toolkit handles bracketed paste itself
-# instead of depending on the system readline library — on
-# macOS the system/Homebrew Python is very often linked against libedit rather than
-# GNU readline, whose paste support is weak/inconsistent (pasted text
-# containing newlines submits prematurely at every
-# `\n`, before the user presses Enter). Silent fallback to
-# input()/readline if prompt_toolkit is not installed — behaviour
-# identical to before, just without the fix.
-_prompt_session = None
-if _PROMPT_TOOLKIT_AVAILABLE:
-    try:
-        _prompt_session = PromptSession(
-            history=FileHistory(str(config.HISTORY_FILE)),
-            completer=_SlashCompleter(),
-            complete_while_typing=True,   # the menu appears/filters as you type
-        )
-    except Exception:
-        _prompt_session = None  # ex: HISTORY_FILE illisible — repli sur input()
 
 
-def _prompt(label: str) -> str:
-    """Single entry point for all interactive user input."""
-    if _prompt_session is not None:
-        return _prompt_session.prompt(label)
-    return input(label)
+
+
 
 
 _RISKY_TOOLS = {"write_file", "append_file", "edit_file", "run_command", "run_tests", "run_background", "kill_process", "git_commit", "python_repl"}
@@ -183,7 +98,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
 WORKDIR /workspace
 """
 
-console = Console()
 
 
 _COMPACT_MARKER = "[⎗ Summary of earlier conversation (auto-compacted to save context)]\n\n"
@@ -471,7 +385,7 @@ def _maybe_force_search(user_input: str, messages: list) -> None:
         query = user_input.strip()
 
     args = {"query": query}
-    console.print(Panel(
+    ui.console.print(Panel(
         f"[bold white]search_web_deep[/bold white]([cyan]{rich_escape(json.dumps(args, ensure_ascii=False))}[/cyan])",
         title=f"[yellow]{t('tool_panel_title')}[/yellow] [dim]({t('forced_search_label')})[/dim]",
         border_style="yellow", expand=False,
@@ -480,7 +394,7 @@ def _maybe_force_search(user_input: str, messages: list) -> None:
     preview = str(result)
     if len(preview) > 300:
         preview = preview[:300] + "…"
-    console.print(Panel(
+    ui.console.print(Panel(
         f"[green]{rich_escape(preview)}[/green]",
         title=f"[cyan]{t('result_panel_title')}[/cyan]", border_style="dim green", expand=False,
     ))
@@ -1896,7 +1810,7 @@ def _ensure_sandbox_image() -> tuple[bool, str]:
         dockerfile_path.write_text(_DEFAULT_SANDBOX_DOCKERFILE)
         build_context = str(tmp_dir)
 
-    console.print(f"[dim]Sandbox: building image {tag} (first use, may take a minute)...[/dim]")
+    ui.console.print(f"[dim]Sandbox: building image {tag} (first use, may take a minute)...[/dim]")
     result = subprocess.run(
         ["docker", "build", "-t", tag, "-f", str(dockerfile_path), build_context],
         capture_output=True, text=True, timeout=600,
@@ -2246,7 +2160,7 @@ def _cleanup_background_processes(verbose: bool = False) -> None:
                     os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
                     proc.wait(timeout=2)
                 if verbose:
-                    console.print(f"[dim]{t('bg_stopped_on_exit', id=pid_label, command=info['command'])}[/dim]")
+                    ui.console.print(f"[dim]{t('bg_stopped_on_exit', id=pid_label, command=info['command'])}[/dim]")
             except Exception:
                 pass
         try:
@@ -2441,7 +2355,7 @@ class _MCPServerConnection:
         async def _on_progress(progress: float, total: float | None, message: str | None) -> None:
             label = message or (f"{progress}/{total}" if total else str(progress))
             progress_events.append(label)
-            console.print(f"[dim]  ↳ MCP progress ({self.name}/{name}): {label}[/dim]")
+            ui.console.print(f"[dim]  ↳ MCP progress ({self.name}/{name}): {label}[/dim]")
 
         result = self._submit(lambda session: session.call_tool(name, args, progress_callback=_on_progress))
         return result, progress_events
@@ -2498,7 +2412,7 @@ def _init_mcp() -> None:
     try:
         mcp_config = json.loads(config.MCP_CONFIG_FILE.read_text())
     except Exception as e:
-        console.print(f"[yellow]MCP: could not parse {config.MCP_CONFIG_FILE} — {e}[/yellow]")
+        ui.console.print(f"[yellow]MCP: could not parse {config.MCP_CONFIG_FILE} — {e}[/yellow]")
         return
 
     servers = mcp_config.get("mcpServers", {})
@@ -2507,13 +2421,13 @@ def _init_mcp() -> None:
         args = server_cfg.get("args", [])
         env = server_cfg.get("env")
         if not command:
-            console.print(f"[yellow]MCP: server '{server_name}' has no \"command\", skipped.[/yellow]")
+            ui.console.print(f"[yellow]MCP: server '{server_name}' has no \"command\", skipped.[/yellow]")
             continue
         try:
             conn = _MCPServerConnection(server_name, command, args, env)
             tools_result = conn.list_tools()
         except Exception as e:
-            console.print(f"[yellow]MCP: server '{server_name}' failed to start — {type(e).__name__}: {e}[/yellow]")
+            ui.console.print(f"[yellow]MCP: server '{server_name}' failed to start — {type(e).__name__}: {e}[/yellow]")
             continue
 
         MCP_CONNECTIONS[server_name] = conn
@@ -2528,7 +2442,7 @@ def _init_mcp() -> None:
                     "parameters": tool.input_schema or {"type": "object", "properties": {}},
                 },
             })
-        console.print(f"[dim]MCP: connected '{server_name}' ({len(tools_result.tools)} tool(s)).[/dim]")
+        ui.console.print(f"[dim]MCP: connected '{server_name}' ({len(tools_result.tools)} tool(s)).[/dim]")
 
 
 def _cleanup_mcp() -> None:
@@ -2667,14 +2581,14 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
     # ── Phase 1 : architecte (lecture seule) ──
     if architect_model != current_model:
         _unload_model(current_model)   # jamais deux modèles résidents
-    console.print(f"\n[bold magenta]{t('architect_planning', model=architect_model)}[/bold magenta]")
+    ui.console.print(f"\n[bold magenta]{t('architect_planning', model=architect_model)}[/bold magenta]")
     arch_messages = list(messages) + [{"role": "user", "content": arch_instr}]
     plan = run_agent(arch_messages, architect_model,
                      tool_schemas=_read_only_tools(), allowed_tools=_READ_ONLY_TOOL_NAMES)
-    console.print()
-    console.print(Rule(f"[bold magenta] {t('architect_plan_title', model=architect_model)} [/bold magenta]", style="magenta"))
-    console.print(Markdown(plan))
-    console.print(Rule(style="dim"))
+    ui.console.print()
+    ui.console.print(Rule(f"[bold magenta] {t('architect_plan_title', model=architect_model)} [/bold magenta]", style="magenta"))
+    ui.console.print(Markdown(plan))
+    ui.console.print(Rule(style="dim"))
 
     # ── Phase 2: editor (all tools) — sequential loading ──
     if editor_model != architect_model:
@@ -2693,7 +2607,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
             "(write_file/append_file/edit_file/run_command...), verifying as you go. If a step "
             "is wrong or impossible, adapt but stay close to the plan.\n\n"
             f"Plan:\n{plan}\n\nOriginal task: {task}")
-    console.print(f"\n[bold green]{t('architect_executing', model=editor_model)}[/bold green]")
+    ui.console.print(f"\n[bold green]{t('architect_executing', model=editor_model)}[/bold green]")
     editor_messages = list(messages) + [{"role": "user", "content": editor_instr}]
     result = run_agent(editor_messages, editor_model)
     _audit("ARCHITECT_DONE", {"architect": architect_model, "editor": editor_model})
@@ -2729,7 +2643,7 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
     _audit("REVIEW_BY_START", {"reviewer": reviewer_model})
     if reviewer_model != current_model:
         _unload_model(current_model)
-    console.print(f"\n[bold magenta]{t('review_by_running', model=reviewer_model)}[/bold magenta]")
+    ui.console.print(f"\n[bold magenta]{t('review_by_running', model=reviewer_model)}[/bold magenta]")
     try:
         resp = _chat_with_live_ram(
             "thinking_status",
@@ -2742,10 +2656,10 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
         return f"⚠️ Reviewer model error ({type(e).__name__}: {e}). Is '{reviewer_model}' installed and tool-free chat working?"
     if reviewer_model != current_model:
         _unload_model(reviewer_model)   # sequential: the main model reloads to answer
-    console.print()
-    console.print(Rule(f"[bold magenta] {t('review_by_title', model=reviewer_model)} [/bold magenta]", style="magenta"))
-    console.print(Markdown(critique or "(the reviewer returned no text)"))
-    console.print(Rule(style="dim"))
+    ui.console.print()
+    ui.console.print(Rule(f"[bold magenta] {t('review_by_title', model=reviewer_model)} [/bold magenta]", style="magenta"))
+    ui.console.print(Markdown(critique or "(the reviewer returned no text)"))
+    ui.console.print(Rule(style="dim"))
     _audit("REVIEW_BY_DONE", {"reviewer": reviewer_model})
     return critique
 
@@ -2788,7 +2702,7 @@ def _resolve_startup_model() -> str | None:
         return None
 
     fallback = random.choice(candidates)
-    console.print(f"[yellow]{t('default_model_missing', wanted=desired, picked=fallback)}[/yellow]")
+    ui.console.print(f"[yellow]{t('default_model_missing', wanted=desired, picked=fallback)}[/yellow]")
     return fallback
 
 
@@ -2796,13 +2710,13 @@ def check_ollama(model: str) -> bool:
     try:
         available = [m.model for m in ollama.list().models]
         if not any(model in m for m in available):
-            console.print(f"\n[red]{t('model_not_found')}[/red] [bold]{model}[/bold]")
+            ui.console.print(f"\n[red]{t('model_not_found')}[/red] [bold]{model}[/bold]")
             if available:
-                console.print(f"[yellow]{t('available')}[/yellow] {', '.join(available[:8])}")
+                ui.console.print(f"[yellow]{t('available')}[/yellow] {', '.join(available[:8])}")
             return False
         return True
     except Exception:
-        console.print(f"\n[red]{t('ollama_not_started')}[/red]")
+        ui.console.print(f"\n[red]{t('ollama_not_started')}[/red]")
         return False
 
 
@@ -2884,7 +2798,7 @@ def _gen_options(model: str) -> dict:
 
 def _chat_with_live_ram(status_key: str, chat_fn):
     """Run a blocking ollama.chat() call while showing live RAM usage next to the spinner."""
-    with console.status(f"[bold blue]{t(status_key)}[/bold blue]", spinner="dots") as status:
+    with ui.console.status(f"[bold blue]{t(status_key)}[/bold blue]", spinner="dots") as status:
         stop = threading.Event()
 
         def _poll():
@@ -2985,7 +2899,7 @@ def _start_ram_spinner():
     """Start a console spinner with a live-RAM readout (same look as _chat_with_live_ram) and
     return a stop() callable. Used by the streaming path so the RAM/thinking indicator is shown
     while the model is warming up / reasoning, before the first answer token streams in."""
-    status_cm = console.status(f"[bold blue]{t('thinking_status')}[/bold blue]", spinner="dots")
+    status_cm = ui.console.status(f"[bold blue]{t('thinking_status')}[/bold blue]", spinner="dots")
     status = status_cm.__enter__()
     stop_evt = threading.Event()
 
@@ -3095,7 +3009,7 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
     def _on_text(txt: str) -> None:
         if holder["live"] is None:
             stop_spinner()   # switch spinner -> live render on the first text token
-            holder["live"] = Live(console=console, refresh_per_second=12, transient=True)
+            holder["live"] = Live(console=ui.console, refresh_per_second=12, transient=True)
             holder["live"].start()
         holder["live"].update(Markdown(txt))
 
@@ -3243,21 +3157,21 @@ def pick_model_interactive(current_model: str) -> str | None:
     try:
         models = sorted(ollama.list().models, key=lambda m: m.model)
     except Exception:
-        console.print(f"\n[red]{t('ollama_not_started')}[/red]")
+        ui.console.print(f"\n[red]{t('ollama_not_started')}[/red]")
         return None
 
     if not models:
-        console.print(f"[yellow]{t('no_models')}[/yellow]")
+        ui.console.print(f"[yellow]{t('no_models')}[/yellow]")
         return None
 
     ram_gb = get_system_ram_gb()
     chip   = get_chip_name()
-    console.print(f"[dim]{t('machine_detected', chip=chip, ram=ram_gb)}[/dim]")
+    ui.console.print(f"[dim]{t('machine_detected', chip=chip, ram=ram_gb)}[/dim]")
 
     cache = _load_category_cache()
     cache_dirty = False
 
-    with console.status(f"[dim]{t('analyzing_models')}[/dim]", spinner="dots"):
+    with ui.console.status(f"[dim]{t('analyzing_models')}[/dim]", spinner="dots"):
         tools_ok = {}
         is_moe = {}
         categories = {}
@@ -3304,10 +3218,10 @@ def pick_model_interactive(current_model: str) -> str | None:
         row_style = "dim strike" if ok is False else None
         table.add_row(str(i), m.model, size_cell, params, usage_cell, task_cell, tools_cell, actif, style=row_style)
 
-    console.print(table)
-    console.print(f"[dim]{t('legend_tools')}[/dim]")
-    console.print(f"[dim]{t('legend_usage')}[/dim]")
-    console.print(f"[dim]{t('legend_task')}[/dim]")
+    ui.console.print(table)
+    ui.console.print(f"[dim]{t('legend_tools')}[/dim]")
+    ui.console.print(f"[dim]{t('legend_usage')}[/dim]")
+    ui.console.print(f"[dim]{t('legend_task')}[/dim]")
 
     choice = _prompt(t("prompt_choice")).strip()
     if not choice:
@@ -3318,21 +3232,21 @@ def pick_model_interactive(current_model: str) -> str | None:
         if 1 <= idx <= len(models):
             picked = models[idx - 1].model
         else:
-            console.print(f"[red]{t('invalid_number', idx=idx)}[/red]")
+            ui.console.print(f"[red]{t('invalid_number', idx=idx)}[/red]")
             return None
     else:
         matches = [m.model for m in models if choice in m.model]
         if len(matches) == 1:
             picked = matches[0]
         elif len(matches) > 1:
-            console.print(f"[yellow]{t('ambiguous', matches=', '.join(matches))}[/yellow]")
+            ui.console.print(f"[yellow]{t('ambiguous', matches=', '.join(matches))}[/yellow]")
             return None
         else:
-            console.print(f"[red]{t('no_match', choice=choice)}[/red]")
+            ui.console.print(f"[red]{t('no_match', choice=choice)}[/red]")
             return None
 
     if tools_ok.get(picked) is False:
-        console.print(f"[red]{t('tools_incompatible', picked=picked)}[/red]")
+        ui.console.print(f"[red]{t('tools_incompatible', picked=picked)}[/red]")
         return None
 
     return picked
@@ -3343,7 +3257,7 @@ def _confirm_risky_call(name: str, args: dict) -> bool:
     shell, processes, git). Refusal by default if the user just presses Enter —
     we fail on the cautious side."""
     args_s = json.dumps(args, ensure_ascii=False)
-    console.print(f"[bold yellow]{t('safe_mode_prompt', name=name, args=args_s)}[/bold yellow]")
+    ui.console.print(f"[bold yellow]{t('safe_mode_prompt', name=name, args=args_s)}[/bold yellow]")
     choice = _prompt(t("safe_mode_input")).strip().lower()
     return choice in ("y", "yes", "o", "oui")
 
@@ -3662,9 +3576,9 @@ def _maybe_compact(messages: list, model: str) -> bool:
     current = state._LAST_PROMPT_TOKENS or _estimate_tokens(messages)
     if current < trigger_tokens:
         return False
-    console.print(f"[dim]{t('compact_auto_note', pct=config.COMPACT_THRESHOLD_PCT)}[/dim]")
+    ui.console.print(f"[dim]{t('compact_auto_note', pct=config.COMPACT_THRESHOLD_PCT)}[/dim]")
     status = _compact_now(messages, model, forced=False)
-    console.print(f"[dim]{status}[/dim]")
+    ui.console.print(f"[dim]{status}[/dim]")
     return True
 
 
@@ -3706,7 +3620,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     while True:
         rounds += 1
         if rounds > config.MAX_TOOL_ROUNDS:
-            console.print(f"[red]{t('max_rounds_hit', n=config.MAX_TOOL_ROUNDS)}[/red]")
+            ui.console.print(f"[red]{t('max_rounds_hit', n=config.MAX_TOOL_ROUNDS)}[/red]")
             return t("max_rounds_hit", n=config.MAX_TOOL_ROUNDS)
 
         try:
@@ -3733,7 +3647,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 # reach from this code) — see DESIGN.md.
                 if template_parser_retries < config.MAX_TEMPLATE_PARSER_RETRIES:
                     template_parser_retries += 1
-                    console.print(f"[dim]{t('template_parser_retry_note', n=template_parser_retries, max=config.MAX_TEMPLATE_PARSER_RETRIES)}[/dim]")
+                    ui.console.print(f"[dim]{t('template_parser_retry_note', n=template_parser_retries, max=config.MAX_TEMPLATE_PARSER_RETRIES)}[/dim]")
                     _audit("TEMPLATE_PARSER_RETRY", {"round": rounds, "retry": template_parser_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
                     rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
@@ -3741,13 +3655,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 target = None if plumbing_failover_used else _plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
-                    console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
+                    ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
                     _audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "template_parser"})
                     model = target
                     template_parser_retries = 0
                     rounds -= 1
                     continue
-                console.print(f"[red]{t('template_parser_fallback', error=err_text[:200])}[/red]")
+                ui.console.print(f"[red]{t('template_parser_fallback', error=err_text[:200])}[/red]")
                 _audit("TEMPLATE_PARSER_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("template_parser_fallback", error=err_text[:200])
             if "xml syntax error" in err_text.lower():
@@ -3766,7 +3680,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 # possible client-side intervention (nothing to fix in the content we send).
                 if xml_parse_retries < config.MAX_XML_PARSE_RETRIES:
                     xml_parse_retries += 1
-                    console.print(f"[dim]{t('xml_parse_retry_note', n=xml_parse_retries, max=config.MAX_XML_PARSE_RETRIES)}[/dim]")
+                    ui.console.print(f"[dim]{t('xml_parse_retry_note', n=xml_parse_retries, max=config.MAX_XML_PARSE_RETRIES)}[/dim]")
                     _audit("XML_PARSE_RETRY", {"round": rounds, "retry": xml_parse_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
                     rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
@@ -3774,13 +3688,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 target = None if plumbing_failover_used else _plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
-                    console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
+                    ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
                     _audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "xml_parse"})
                     model = target
                     xml_parse_retries = 0
                     rounds -= 1
                     continue
-                console.print(f"[red]{t('xml_parse_fallback', error=err_text[:200])}[/red]")
+                ui.console.print(f"[red]{t('xml_parse_fallback', error=err_text[:200])}[/red]")
                 _audit("XML_PARSE_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("xml_parse_fallback", error=err_text[:200])
             if "unexpected end of json input" in err_text.lower():
@@ -3792,7 +3706,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 # réparer — voir agentic_contexte.md, section "7 septdecies".
                 if json_truncation_retries < config.MAX_JSON_TRUNCATION_RETRIES:
                     json_truncation_retries += 1
-                    console.print(f"[dim]{t('json_truncation_retry_note', n=json_truncation_retries, max=config.MAX_JSON_TRUNCATION_RETRIES)}[/dim]")
+                    ui.console.print(f"[dim]{t('json_truncation_retry_note', n=json_truncation_retries, max=config.MAX_JSON_TRUNCATION_RETRIES)}[/dim]")
                     _audit("JSON_TRUNCATION_RETRY", {"round": rounds, "retry": json_truncation_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
                     rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
@@ -3800,13 +3714,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 target = None if plumbing_failover_used else _plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
-                    console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
+                    ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
                     _audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "json_truncation"})
                     model = target
                     json_truncation_retries = 0
                     rounds -= 1
                     continue
-                console.print(f"[red]{t('json_truncation_fallback', error=err_text[:200])}[/red]")
+                ui.console.print(f"[red]{t('json_truncation_fallback', error=err_text[:200])}[/red]")
                 _audit("JSON_TRUNCATION_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("json_truncation_fallback", error=err_text[:200])
             raise
@@ -3814,23 +3728,23 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
         msg = resp.message
 
         if msg.content and msg.tool_calls:
-            console.print(f"\n[dim italic]{rich_escape(msg.content)}[/dim italic]")
+            ui.console.print(f"\n[dim italic]{rich_escape(msg.content)}[/dim italic]")
 
         if not msg.tool_calls:
             if _looks_like_fake_tool_call(msg.content) and fake_toolcall_retries < config.MAX_FAKE_TOOLCALL_RETRIES:
                 fake_toolcall_retries += 1
-                console.print(f"[dim]{t('fake_toolcall_retry_note', n=fake_toolcall_retries, max=config.MAX_FAKE_TOOLCALL_RETRIES)}[/dim]")
+                ui.console.print(f"[dim]{t('fake_toolcall_retry_note', n=fake_toolcall_retries, max=config.MAX_FAKE_TOOLCALL_RETRIES)}[/dim]")
                 _audit("FAKE_TOOLCALL_RETRY", {"round": rounds, "retry": fake_toolcall_retries, "content_preview": (msg.content or "")[:200]})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("fake_toolcall_nudge")})
                 continue
             if _looks_like_fake_tool_call(msg.content) and fake_toolcall_retries >= config.MAX_FAKE_TOOLCALL_RETRIES:
-                console.print(f"[red]{t('fake_toolcall_fallback')}[/red]")
+                ui.console.print(f"[red]{t('fake_toolcall_fallback')}[/red]")
                 _audit("FAKE_TOOLCALL_GIVEUP", {"round": rounds, "content_preview": (msg.content or "")[:200]})
                 return t("fake_toolcall_fallback")
             if edited_since_verify and nudges_used < config.MAX_VERIFY_NUDGES:
                 nudges_used += 1
-                console.print(f"[dim]{t('auto_verify_note', n=nudges_used, max=config.MAX_VERIFY_NUDGES)}[/dim]")
+                ui.console.print(f"[dim]{t('auto_verify_note', n=nudges_used, max=config.MAX_VERIFY_NUDGES)}[/dim]")
                 _audit("AUTO_VERIFY_NUDGE", {"round": rounds, "nudge": nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("verify_nudge")})
@@ -3845,17 +3759,17 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 thinking_preview = str(getattr(msg, "thinking", "") or "")[:200]
                 if empty_retries < config.MAX_EMPTY_RETRIES:
                     empty_retries += 1
-                    console.print(f"[dim]{t('empty_retry_note', n=empty_retries, max=config.MAX_EMPTY_RETRIES)}[/dim]")
+                    ui.console.print(f"[dim]{t('empty_retry_note', n=empty_retries, max=config.MAX_EMPTY_RETRIES)}[/dim]")
                     _audit("EMPTY_RESPONSE_RETRY", {"round": rounds, "retry": empty_retries, "thinking_preview": thinking_preview})
                     messages.append({"role": "user", "content": t("empty_retry_nudge")})
                     continue
-                console.print(f"[red]{t('empty_response_fallback')}[/red]")
+                ui.console.print(f"[red]{t('empty_response_fallback')}[/red]")
                 _audit("EMPTY_RESPONSE", {"round": rounds, "thinking_preview": thinking_preview})
                 return t("empty_response_fallback")
             if (searched_since_cite and "http" not in msg.content
                     and citation_nudges_used < config.MAX_CITATION_NUDGES):
                 citation_nudges_used += 1
-                console.print(f"[dim]{t('auto_citation_note', n=citation_nudges_used, max=config.MAX_CITATION_NUDGES)}[/dim]")
+                ui.console.print(f"[dim]{t('auto_citation_note', n=citation_nudges_used, max=config.MAX_CITATION_NUDGES)}[/dim]")
                 _audit("AUTO_CITATION_NUDGE", {"round": rounds, "nudge": citation_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("citation_nudge")})
@@ -3863,7 +3777,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             if (_looks_like_hypothetical_tool_output(msg.content)
                     and grounding_nudges_used < config.MAX_GROUNDING_NUDGES):
                 grounding_nudges_used += 1
-                console.print(f"[dim]{t('auto_grounding_note', n=grounding_nudges_used, max=config.MAX_GROUNDING_NUDGES)}[/dim]")
+                ui.console.print(f"[dim]{t('auto_grounding_note', n=grounding_nudges_used, max=config.MAX_GROUNDING_NUDGES)}[/dim]")
                 _audit("AUTO_GROUNDING_NUDGE", {"round": rounds, "nudge": grounding_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t("grounding_nudge")})
@@ -3873,7 +3787,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             claim_kind = _claim_without_action(msg.content, had_successful_edit, had_verification)
             if claim_kind is not None and claim_action_nudges_used < config.MAX_CLAIM_ACTION_NUDGES:
                 claim_action_nudges_used += 1
-                console.print(f"[dim]{t('auto_claim_action_note', n=claim_action_nudges_used, max=config.MAX_CLAIM_ACTION_NUDGES)}[/dim]")
+                ui.console.print(f"[dim]{t('auto_claim_action_note', n=claim_action_nudges_used, max=config.MAX_CLAIM_ACTION_NUDGES)}[/dim]")
                 _audit("AUTO_CLAIM_ACTION_NUDGE", {"round": rounds, "kind": claim_kind, "nudge": claim_action_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t(f"claim_action_nudge_{claim_kind}")})
@@ -3885,7 +3799,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 if unsupported:
                     grounding_check_nudges_used += 1
                     shown = ", ".join(unsupported[:8])
-                    console.print(f"[dim]{t('auto_grounding_check_note', n=grounding_check_nudges_used, max=config.MAX_GROUNDING_CHECK_NUDGES)}[/dim]")
+                    ui.console.print(f"[dim]{t('auto_grounding_check_note', n=grounding_check_nudges_used, max=config.MAX_GROUNDING_CHECK_NUDGES)}[/dim]")
                     _audit("AUTO_GROUNDING_CHECK_NUDGE", {"round": rounds, "unsupported": unsupported[:12], "nudge": grounding_check_nudges_used})
                     messages.append({"role": "assistant", "content": msg.content or ""})
                     messages.append({"role": "user", "content": t("grounding_check_nudge", values=shown)})
@@ -3910,7 +3824,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 except Exception:
                     args = {}
 
-            console.print(Panel(
+            ui.console.print(Panel(
                 f"[bold white]{rich_escape(name)}[/bold white]([cyan]{rich_escape(json.dumps(args, ensure_ascii=False))}[/cyan])",
                 title=f"[yellow]{t('tool_panel_title')}[/yellow]", border_style="yellow", expand=False,
             ))
@@ -3923,7 +3837,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 result = f"⛔ Read-only planning phase — '{name}' is not allowed here. Produce the plan; the editor model will make the changes."
                 _audit(name, args, blocked=True, reason="architect read-only")
                 messages.append({"role": "tool", "content": result})
-                console.print(Panel(f"[red]{rich_escape(result)}[/red]",
+                ui.console.print(Panel(f"[red]{rich_escape(result)}[/red]",
                                     title=f"[cyan]{t('result_panel_title')}[/cyan]", border_style="dim green", expand=False))
                 continue
 
@@ -3937,7 +3851,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             # bypass the existing approval gate.
             is_risky = name in _RISKY_TOOLS or name in MCP_TOOL_MAP
             if state.SAFE_MODE and is_risky and not _confirm_risky_call(name, args):
-                console.print(f"[dim]{t('safe_mode_denied_console')}[/dim]")
+                ui.console.print(f"[dim]{t('safe_mode_denied_console')}[/dim]")
                 result = "⛔ Denied by user (safe mode)."
             elif name in MCP_TOOL_MAP:
                 conn, real_name = MCP_TOOL_MAP[name]
@@ -3978,7 +3892,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 if sig is not None and sig == last_failure_signature and stuck_search_nudges_used < config.MAX_STUCK_SEARCH_NUDGES:
                     stuck_search_nudges_used += 1
                     result = str(result) + _stuck_search_nudge_suffix()
-                    console.print(f"[dim]{t('stuck_search_nudge_note', n=stuck_search_nudges_used, max=config.MAX_STUCK_SEARCH_NUDGES)}[/dim]")
+                    ui.console.print(f"[dim]{t('stuck_search_nudge_note', n=stuck_search_nudges_used, max=config.MAX_STUCK_SEARCH_NUDGES)}[/dim]")
                     _audit("STUCK_SEARCH_NUDGE", {"round": rounds, "signature": sig, "nudge": stuck_search_nudges_used})
                 last_failure_signature = sig
 
@@ -4009,7 +3923,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             color   = "red" if blocked else "green"
             if len(preview) > 300:
                 preview = preview[:300] + "…"
-            console.print(Panel(
+            ui.console.print(Panel(
                 f"[{color}]{rich_escape(preview)}[/{color}]",
                 title=f"[cyan]{t('result_panel_title')}[/cyan]", border_style="dim green", expand=False,
             ))
@@ -4019,13 +3933,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
         if consecutive_thin_searches >= config.MAX_THIN_SEARCHES and not search_stop_nudged:
             search_stop_nudged = True
             consecutive_thin_searches = 0
-            console.print(f"[dim]{t('search_stop_note')}[/dim]")
+            ui.console.print(f"[dim]{t('search_stop_note')}[/dim]")
             _audit("SEARCH_STOP_NUDGE", {"round": rounds})
             messages.append({"role": "user", "content": t("search_stop_nudge")})
 
         if deep_search_count >= config.MAX_DEEP_SEARCHES and not deep_search_stop_nudged:
             deep_search_stop_nudged = True
-            console.print(f"[dim]{t('deep_search_stop_note')}[/dim]")
+            ui.console.print(f"[dim]{t('deep_search_stop_note')}[/dim]")
             _audit("DEEP_SEARCH_STOP_NUDGE", {"round": rounds, "count": deep_search_count})
             messages.append({"role": "user", "content": t("deep_search_stop_nudge")})
 
@@ -4036,7 +3950,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
         if (allowed_tools is not None and readonly_refusals >= config.MAX_READONLY_REFUSALS
                 and not readonly_nudged):
             readonly_nudged = True
-            console.print(f"[dim]{t('readonly_plan_note')}[/dim]")
+            ui.console.print(f"[dim]{t('readonly_plan_note')}[/dim]")
             _audit("READONLY_PLAN_NUDGE", {"round": rounds, "refusals": readonly_refusals})
             messages.append({"role": "user", "content": t("readonly_plan_nudge")})
 
@@ -4047,24 +3961,24 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
 def show_tools():
     for name, fn in TOOL_MAP.items():
         doc = (fn.__doc__ or "").strip().split("\n")[0]
-        console.print(f"  [yellow]{name}[/yellow] — {doc}")
+        ui.console.print(f"  [yellow]{name}[/yellow] — {doc}")
 
 
 def show_mcp():
     if not _MCP_AVAILABLE:
-        console.print("  [dim]MCP support not installed. Run: pip install mcp[/dim]")
+        ui.console.print("  [dim]MCP support not installed. Run: pip install mcp[/dim]")
         return
     if not MCP_CONNECTIONS:
-        console.print(f"  [dim]No MCP servers connected. Configure them in {config.MCP_CONFIG_FILE} "
+        ui.console.print(f"  [dim]No MCP servers connected. Configure them in {config.MCP_CONFIG_FILE} "
                        f"(same \"mcpServers\" format as Claude Desktop/Claude Code) and restart.[/dim]")
         return
     for server_name in MCP_CONNECTIONS:
-        console.print(f"  [bold cyan]{server_name}[/bold cyan]")
+        ui.console.print(f"  [bold cyan]{server_name}[/bold cyan]")
         for qualified_name, (conn, real_name) in MCP_TOOL_MAP.items():
             if conn.name == server_name:
                 schema = next((s for s in MCP_TOOL_SCHEMAS if s["function"]["name"] == qualified_name), None)
                 desc = (schema["function"]["description"].strip().split("\n")[0] if schema else "")
-                console.print(f"    [yellow]{qualified_name}[/yellow] — {desc}")
+                ui.console.print(f"    [yellow]{qualified_name}[/yellow] — {desc}")
 
 
 def show_history(messages: list, n: int = 8):
@@ -4072,7 +3986,7 @@ def show_history(messages: list, n: int = 8):
         role    = msg.get("role", "?")
         content = str(msg.get("content", ""))[:200]
         color   = {"user": "cyan", "assistant": "green", "tool": "yellow", "system": "dim"}.get(role, "white")
-        console.print(f"[{color}][{role}][/{color}] {rich_escape(content)}")
+        ui.console.print(f"[{color}][{role}][/{color}] {rich_escape(content)}")
 
 
 def cmd_add(filepaths: str, messages: list):
@@ -4082,14 +3996,14 @@ def cmd_add(filepaths: str, messages: list):
         p = Path(ps).expanduser()
         safe, reason = _check_file_path(ps)
         if not safe:
-            console.print(f"  [red]{t('add_blocked')}[/red] {p.name} — {reason}")
+            ui.console.print(f"  [red]{t('add_blocked')}[/red] {p.name} — {reason}")
             continue
         if not p.exists():
-            console.print(f"  [red]{t('add_not_found')}[/red] {p}")
+            ui.console.print(f"  [red]{t('add_not_found')}[/red] {p}")
             continue
         key = str(p.resolve())
         if key in state._context_files:
-            console.print(f"  [yellow]{t('add_already')}[/yellow] {p.name}")
+            ui.console.print(f"  [yellow]{t('add_already')}[/yellow] {p.name}")
             continue
         try:
             lines    = p.read_text(encoding="utf-8").splitlines()
@@ -4098,12 +4012,12 @@ def cmd_add(filepaths: str, messages: list):
             state._context_files[key] = p.name
             newly.append((p.name, f"```{ext}\n{numbered}\n```"))
         except Exception as e:
-            console.print(f"  [red]{t('add_error', name=p.name)}[/red] {e}")
+            ui.console.print(f"  [red]{t('add_error', name=p.name)}[/red] {e}")
     if newly:
         parts = [f"**{n}**\n{fmt}" for n, fmt in newly]
         messages.append({"role": "user", "content": t("add_user_wrapper") + "\n\n---\n\n".join(parts)})
         messages.append({"role": "assistant", "content": t("add_assistant_ack", names=', '.join(n for n,_ in newly))})
-        console.print(f"  [green]{t('add_added')}[/green] {', '.join(n for n,_ in newly)}\n")
+        ui.console.print(f"  [green]{t('add_added')}[/green] {', '.join(n for n,_ in newly)}\n")
 
 
 def cmd_diff() -> str:
@@ -4136,7 +4050,7 @@ def cmd_undo_legacy() -> str:
             Path(path_str).write_text(original, encoding="utf-8")
             restored.append(Path(path_str).name)
         except Exception as e:
-            console.print(f"  [red]{t('undo_restore_error', path=path_str)}[/red] {e}")
+            ui.console.print(f"  [red]{t('undo_restore_error', path=path_str)}[/red] {e}")
     state._snapshots.clear()
     return t("undo_restored", names=', '.join(restored))
 
@@ -4272,18 +4186,18 @@ def cmd_resume_load(which: str):
 
 def cmd_audit():
     if not state._AUDIT_LOG or not state._AUDIT_LOG.exists():
-        console.print(f"[dim]{t('audit_none')}[/dim]\n")
+        ui.console.print(f"[dim]{t('audit_none')}[/dim]\n")
         return
     lines = state._AUDIT_LOG.read_text(encoding="utf-8").splitlines()
-    console.print(f"\n[dim]{t('audit_log_line', path=state._AUDIT_LOG)}[/dim]")
-    console.print(Rule(f"[bold magenta]{t('audit_title')}[/bold magenta]", style="magenta"))
+    ui.console.print(f"\n[dim]{t('audit_log_line', path=state._AUDIT_LOG)}[/dim]")
+    ui.console.print(Rule(f"[bold magenta]{t('audit_title')}[/bold magenta]", style="magenta"))
     for line in lines[-20:]:
         if "BLOCKED" in line:
-            console.print(f"[red]{line}[/red]")
+            ui.console.print(f"[red]{line}[/red]")
         else:
-            console.print(f"[dim]{line}[/dim]")
-    console.print(Rule(style="dim"))
-    console.print()
+            ui.console.print(f"[dim]{line}[/dim]")
+    ui.console.print(Rule(style="dim"))
+    ui.console.print()
 
 
 def make_system_prompt(project_root: Path) -> str:
@@ -4608,9 +4522,9 @@ def run_parameters_menu() -> None:
     try:
         curses.wrapper(_parameters_curses_main)
     except curses.error as e:
-        console.print(f"[red]Could not open the parameters menu (terminal too small or unsupported): {e}[/red]\n")
+        ui.console.print(f"[red]Could not open the parameters menu (terminal too small or unsupported): {e}[/red]\n")
         return
-    console.print(f"[dim]Parameters updated — saved automatically to {config.PARAMS_FILE}.[/dim]\n")
+    ui.console.print(f"[dim]Parameters updated — saved automatically to {config.PARAMS_FILE}.[/dim]\n")
 
 
 # ── Point d'entrée ────────────────────────────────────────────────────────────
@@ -4628,9 +4542,6 @@ def main():
         config.SKILLS_GLOBAL_DIR.mkdir(parents=True, exist_ok=True)  # location of the global skills (empty at first)
     except Exception:
         pass
-    _init_mcp()      # connects the configured MCP servers (silent if absent/not installed)
-
-    global console
     argv = sys.argv[1:]
     state.SAFE_MODE = "--safe" in argv
     state.SANDBOX_MODE = "--sandbox" in argv
@@ -4652,15 +4563,19 @@ def main():
         cleaned.append(a); i += 1
     argv = cleaned
     headless = run_prompt is not None or recipe_file is not None
+    # Must happen before ANY output: _init_mcp() prints one line per connected server, and in
+    # headless mode stdout has to carry the final answer and nothing else.
     if headless:
         # stdout carries only the final answer(s); banner/panels -> stderr.
-        console = Console(file=sys.stderr)
+        ui.use_stderr_console()
         config.STREAM_FINAL = "off"
+
+    _init_mcp()      # connects the configured MCP servers (silent if absent/not installed)
 
     if argv:
         project_root = Path(argv[0]).expanduser().resolve()
         if not project_root.exists():
-            console.print(f"[red]{t('project_not_found', path=project_root)}[/red]")
+            ui.console.print(f"[red]{t('project_not_found', path=project_root)}[/red]")
             sys.exit(1)
     else:
         project_root = Path.cwd().resolve()
@@ -4697,20 +4612,15 @@ def main():
 
     # Private session: typed lines must NOT go into ~/.agentic_1a_history.
     # We recreate the prompt_toolkit session with an in-memory history (cleared on exit).
-    global _prompt_session
-    if state.PRIVATE_MODE and _PROMPT_TOOLKIT_AVAILABLE and _prompt_session is not None:
-        try:
-            _prompt_session = PromptSession(history=InMemoryHistory(),
-                                            completer=_SlashCompleter(), complete_while_typing=True)
-        except Exception:
-            pass
+    if state.PRIVATE_MODE:
+        ui.use_ephemeral_history()
 
     model = _resolve_startup_model()
     if model is None:
-        console.print(f"\n[red]{t('no_models')}[/red]")
+        ui.console.print(f"\n[red]{t('no_models')}[/red]")
         sys.exit(1)
 
-    if _prompt_session is None and not state.PRIVATE_MODE:
+    if ui._prompt_session is None and not state.PRIVATE_MODE:
         # input()/readline fallback only — prompt_toolkit handles its own
         # history persistence via FileHistory, so the two must not
         # write to the same file in different formats.
@@ -4720,24 +4630,24 @@ def main():
         except (FileNotFoundError, PermissionError, OSError):
             pass
 
-    console.print()
-    console.print(Rule("[bold blue]  Agentic_1A v3.0  [/bold blue]", style="blue"))
+    ui.console.print()
+    ui.console.print(Rule("[bold blue]  Agentic_1A v3.0  [/bold blue]", style="blue"))
     labels = [t("label_project"), t("label_model"), t("label_tools"), t("label_audit"), t("label_help")]
     w = max(len(l) for l in labels)
-    console.print(f"  [dim]{t('label_project').ljust(w)} :[/dim] [bold white]{project_root}[/bold white]")
-    console.print(f"  [dim]{t('label_model').ljust(w)} :[/dim] [cyan]{model}[/cyan]")
-    console.print(f"  [dim]{t('label_tools').ljust(w)} :[/dim] [green]{t('tools_suffix', n=len(TOOLS))}[/green]")
-    console.print(f"  [dim]{t('label_audit').ljust(w)} :[/dim] [dim]{state._AUDIT_LOG}[/dim]")
-    console.print(f"  [dim]{t('label_help').ljust(w)} :[/dim] {t('help_hint')} [yellow]/help[/yellow]")
-    console.print(f"  [dim]{t('esc_hint')}[/dim]")
+    ui.console.print(f"  [dim]{t('label_project').ljust(w)} :[/dim] [bold white]{project_root}[/bold white]")
+    ui.console.print(f"  [dim]{t('label_model').ljust(w)} :[/dim] [cyan]{model}[/cyan]")
+    ui.console.print(f"  [dim]{t('label_tools').ljust(w)} :[/dim] [green]{t('tools_suffix', n=len(TOOLS))}[/green]")
+    ui.console.print(f"  [dim]{t('label_audit').ljust(w)} :[/dim] [dim]{state._AUDIT_LOG}[/dim]")
+    ui.console.print(f"  [dim]{t('label_help').ljust(w)} :[/dim] {t('help_hint')} [yellow]/help[/yellow]")
+    ui.console.print(f"  [dim]{t('esc_hint')}[/dim]")
     if state.PRIVATE_MODE:
-        console.print(f"  [bold magenta]{t('private_mode_on')}[/bold magenta]")
+        ui.console.print(f"  [bold magenta]{t('private_mode_on')}[/bold magenta]")
     if state.SAFE_MODE:
-        console.print(f"  [bold yellow]{t('safe_mode_on')}[/bold yellow]")
+        ui.console.print(f"  [bold yellow]{t('safe_mode_on')}[/bold yellow]")
     if state.SANDBOX_MODE:
-        console.print(f"  [bold yellow]{t('sandbox_mode_on')}[/bold yellow]")
-    console.print(Rule(style="dim"))
-    console.print()
+        ui.console.print(f"  [bold yellow]{t('sandbox_mode_on')}[/bold yellow]")
+    ui.console.print(Rule(style="dim"))
+    ui.console.print()
 
     if not check_ollama(model):
         sys.exit(1)
@@ -4754,7 +4664,7 @@ def main():
             try:
                 prompts = _parse_recipe(recipe_file)
             except Exception as e:
-                console.print(f"[red]Recipe error: {e}[/red]")
+                ui.console.print(f"[red]Recipe error: {e}[/red]")
                 sys.exit(2)
         else:
             prompts = [run_prompt]
@@ -4765,7 +4675,7 @@ def main():
             try:
                 final = run_agent(messages, model)
             except Exception as e:
-                console.print(f"[red]{t('unexpected_error')}[/red] {e}")
+                ui.console.print(f"[red]{t('unexpected_error')}[/red] {e}")
                 print(f"ERROR: {e}")
                 all_ok = False
                 break
@@ -4786,11 +4696,11 @@ def main():
         except KeyboardInterrupt:
             # Ctrl+C at the prompt: cancels the current line, does NOT quit (consistent with
             # Ctrl+C = "stop" during generation, and it avoids accidental exits).
-            console.print(f"[dim]{t('ctrl_c_at_prompt')}[/dim]")
+            ui.console.print(f"[dim]{t('ctrl_c_at_prompt')}[/dim]")
             continue
         except EOFError:
             # Ctrl+D (or end of stream): a deliberate exit.
-            console.print(f"\n[dim]{t('session_ended')}[/dim]")
+            ui.console.print(f"\n[dim]{t('session_ended')}[/dim]")
             break
 
         if not user_input:
@@ -4798,11 +4708,11 @@ def main():
 
         # ── Commandes slash ──────────────────────────────────────────────────
         if user_input == "/exit":
-            console.print(f"[dim]{t('goodbye')}[/dim]")
+            ui.console.print(f"[dim]{t('goodbye')}[/dim]")
             break
 
         if user_input == "/help":
-            console.print(get_help_text())
+            ui.console.print(get_help_text())
             continue
 
         if user_input == "/clear":
@@ -4810,48 +4720,48 @@ def main():
             state._context_files.clear()
             state._todo = ""
             globals()["_LAST_PROMPT_TOKENS"] = 0   # nouveau contexte : repart de zéro
-            console.print(f"[dim]{t('history_cleared')}[/dim]\n")
+            ui.console.print(f"[dim]{t('history_cleared')}[/dim]\n")
             continue
 
         if user_input == "/private":
             if state.PRIVATE_MODE:
-                console.print(f"[magenta]{t('private_status_on')}[/magenta]\n")
+                ui.console.print(f"[magenta]{t('private_status_on')}[/magenta]\n")
             else:
-                console.print(f"[dim]{t('private_status_off')}[/dim]\n")
+                ui.console.print(f"[dim]{t('private_status_off')}[/dim]\n")
             continue
 
         if user_input == "/context":
             cap = get_num_ctx(model)
             used = state._LAST_PROMPT_TOKENS or _estimate_tokens(messages)
             pct = int(used / cap * 100) if cap else 0
-            console.print(f"[dim]{t('context_usage', used=used, cap=cap, pct=pct, auto=config.AUTO_COMPACT, thr=config.COMPACT_THRESHOLD_PCT)}[/dim]\n")
+            ui.console.print(f"[dim]{t('context_usage', used=used, cap=cap, pct=pct, auto=config.AUTO_COMPACT, thr=config.COMPACT_THRESHOLD_PCT)}[/dim]\n")
             continue
 
         if user_input == "/compact":
-            console.print(f"[cyan]{_compact_now(messages, model, forced=True)}[/cyan]\n")
+            ui.console.print(f"[cyan]{_compact_now(messages, model, forced=True)}[/cyan]\n")
             _save_session(messages, model)
             continue
 
         if user_input == "/todo":
             if state._todo:
-                console.print()
-                console.print(Rule(f"[bold cyan]{t('todo_title')}[/bold cyan]", style="cyan"))
-                console.print(Markdown(state._todo))
-                console.print(Rule(style="dim"))
-                console.print()
+                ui.console.print()
+                ui.console.print(Rule(f"[bold cyan]{t('todo_title')}[/bold cyan]", style="cyan"))
+                ui.console.print(Markdown(state._todo))
+                ui.console.print(Rule(style="dim"))
+                ui.console.print()
             else:
-                console.print(f"[dim]{t('todo_empty')}[/dim]\n")
+                ui.console.print(f"[dim]{t('todo_empty')}[/dim]\n")
             continue
 
         if user_input == "/memory":
             if state._memory:
-                console.print()
-                console.print(Rule(f"[bold cyan]{t('memory_title')}[/bold cyan]", style="cyan"))
-                console.print(Markdown(state._memory))
-                console.print(Rule(style="dim"))
-                console.print()
+                ui.console.print()
+                ui.console.print(Rule(f"[bold cyan]{t('memory_title')}[/bold cyan]", style="cyan"))
+                ui.console.print(Markdown(state._memory))
+                ui.console.print(Rule(style="dim"))
+                ui.console.print()
             else:
-                console.print(f"[dim]{t('memory_empty')}[/dim]\n")
+                ui.console.print(f"[dim]{t('memory_empty')}[/dim]\n")
             continue
 
         if user_input == "/forget":
@@ -4860,38 +4770,38 @@ def main():
             system_prompt = make_system_prompt(project_root)
             messages[0] = {"role": "system", "content": system_prompt}
             _audit("FORGET", {})
-            console.print(f"[dim]{t('forget_done')}[/dim]\n")
+            ui.console.print(f"[dim]{t('forget_done')}[/dim]\n")
             continue
 
         if user_input == "/ps":
             if state._bg_processes:
-                console.print()
-                console.print(Rule(f"[bold cyan]{t('ps_title')}[/bold cyan]", style="cyan"))
-                console.print(list_processes(), markup=False)
-                console.print(Rule(style="dim"))
-                console.print()
+                ui.console.print()
+                ui.console.print(Rule(f"[bold cyan]{t('ps_title')}[/bold cyan]", style="cyan"))
+                ui.console.print(list_processes(), markup=False)
+                ui.console.print(Rule(style="dim"))
+                ui.console.print()
             else:
-                console.print(f"[dim]{t('no_bg_processes')}[/dim]\n")
+                ui.console.print(f"[dim]{t('no_bg_processes')}[/dim]\n")
             continue
 
         if user_input.startswith("/kill "):
             pid_label = user_input[6:].strip()
             if not pid_label:
-                console.print(f"[yellow]{t('kill_usage')}[/yellow]\n")
+                ui.console.print(f"[yellow]{t('kill_usage')}[/yellow]\n")
             else:
-                console.print(f"[cyan]{kill_process(pid_label)}[/cyan]\n")
+                ui.console.print(f"[cyan]{kill_process(pid_label)}[/cyan]\n")
             continue
 
         if user_input == "/lang":
-            console.print(f"[dim]{t('lang_current', lang=config.SUPPORTED_LANGS[config.LANG])}[/dim]")
+            ui.console.print(f"[dim]{t('lang_current', lang=config.SUPPORTED_LANGS[config.LANG])}[/dim]")
             choice = _prompt(t("lang_prompt")).strip().lower()
             if choice in config.SUPPORTED_LANGS:
                 config.LANG = choice
                 system_prompt = make_system_prompt(project_root)
                 messages[0] = {"role": "system", "content": system_prompt}
-                console.print(f"[cyan]{t('lang_set', lang=config.SUPPORTED_LANGS[config.LANG])}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('lang_set', lang=config.SUPPORTED_LANGS[config.LANG])}[/cyan]\n")
             elif choice:
-                console.print(f"[red]{t('lang_invalid', codes=', '.join(config.SUPPORTED_LANGS))}[/red]\n")
+                ui.console.print(f"[red]{t('lang_invalid', codes=', '.join(config.SUPPORTED_LANGS))}[/red]\n")
             continue
 
         if user_input.startswith("/lang "):
@@ -4900,21 +4810,21 @@ def main():
                 config.LANG = choice
                 system_prompt = make_system_prompt(project_root)
                 messages[0] = {"role": "system", "content": system_prompt}
-                console.print(f"[cyan]{t('lang_set', lang=config.SUPPORTED_LANGS[config.LANG])}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('lang_set', lang=config.SUPPORTED_LANGS[config.LANG])}[/cyan]\n")
             else:
-                console.print(f"[red]{t('lang_invalid', codes=', '.join(config.SUPPORTED_LANGS))}[/red]\n")
+                ui.console.print(f"[red]{t('lang_invalid', codes=', '.join(config.SUPPORTED_LANGS))}[/red]\n")
             continue
 
         if user_input == "/safe":
             state.SAFE_MODE = not state.SAFE_MODE
             style = "bold yellow" if state.SAFE_MODE else "dim"
-            console.print(f"[{style}]{t('safe_mode_on' if state.SAFE_MODE else 'safe_mode_off')}[/{style}]\n")
+            ui.console.print(f"[{style}]{t('safe_mode_on' if state.SAFE_MODE else 'safe_mode_off')}[/{style}]\n")
             continue
 
         if user_input == "/sandbox":
             state.SANDBOX_MODE = not state.SANDBOX_MODE
             style = "bold yellow" if state.SANDBOX_MODE else "dim"
-            console.print(f"[{style}]{t('sandbox_mode_on' if state.SANDBOX_MODE else 'sandbox_mode_off')}[/{style}]\n")
+            ui.console.print(f"[{style}]{t('sandbox_mode_on' if state.SANDBOX_MODE else 'sandbox_mode_off')}[/{style}]\n")
             if not state.SANDBOX_MODE:
                 _cleanup_sandbox()  # no need to keep the container running once disabled
             continue
@@ -4927,16 +4837,16 @@ def main():
             picked = pick_model_interactive(model)
             if picked:
                 model = picked
-                console.print(f"[cyan]{t('model_switch', model=model)}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('model_switch', model=model)}[/cyan]\n")
             else:
-                console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
+                ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
             continue
 
         if user_input.startswith("/model "):
             nm = user_input[7:].strip()
             if check_ollama(nm):
                 model = nm
-                console.print(f"[cyan]{t('model_switch', model=model)}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('model_switch', model=model)}[/cyan]\n")
             continue
 
         if user_input in ("/default-model", "/defaultmodel"):
@@ -4944,9 +4854,9 @@ def main():
             if picked:
                 _save_default_model(picked)
                 model = picked
-                console.print(f"[cyan]{t('default_model_set', model=picked)}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('default_model_set', model=picked)}[/cyan]\n")
             else:
-                console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
+                ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
             continue
 
         if user_input in ("/failover-model", "/failover") or user_input.startswith("/failover-model "):
@@ -4954,61 +4864,61 @@ def main():
             if arg.lower() in ("off", "none", "disable", "disabled", "désactiver"):
                 config.PLUMBING_FAILOVER_MODEL = ""
                 _save_models_config({"failover": ""})
-                console.print(f"[cyan]{t('failover_model_off')}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('failover_model_off')}[/cyan]\n")
             elif arg:
                 config.PLUMBING_FAILOVER_MODEL = arg
                 _save_models_config({"failover": arg})
-                console.print(f"[cyan]{t('failover_model_set', model=arg)}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('failover_model_set', model=arg)}[/cyan]\n")
             else:
                 cur = t("failover_model_current", model=config.PLUMBING_FAILOVER_MODEL) if config.PLUMBING_FAILOVER_MODEL else t("failover_model_none")
-                console.print(f"[dim]{cur}[/dim]")
+                ui.console.print(f"[dim]{cur}[/dim]")
                 picked = pick_model_interactive(model)
                 if picked:
                     config.PLUMBING_FAILOVER_MODEL = picked
                     _save_models_config({"failover": picked})
-                    console.print(f"[cyan]{t('failover_model_set', model=picked)}[/cyan]\n")
+                    ui.console.print(f"[cyan]{t('failover_model_set', model=picked)}[/cyan]\n")
                 else:
-                    console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
+                    ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
             continue
 
         if user_input in ("/architect-models", "/architectmodels"):
-            console.print(f"[dim]{t('architect_models_current', arch=config.ARCHITECT_MODEL or '(current)', editor=config.EDITOR_MODEL or '(current)')}[/dim]")
-            console.print(f"[bold]{t('architect_pick_arch')}[/bold]")
+            ui.console.print(f"[dim]{t('architect_models_current', arch=config.ARCHITECT_MODEL or '(current)', editor=config.EDITOR_MODEL or '(current)')}[/dim]")
+            ui.console.print(f"[bold]{t('architect_pick_arch')}[/bold]")
             a = pick_model_interactive(model)
             if a:
-                console.print(f"[bold]{t('architect_pick_editor')}[/bold]")
+                ui.console.print(f"[bold]{t('architect_pick_editor')}[/bold]")
                 e = pick_model_interactive(model)
                 if e:
                     config.ARCHITECT_MODEL, config.EDITOR_MODEL = a, e
                     _save_models_config({"architect": a, "editor": e})
-                    console.print(f"[cyan]{t('architect_models_saved', arch=a, editor=e)}[/cyan]\n")
+                    ui.console.print(f"[cyan]{t('architect_models_saved', arch=a, editor=e)}[/cyan]\n")
                 else:
-                    console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
+                    ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
             else:
-                console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
+                ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
             continue
 
         if user_input.startswith("/architect ") or user_input == "/architect":
             task = user_input[len("/architect"):].strip()
             if not task:
-                console.print(f"[yellow]{t('architect_usage')}[/yellow]\n")
+                ui.console.print(f"[yellow]{t('architect_usage')}[/yellow]\n")
                 continue
             try:
                 plan, final = cmd_architect(task, messages, model)
             except (_UserAbort, KeyboardInterrupt):
-                console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
+                ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
                 continue
             except ollama.ResponseError as e:
-                console.print(f"\n[red]{t('model_error', model=model)}[/red] {e.error}\n")
+                ui.console.print(f"\n[red]{t('model_error', model=model)}[/red] {e.error}\n")
                 continue
             except Exception as e:
-                console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
+                ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
                 continue
-            console.print()
-            console.print(Rule("[bold green] Agent (editor) [/bold green]", style="green"))
-            console.print(Markdown(final))
-            console.print(Rule(style="dim"))
-            console.print()
+            ui.console.print()
+            ui.console.print(Rule("[bold green] Agent (editor) [/bold green]", style="green"))
+            ui.console.print(Markdown(final))
+            ui.console.print(Rule(style="dim"))
+            ui.console.print()
             # Main history: the task + a plan/result summary (without the tool spam)
             messages.append({"role": "user", "content": f"/architect {task}"})
             messages.append({"role": "assistant", "content": f"**Plan (architect)**\n\n{plan}\n\n**Result (editor)**\n\n{final}"})
@@ -5021,76 +4931,76 @@ def main():
                 if arg:
                     config.VISION_MODEL = ""
                     _save_models_config({"vision": ""})
-                    console.print(f"[cyan]{t('vision_model_auto')}[/cyan]\n")
+                    ui.console.print(f"[cyan]{t('vision_model_auto')}[/cyan]\n")
                 else:
                     picked = pick_model_interactive(model)
                     if picked:
                         config.VISION_MODEL = picked
                         _save_models_config({"vision": picked})
-                        console.print(f"[cyan]{t('vision_model_set', model=picked)}[/cyan]\n")
+                        ui.console.print(f"[cyan]{t('vision_model_set', model=picked)}[/cyan]\n")
                     else:
-                        console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
+                        ui.console.print(f"[dim]{t('model_cancelled')}[/dim]\n")
             else:
                 config.VISION_MODEL = arg
                 _save_models_config({"vision": arg})
-                console.print(f"[cyan]{t('vision_model_set', model=arg)}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('vision_model_set', model=arg)}[/cyan]\n")
             continue
 
         if user_input == "/tools":
             show_tools()
-            console.print()
+            ui.console.print()
             continue
 
         if user_input == "/skills":
             skills = _discover_skills()
             if not skills:
-                console.print(f"[dim]{t('skills_none', dir=config.SKILLS_GLOBAL_DIR)}[/dim]\n")
+                ui.console.print(f"[dim]{t('skills_none', dir=config.SKILLS_GLOBAL_DIR)}[/dim]\n")
             else:
-                console.print(f"[bold cyan]{t('skills_header')}[/bold cyan]")
+                ui.console.print(f"[bold cyan]{t('skills_header')}[/bold cyan]")
                 for name, info in sorted(skills.items()):
-                    console.print(f"  [yellow]{name}[/yellow] — {info['description']}")
-                console.print(f"[dim]{t('skills_usage')}[/dim]\n")
+                    ui.console.print(f"  [yellow]{name}[/yellow] — {info['description']}")
+                ui.console.print(f"[dim]{t('skills_usage')}[/dim]\n")
             continue
 
         if user_input.startswith("/skill "):
             name = user_input[7:].strip()
             loaded = load_skill(name)
             if loaded.startswith("No skill named"):
-                console.print(f"[yellow]{loaded}[/yellow]\n")
+                ui.console.print(f"[yellow]{loaded}[/yellow]\n")
             else:
                 messages.append({"role": "user", "content": loaded})
-                console.print(f"[cyan]{t('skill_loaded', name=name)}[/cyan]\n")
+                ui.console.print(f"[cyan]{t('skill_loaded', name=name)}[/cyan]\n")
             continue
 
         if user_input == "/mcp":
             show_mcp()
-            console.print()
+            ui.console.print()
             continue
 
         if user_input == "/history":
             show_history(messages)
-            console.print()
+            ui.console.print()
             continue
 
         if user_input == "/resume" or user_input.startswith("/resume "):
             arg = user_input[8:].strip() if user_input.startswith("/resume ") else ""
             if not arg:
-                console.print(cmd_resume_list())
-                console.print()
+                ui.console.print(cmd_resume_list())
+                ui.console.print()
             else:
                 loaded = cmd_resume_load(arg)
                 if loaded is None:
-                    console.print(f"[yellow]{t('resume_badindex', which=arg)}[/yellow]\n")
+                    ui.console.print(f"[yellow]{t('resume_badindex', which=arg)}[/yellow]\n")
                 else:
                     resumed_messages, saved_model = loaded
                     messages = resumed_messages
                     messages[0] = {"role": "system", "content": system_prompt}  # rafraîchit projet/mémoire courants
                     n = len([m for m in messages if m.get("role") != "system"])
-                    console.print(f"[cyan]{t('resume_loaded', updated=datetime.now().strftime('%H:%M:%S'), n=n)}[/cyan]\n")
+                    ui.console.print(f"[cyan]{t('resume_loaded', updated=datetime.now().strftime('%H:%M:%S'), n=n)}[/cyan]\n")
             continue
 
         if user_input == "/pwd":
-            console.print(f"[bold white]{project_root}[/bold white]\n")
+            ui.console.print(f"[bold white]{project_root}[/bold white]\n")
             continue
 
         if user_input.startswith("/add "):
@@ -5099,11 +5009,11 @@ def main():
 
         if user_input == "/files":
             if not state._context_files:
-                console.print(f"[dim]{t('files_empty')}[/dim]\n")
+                ui.console.print(f"[dim]{t('files_empty')}[/dim]\n")
             else:
                 for key, name in state._context_files.items():
-                    console.print(f"  [green]✓[/green] {name}  [dim]{key}[/dim]")
-                console.print()
+                    ui.console.print(f"  [green]✓[/green] {name}  [dim]{key}[/dim]")
+                ui.console.print()
             continue
 
         if user_input.startswith("/drop "):
@@ -5112,13 +5022,13 @@ def main():
             for k in removed:
                 del state._context_files[k]
             msg = f"[dim]{t('drop_removed', target=target)}[/dim]" if removed else f"[yellow]{t('drop_not_found', target=target)}[/yellow]"
-            console.print(msg + "\n")
+            ui.console.print(msg + "\n")
             continue
 
         if user_input.startswith("/plan "):
             task = user_input[6:].strip()
             if not task:
-                console.print(f"[yellow]{t('plan_usage')}[/yellow]\n")
+                ui.console.print(f"[yellow]{t('plan_usage')}[/yellow]\n")
                 continue
             if config.LANG == "fr":
                 plan_msg = (
@@ -5145,30 +5055,30 @@ def main():
                                      options=_gen_options(model)),
             )
             plan_content = resp.message.content or ""
-            console.print()
-            console.print(Rule("[bold yellow] Plan [/bold yellow]", style="yellow"))
-            console.print(Markdown(plan_content))
-            console.print(Rule(style="dim"))
-            console.print(f"[dim]{t('plan_footer')}[/dim]\n")
+            ui.console.print()
+            ui.console.print(Rule("[bold yellow] Plan [/bold yellow]", style="yellow"))
+            ui.console.print(Markdown(plan_content))
+            ui.console.print(Rule(style="dim"))
+            ui.console.print(f"[dim]{t('plan_footer')}[/dim]\n")
             messages.append({"role": "assistant", "content": plan_content})
             continue
 
         if user_input == "/diff":
-            console.print()
-            console.print(Rule("[bold magenta] Diff [/bold magenta]", style="magenta"))
-            console.print(Markdown(cmd_diff()))
-            console.print(Rule(style="dim"))
-            console.print()
+            ui.console.print()
+            ui.console.print(Rule("[bold magenta] Diff [/bold magenta]", style="magenta"))
+            ui.console.print(Markdown(cmd_diff()))
+            ui.console.print(Rule(style="dim"))
+            ui.console.print()
             continue
 
         if user_input == "/review-by" or user_input.startswith("/review-by "):
             reviewer = user_input[len("/review-by"):].strip()
             if not reviewer:
-                console.print(f"[yellow]{t('review_by_usage')}[/yellow]\n")
+                ui.console.print(f"[yellow]{t('review_by_usage')}[/yellow]\n")
                 continue
             critique = cmd_review_by(reviewer, messages, model)
             if critique is None:
-                console.print(f"[yellow]{t('review_by_no_diff')}[/yellow]\n")
+                ui.console.print(f"[yellow]{t('review_by_no_diff')}[/yellow]\n")
                 continue
             # The main model answers the critique (and can fix the real problems).
             if config.LANG == "fr":
@@ -5180,35 +5090,35 @@ def main():
                             f"its critique:\n\n{critique}\n\nDo you agree? Fix any real issues it found "
                             f"(or explain why they aren't issues).")
             messages.append({"role": "user", "content": followup})
-            console.print(f"[dim]{t('review_by_responding')}[/dim]")
+            ui.console.print(f"[dim]{t('review_by_responding')}[/dim]")
             try:
                 final = run_agent(messages, model)
             except (_UserAbort, KeyboardInterrupt):
-                console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
+                ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
                 continue
             except Exception as e:
-                console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
+                ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
                 messages.pop()
                 continue
-            console.print()
-            console.print(Rule("[bold green] Agent [/bold green]", style="green"))
-            console.print(Markdown(final))
-            console.print(Rule(style="dim"))
-            console.print()
+            ui.console.print()
+            ui.console.print(Rule("[bold green] Agent [/bold green]", style="green"))
+            ui.console.print(Markdown(final))
+            ui.console.print(Rule(style="dim"))
+            ui.console.print()
             messages.append({"role": "assistant", "content": final})
             _save_session(messages, model)
             continue
 
         if user_input == "/undo" or user_input.startswith("/undo "):
             if not _checkpoints_available():
-                console.print(f"[cyan]{cmd_undo_legacy()}[/cyan]\n")
+                ui.console.print(f"[cyan]{cmd_undo_legacy()}[/cyan]\n")
                 continue
             arg = user_input[6:].strip() if user_input.startswith("/undo ") else ""
             if not arg:
-                console.print(cmd_undo_list())
-                console.print()
+                ui.console.print(cmd_undo_list())
+                ui.console.print()
             else:
-                console.print(f"[cyan]{cmd_undo_restore(arg)}[/cyan]\n")
+                ui.console.print(f"[cyan]{cmd_undo_restore(arg)}[/cyan]\n")
             continue
 
         if user_input == "/audit":
@@ -5221,25 +5131,25 @@ def main():
         try:
             final = run_agent(messages, model)
         except (_UserAbort, KeyboardInterrupt):
-            console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
+            ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
             _audit("USER_ABORT", {})
             continue   # session reste vivante ; on revient à l'invite
         except ollama.ResponseError as e:
-            console.print(f"\n[red]{t('model_error', model=model)}[/red] {e.error}\n")
+            ui.console.print(f"\n[red]{t('model_error', model=model)}[/red] {e.error}\n")
             if "does not support tools" in e.error.lower():
-                console.print(f"[yellow]{t('model_no_tools_hint')}[/yellow]\n")
+                ui.console.print(f"[yellow]{t('model_no_tools_hint')}[/yellow]\n")
             messages.pop()  # retire le message utilisateur non traité
             continue
         except Exception as e:
-            console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
+            ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
             messages.pop()
             continue
 
-        console.print()
-        console.print(Rule("[bold green] Agent [/bold green]", style="green"))
-        console.print(Markdown(final))
-        console.print(Rule(style="dim"))
-        console.print()
+        ui.console.print()
+        ui.console.print(Rule("[bold green] Agent [/bold green]", style="green"))
+        ui.console.print(Markdown(final))
+        ui.console.print(Rule(style="dim"))
+        ui.console.print()
 
         messages.append({"role": "assistant", "content": final})
         _maybe_compact(messages, model)  # auto-compaction if enabled and the context is above the threshold
@@ -5257,7 +5167,7 @@ def main():
                 shutil.rmtree(state._BG_LOG_DIR, ignore_errors=True)
         except Exception:
             pass
-    elif _prompt_session is None:
+    elif ui._prompt_session is None:
         try:
             readline.write_history_file(config.HISTORY_FILE)
         except (PermissionError, OSError):
