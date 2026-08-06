@@ -17,7 +17,7 @@ the `agentic/` package:
 Runs offline: importing agent has no side effects that need Ollama or the network.
 """
 import agent
-from agentic import config
+from agentic import config, i18n
 
 # ── The tool registry ────────────────────────────────────────────────────────
 # Frozen deliberately: adding a tool is a real change and should require updating this list.
@@ -109,13 +109,13 @@ def test_slash_commands():
 
 def test_interface_is_bilingual():
     """EN/FR parity across every user-facing string table — the UI is bilingual by design."""
-    assert set(agent.STR) == {"en", "fr"}
-    missing_fr = set(agent.STR["en"]) - set(agent.STR["fr"])
-    missing_en = set(agent.STR["fr"]) - set(agent.STR["en"])
+    assert set(i18n.STR) == {"en", "fr"}
+    missing_fr = set(i18n.STR["en"]) - set(i18n.STR["fr"])
+    missing_en = set(i18n.STR["fr"]) - set(i18n.STR["en"])
     assert not missing_fr, f"STR keys missing a French translation: {sorted(missing_fr)}"
     assert not missing_en, f"STR keys missing an English translation: {sorted(missing_en)}"
-    assert set(agent.SYSTEM_PROMPT) == {"en", "fr"}, "the system prompt must exist in both languages"
-    assert set(agent.HELP_TEXT) == {"en", "fr"}, "/help must exist in both languages"
+    assert set(i18n.SYSTEM_PROMPT) == {"en", "fr"}, "the system prompt must exist in both languages"
+    assert set(i18n.HELP_TEXT) == {"en", "fr"}, "/help must exist in both languages"
     assert config.SUPPORTED_LANGS == {"en": "English", "fr": "Français"}
 
 
