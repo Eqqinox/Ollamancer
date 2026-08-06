@@ -1,4 +1,5 @@
 import agent
+from agentic import config
 from prompt_toolkit.document import Document
 
 comp = agent._SlashCompleter()
@@ -43,11 +44,11 @@ comps = list(comp.get_completions(doc, None))
 assert all(x.start_position == -3 for x in comps), [x.start_position for x in comps]
 
 # 10. descriptions follow the interface language
-agent.LANG = "fr"
+config.LANG = "fr"
 doc = Document(text="/compact", cursor_position=8)
 meta_fr = list(comp.get_completions(doc, None))[0].display_meta_text
 assert "Compacter" in meta_fr, meta_fr
-agent.LANG = "en"
+config.LANG = "en"
 meta_en = list(comp.get_completions(doc, None))[0].display_meta_text
 assert "Compact" in meta_en, meta_en
 

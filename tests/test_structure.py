@@ -17,6 +17,7 @@ the `agentic/` package:
 Runs offline: importing agent has no side effects that need Ollama or the network.
 """
 import agent
+from agentic import config
 
 # ── The tool registry ────────────────────────────────────────────────────────
 # Frozen deliberately: adding a tool is a real change and should require updating this list.
@@ -115,7 +116,7 @@ def test_interface_is_bilingual():
     assert not missing_en, f"STR keys missing an English translation: {sorted(missing_en)}"
     assert set(agent.SYSTEM_PROMPT) == {"en", "fr"}, "the system prompt must exist in both languages"
     assert set(agent.HELP_TEXT) == {"en", "fr"}, "/help must exist in both languages"
-    assert agent.SUPPORTED_LANGS == {"en": "English", "fr": "Français"}
+    assert config.SUPPORTED_LANGS == {"en": "English", "fr": "Français"}
 
 
 def test_param_schema():
@@ -149,12 +150,12 @@ def test_params_are_live():
             var = p["var"]
             # Readable through the same path the menu formats from.
             before = agent._param_format(p)
-            saved[var] = getattr(agent, var)
+            saved[var] = getattr(config, var)
             assert before is not None
 
             # Nudge it and confirm the change is observable, then nudge it back.
             agent._param_adjust(p, +1)
-            bumped = getattr(agent, var)
+            bumped = getattr(config, var)
             if p["kind"] == "enum":
                 assert bumped in p["options"], f"{var}: adjust produced {bumped!r}"
             else:
@@ -165,7 +166,7 @@ def test_params_are_live():
                     f"menu is disconnected from the variable the agent reads")
     finally:
         for var, value in saved.items():
-            setattr(agent, var, value)
+            setattr(config, var, value)
 
 
 def test_no_duplicate_tool_docstrings():

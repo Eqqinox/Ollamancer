@@ -1,6 +1,7 @@
 import os, tempfile, pathlib, types
 import agent
-agent.STREAM_FINAL = "off"
+from agentic import config
+config.STREAM_FINAL = "off"
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
 

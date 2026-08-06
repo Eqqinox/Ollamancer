@@ -1,8 +1,9 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic import config
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
-agent.STREAM_FINAL = "on"
+config.STREAM_FINAL = "on"
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
 agent._AUDIT_LOG = d / "audit.log"
 

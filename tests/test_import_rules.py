@@ -90,7 +90,56 @@ def test_no_globals_mutation_of_live_values():
     )
 
 
+def test_no_local_shadows_a_live_module():
+    """No function may bind a local named `config` or `state`.
+
+    Python decides scope per function: a single `config = ...` anywhere in a function makes
+    every `config.X` in that function a local reference, so the *module* becomes unreachable
+    and the function dies with UnboundLocalError. `_init_mcp` had exactly this — it already
+    used `config` as the name of the parsed MCP JSON — and no behavioural test covered MCP
+    startup, so the suite stayed green while the agent could not start with MCP configured.
+    """
+    targets = set(LIVE_MODULES)
+    files = [ROOT / "agent.py"]
+    if PACKAGE.is_dir():
+        files += sorted(PACKAGE.rglob("*.py"))
+
+    problems = []
+    for py in files:
+        if not py.exists():
+            continue
+        tree = ast.parse(py.read_text(), filename=str(py))
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            bound = set()
+            for a in fn.args.args + fn.args.kwonlyargs + fn.args.posonlyargs:
+                if a.arg in targets:
+                    bound.add(a.arg)
+            for n in ast.walk(fn):
+                tgts = []
+                if isinstance(n, ast.Assign):
+                    tgts = n.targets
+                elif isinstance(n, (ast.AugAssign, ast.AnnAssign, ast.For)):
+                    tgts = [n.target]
+                elif isinstance(n, ast.withitem) and n.optional_vars:
+                    tgts = [n.optional_vars]
+                for t in tgts:
+                    # only a bare Name binds; `config.X = ...` is an Attribute and is fine
+                    if isinstance(t, ast.Name) and t.id in targets:
+                        bound.add(t.id)
+            for name in sorted(bound):
+                problems.append(f"{py.relative_to(ROOT)}:{fn.lineno}: {fn.name}() binds a local "
+                                f"named {name!r}, shadowing the module")
+    assert not problems, (
+        "a local with the same name as a live module makes that module unreachable inside the "
+        "function (UnboundLocalError at runtime):\n  " + "\n  ".join(problems)
+        + "\n\nRename the local (e.g. mcp_config)."
+    )
+
+
 if __name__ == "__main__":
     test_no_by_name_imports_from_live_modules()
     test_no_globals_mutation_of_live_values()
+    test_no_local_shadows_a_live_module()
     print("test_import_rules: ALL PASS")

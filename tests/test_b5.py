@@ -1,5 +1,6 @@
 import os, tempfile, pathlib, re
 import agent
+from agentic import config
 
 # Deterministic hashing embedder (bag-of-words over 64 buckets) — same process, so query
 # and chunks share the same mapping; word overlap → high cosine. No real model needed.
@@ -19,7 +20,7 @@ agent._SEMANTIC_DB = d / "sem.db"
 
 # 0. chunking
 chunks = agent._chunk_text("\n".join(f"line{i}" for i in range(130)))
-agent.SEMANTIC_CHUNK_LINES = 60
+config.SEMANTIC_CHUNK_LINES = 60
 chunks = agent._chunk_text("\n".join(f"line{i}" for i in range(130)))
 assert [c[1] for c in chunks] == [1, 61, 121], chunks   # start lines
 assert len(chunks) == 3

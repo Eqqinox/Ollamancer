@@ -1,5 +1,6 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic import config
 
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
@@ -30,7 +31,7 @@ assert resp2.message.content == "prefix ignored-after"   # content still accumul
 assert seen2 == ["prefix "], seen2   # live text stopped as soon as a tool_call arrived
 
 # 3. STREAM_FINAL off → buffered path used (stream=False)
-agent.STREAM_FINAL = "off"
+config.STREAM_FINAL = "off"
 calls = []
 def fake_chat_buf(**kw):
     calls.append(kw.get("stream"))
@@ -41,7 +42,7 @@ assert r.message.content == "buffered"
 assert calls == [False], calls
 
 # 4. STREAM_FINAL on → stream=True path used
-agent.STREAM_FINAL = "on"
+config.STREAM_FINAL = "on"
 def fake_chat_stream(**kw):
     assert kw.get("stream") is True
     return iter([chunk("streamed "), chunk("answer")])
@@ -56,7 +57,7 @@ def make_router(rounds):
         item = next(it)
         return iter(item) if kw.get("stream") else item
     return router
-agent.MAX_VERIFY_NUDGES = 0
+config.MAX_VERIFY_NUDGES = 0
 agent.ollama.chat = make_router([
     [chunk(tool_calls=[F("todo_write", {"checklist": "- [ ] go"})])],   # tool round (streamed)
     [chunk("Final "), chunk("streamed "), chunk("reply.")],              # final answer (streamed)
@@ -70,7 +71,7 @@ def boom_stream(**kw):
         yield chunk("partial")
         raise agent.ollama.ResponseError("unexpected end of JSON input")
     return gen() if kw.get("stream") else None
-agent.PLUMBING_FAILOVER_MODEL = ""
+config.PLUMBING_FAILOVER_MODEL = ""
 agent.ollama.chat = boom_stream
 final2 = agent.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "do"}], "m")
 assert "truncated" in final2 or "tronquée" in final2, final2

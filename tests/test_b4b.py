@@ -1,7 +1,8 @@
 import os, tempfile, pathlib
 import agent
-agent.STREAM_FINAL = "off"
-agent.MAX_VERIFY_NUDGES = 0
+from agentic import config
+config.STREAM_FINAL = "off"
+config.MAX_VERIFY_NUDGES = 0
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
 
@@ -9,7 +10,7 @@ d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolv
 agent._AUDIT_LOG = d / "audit.log"
 agent._CHECKPOINT_GITDIR = None
 agent._unload_model = lambda m: None
-agent.ARCHITECT_MODEL = "arch:m"; agent.EDITOR_MODEL = "ed:m"
+config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "ed:m"
 
 class F:
     def __init__(s,n,a): s.name=n; s.arguments=a

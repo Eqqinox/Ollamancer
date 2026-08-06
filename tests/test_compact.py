@@ -1,5 +1,6 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic import config
 agent.get_num_ctx = lambda m: 1000   # small window so thresholds are easy to hit in the test
 agent._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
@@ -27,7 +28,7 @@ assert agent._turn_boundaries(m2) == [2], agent._turn_boundaries(m2)  # summary 
 
 # ---- 2. lossless cleanup truncates old tool results ----
 m = build()
-keep_from = agent._turn_boundaries(m)[-agent.COMPACT_KEEP_TURNS]
+keep_from = agent._turn_boundaries(m)[-config.COMPACT_KEEP_TURNS]
 before = agent._estimate_tokens(m)
 saved = agent._cleanup_old_tool_results(m, keep_from)
 assert saved > 0 and agent._estimate_tokens(m) < before
@@ -35,7 +36,7 @@ assert saved > 0 and agent._estimate_tokens(m) < before
 assert any(len(x["content"]) == 3000 for x in m[keep_from:] if x["role"] == "tool")
 
 # ---- 3. forced compaction: structured summary replaces old turns, structure preserved ----
-agent.COMPACT_KEEP_TURNS = 3
+config.COMPACT_KEEP_TURNS = 3
 captured = {}
 def fake_chat(**kw):
     captured["prompt"] = kw["messages"][0]["content"]
@@ -74,14 +75,14 @@ assert "Not enough" in agent._compact_now(tiny, "model", forced=True) or "compac
 assert len(tiny) == 3  # unchanged
 
 # ---- 6. auto-compact OFF by default → never fires ----
-agent.AUTO_COMPACT = "off"
+config.AUTO_COMPACT = "off"
 agent._LAST_PROMPT_TOKENS = 999999
 m = build()
 assert agent._maybe_compact(m, "model") is False
 
 # ---- 7. auto-compact ON + over threshold → fires ----
-agent.AUTO_COMPACT = "on"
-agent.COMPACT_THRESHOLD_PCT = 70
+config.AUTO_COMPACT = "on"
+config.COMPACT_THRESHOLD_PCT = 70
 agent._LAST_PROMPT_TOKENS = 800   # 80% of 1000 > 70%
 m = build()
 assert agent._maybe_compact(m, "model") is True

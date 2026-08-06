@@ -1,5 +1,6 @@
 import os, tempfile, pathlib, types
 import agent
+from agentic import config
 
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
 agent._AUDIT_LOG = d / "audit.log"
@@ -9,14 +10,14 @@ img = d / "shot.png"; img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 32)
 txt = d / "notes.txt"; txt.write_text("hi")
 
 # 1. detection: configured VISION_MODEL wins
-agent.VISION_MODEL = "myvision:model"
+config.VISION_MODEL = "myvision:model"
 assert agent._detect_vision_model() == "myvision:model"
 
 # 2. detection: auto-detect via REAL ollama.show() capabilities, not name guessing.
 #    Deliberately named to fool the old name-heuristic the wrong way in both directions:
 #    "llama3-vl:8b" LOOKS multimodal by name but reports no vision capability, while
 #    "totally-plain-name:13b" has NO vision-sounding name but genuinely has the capability.
-agent.VISION_MODEL = ""
+config.VISION_MODEL = ""
 agent.ollama.list = lambda: types.SimpleNamespace(models=[
     types.SimpleNamespace(model="llama3-vl:8b"),          # name suggests vision, capability does not
     types.SimpleNamespace(model="totally-plain-name:13b"), # name suggests nothing, capability does
@@ -42,7 +43,7 @@ agent.ollama.show = show_always_fails
 assert agent._detect_vision_model() == "llama3-vl:8b"   # name-hint fallback picks the "vl" one
 
 # 4. happy path: sequential load/unload + images passed to the model
-agent.VISION_MODEL = "vis:model"
+config.VISION_MODEL = "vis:model"
 agent._CURRENT_MODEL = "main:model"
 unloaded = []
 agent._unload_model = lambda m: unloaded.append(m)

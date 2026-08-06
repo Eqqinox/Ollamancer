@@ -1,6 +1,7 @@
 import os, tempfile, pathlib
 import agent
-agent.STREAM_FINAL = "off"  # these predate streaming; use buffered path
+from agentic import config
+config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); agent.PROJECT_ROOT = d.resolve()
 agent.get_num_ctx = lambda m: 4096
@@ -17,15 +18,15 @@ def RErr(text):
     return agent.ollama.ResponseError(text)
 
 # Helper for _plumbing_failover_target
-agent.PLUMBING_FAILOVER_MODEL = "backup:model"
+config.PLUMBING_FAILOVER_MODEL = "backup:model"
 assert agent._plumbing_failover_target("primary:model") == "backup:model"
 assert agent._plumbing_failover_target("backup:model") is None      # never to itself
-agent.PLUMBING_FAILOVER_MODEL = ""
+config.PLUMBING_FAILOVER_MODEL = ""
 assert agent._plumbing_failover_target("primary:model") is None     # disabled
 
 # --- Scenario 1: failover ENABLED. Primary keeps hitting the JSON-truncation bug,
 #     retries exhaust, then it fails over to backup which answers. ---
-agent.PLUMBING_FAILOVER_MODEL = "backup:model"
+config.PLUMBING_FAILOVER_MODEL = "backup:model"
 calls = {"models": []}
 # script: primary raises 3x (1 initial + 2 retries exhausts budget=2), then after
 # failover the backup model returns a normal final answer.
@@ -45,7 +46,7 @@ log = agent._AUDIT_LOG.read_text()
 assert "MODEL_FAILOVER" in log and '"trigger": "json_truncation"' in log, log
 
 # --- Scenario 2: failover DISABLED → returns the fallback message, no switch ---
-agent.PLUMBING_FAILOVER_MODEL = ""
+config.PLUMBING_FAILOVER_MODEL = ""
 def fake_chat2(**kw):
     raise RErr("unexpected end of JSON input")
 agent.ollama.chat = fake_chat2
@@ -54,7 +55,7 @@ final2 = agent.run_agent(msgs2, "primary:model")
 assert "truncated tool-call response" in final2 or "tronquée" in final2, final2
 
 # --- Scenario 3: failover set to SAME model as current → no switch, fallback returned ---
-agent.PLUMBING_FAILOVER_MODEL = "primary:model"
+config.PLUMBING_FAILOVER_MODEL = "primary:model"
 agent.ollama.chat = fake_chat2
 msgs3 = [{"role": "system", "content": "s"}, {"role": "user", "content": "do it"}]
 final3 = agent.run_agent(msgs3, "primary:model")

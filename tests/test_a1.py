@@ -1,5 +1,6 @@
 import os, tempfile, pathlib
 import agent
+from agentic import config
 
 d = pathlib.Path(tempfile.mkdtemp())
 os.chdir(d)
@@ -35,10 +36,10 @@ assert "prefer writing in chunks" in big_res, big_res
 assert "201 lines" in big_res or "200 lines" in big_res, big_res
 
 # 5. GEN_NUM_PREDICT finite warning
-agent.GEN_NUM_PREDICT = 10
+config.GEN_NUM_PREDICT = 10
 warn_res = agent.write_file("big2.txt", big)
 assert "num_predict" in warn_res, warn_res
-agent.GEN_NUM_PREDICT = -1
+config.GEN_NUM_PREDICT = -1
 noover = agent.write_file("big3.txt", big)
 assert "num_predict" not in noover, noover
 

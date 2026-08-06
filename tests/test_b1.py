@@ -1,6 +1,7 @@
 import os, tempfile, pathlib
 import agent
-agent.STREAM_FINAL = "off"  # these predate streaming; use buffered path
+from agentic import config
+config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
 assert agent._git_available(), "git binary required for this test"
 
@@ -67,7 +68,7 @@ assert agent._CHECKPOINTS == [], agent._CHECKPOINTS
 # ---- Integration: run_agent makes a checkpoint before a real write_file ----
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
-agent.MAX_VERIFY_NUDGES = 0  # keep the scripted turn count deterministic
+config.MAX_VERIFY_NUDGES = 0  # keep the scripted turn count deterministic
 agent._CHECKPOINTS = []; agent._checkpoint_turn = 3
 (d / "c.txt").write_text("original")
 class Msg:

@@ -1,7 +1,8 @@
 import os, tempfile, pathlib
 import agent
-agent.STREAM_FINAL = "off"
-agent.MAX_VERIFY_NUDGES = 0
+from agentic import config
+config.STREAM_FINAL = "off"
+config.MAX_VERIFY_NUDGES = 0
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
 
@@ -17,11 +18,11 @@ for ok in ("read_file", "search_in_files", "find_references", "list_directory"):
     assert ok in ro, ok
 
 # 2. model resolution
-agent.ARCHITECT_MODEL = "arch:m"; agent.EDITOR_MODEL = "editor:m"
+config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "editor:m"
 assert agent._architect_models("cur:m") == ("arch:m", "editor:m")
-agent.ARCHITECT_MODEL = ""; agent.EDITOR_MODEL = ""
+config.ARCHITECT_MODEL = ""; config.EDITOR_MODEL = ""
 assert agent._architect_models("cur:m") == ("cur:m", "cur:m")   # degenerate fallback
-agent.ARCHITECT_MODEL = "arch:m"; agent.EDITOR_MODEL = "editor:m"
+config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "editor:m"
 
 # 3. record unload order (sequential loading guarantee)
 unloaded = []

@@ -1,6 +1,7 @@
 import os, tempfile, pathlib
 import agent
-agent.STREAM_FINAL = "off"  # these predate streaming; use buffered path
+from agentic import config
+config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
 # ---------- Unit: _extract_hard_tokens / _grounding_check ----------
 results = ["City report: the metro area has 8,340,000 residents. Published 2021-03-05. See http://ex.com/data"]
