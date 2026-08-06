@@ -191,9 +191,51 @@ def test_no_local_shadows_a_live_module():
     )
 
 
+def test_no_undefined_names_in_package_modules():
+    """Every module in agentic/ must resolve all the names it uses.
+
+    Extracting a block of code into a new module silently leaves behind the imports it
+    relied on. Importing the module still succeeds — the failure only appears when a
+    particular function runs, so a behavioural suite catches it only if it happens to
+    exercise that path. checkpoints.py shipped needing os, shutil and _audit; the tests
+    surfaced shutil and would have hit the other two later.
+
+    This is a static check: it walks each module and reports any loaded name that is not a
+    builtin, an import, a definition, an argument, or an assignment target.
+    """
+    if not PACKAGE.is_dir():
+        return
+    import builtins
+    problems = []
+    for py in sorted(PACKAGE.rglob("*.py")):
+        tree = ast.parse(py.read_text(), filename=str(py))
+        defined = set(dir(builtins)) | {"__file__", "__name__", "__doc__"}
+        for n in ast.walk(tree):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                defined.add(n.name)
+            elif isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store):
+                defined.add(n.id)
+            elif isinstance(n, ast.arg):
+                defined.add(n.arg)
+            elif isinstance(n, ast.alias):
+                defined.add((n.asname or n.name).split(".")[0])
+            elif isinstance(n, ast.Global):
+                defined.update(n.names)
+            elif isinstance(n, ast.ExceptHandler) and n.name:
+                defined.add(n.name)
+        used = {n.id for n in ast.walk(tree)
+                if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load)}
+        for name in sorted(used - defined):
+            problems.append(f"{py.relative_to(ROOT)}: {name!r} is never imported or defined")
+    assert not problems, (
+        "a module uses names it does not have — an extraction left its imports behind:\n  "
+        + "\n  ".join(problems))
+
+
 if __name__ == "__main__":
     test_no_by_name_imports_from_live_modules()
     test_no_globals_mutation_of_live_values()
     test_no_by_name_imports_of_rebound_names()
     test_no_local_shadows_a_live_module()
+    test_no_undefined_names_in_package_modules()
     print("test_import_rules: ALL PASS")
