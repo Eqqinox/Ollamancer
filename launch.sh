@@ -16,31 +16,33 @@ SAFE_FLAG=""
 SANDBOX_FLAG=""
 PRIVATE_FLAG=""
 POSITIONAL=()
-for arg in "$@"; do
-    if [ "$arg" = "--safe" ]; then
-        SAFE_FLAG="--safe"
-    elif [ "$arg" = "--sandbox" ]; then
-        SANDBOX_FLAG="--sandbox"
-    elif [ "$arg" = "--private" ] || [ "$arg" = "--incognito" ]; then
-        PRIVATE_FLAG="--private"
-    else
-        POSITIONAL+=("$arg")
-    fi
+PASSTHROUGH=()          # --run / --recipe and their argument, relayed untouched
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --safe)                  SAFE_FLAG="--safe"; shift ;;
+        --sandbox)               SANDBOX_FLAG="--sandbox"; shift ;;
+        --private|--incognito)   PRIVATE_FLAG="--private"; shift ;;
+        --run|--recipe)          PASSTHROUGH+=("$1" "$2"); shift 2 ;;
+        *)                       POSITIONAL+=("$1"); shift ;;
+    esac
 done
 PROJECT_ROOT="${POSITIONAL[0]:-$(pwd)}"       # 1er arg non-flag, ou dossier courant
 
 # Créer le venv si absent
 if [ ! -d "$AGENT_DIR/.venv" ]; then
-    echo "→ Création de l'environnement virtuel..."
+    echo "→ Creating the virtual environment..." >&2
     python3 -m venv "$AGENT_DIR/.venv"
 fi
 
 # Installer / mettre à jour les dépendances
-echo "→ Vérification des dépendances..."
+echo "→ Checking dependencies..." >&2
 "$AGENT_DIR/.venv/bin/pip" install -r "$AGENT_DIR/requirements.txt" -q
 
-echo "→ Projet : $PROJECT_ROOT"
-echo ""
+if [ ${#PASSTHROUGH[@]} -eq 0 ]; then
+    echo "→ Project: $PROJECT_ROOT"
+    echo ""
+fi
 
 # Lancer l'agent avec le dossier projet
-"$AGENT_DIR/.venv/bin/python" "$AGENT_DIR/agent.py" "$PROJECT_ROOT" $SAFE_FLAG $SANDBOX_FLAG $PRIVATE_FLAG
+"$AGENT_DIR/.venv/bin/python" "$AGENT_DIR/agent.py" "$PROJECT_ROOT" \
+    $SAFE_FLAG $SANDBOX_FLAG $PRIVATE_FLAG "${PASSTHROUGH[@]}"
