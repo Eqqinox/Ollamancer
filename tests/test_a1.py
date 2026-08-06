@@ -1,6 +1,6 @@
 import os, tempfile, pathlib
 import agent
-from agentic import tools
+from agentic import loop, tools
 from agentic.tools import files
 from agentic import config, state
 
@@ -48,8 +48,8 @@ assert "num_predict" not in noover, noover
 # 6. registration & tracking
 assert files.append_file in tools.TOOLS
 assert "append_file" in tools.TOOL_MAP
-assert "append_file" in agent._EDIT_TOOLS
-assert agent._EDIT_SUCCESS_PREFIX["append_file"] == "Appended:"
+assert "append_file" in loop._EDIT_TOOLS
+assert loop._EDIT_SUCCESS_PREFIX["append_file"] == "Appended:"
 
 # 7. path safety: outside project blocked
 blocked = files.append_file("/etc/evil.txt", "x")

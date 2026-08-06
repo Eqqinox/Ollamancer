@@ -1,7 +1,7 @@
 import os, tempfile, pathlib
 import agent
 from agentic.tools import rag
-from agentic import models
+from agentic import loop, models
 from agentic import checkpoints
 from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
@@ -88,7 +88,7 @@ script = iter([
     Msg(content="Done.", tool_calls=None),
 ])
 rag.ollama.chat = lambda **kw: Resp(next(script))
-agent.run_agent([{"role":"system","content":"s"},{"role":"user","content":"edit c"}], "m")
+loop.run_agent([{"role":"system","content":"s"},{"role":"user","content":"edit c"}], "m")
 assert len(state._CHECKPOINTS) == 1, state._CHECKPOINTS
 # undo should bring c.txt back to "original"
 agent.cmd_undo_restore("last")

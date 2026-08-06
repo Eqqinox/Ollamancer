@@ -1,18 +1,18 @@
 import os, tempfile, pathlib
 import agent
 from agentic.tools import rag
-from agentic import models
+from agentic import loop, models
 from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
 # ---------- Unit: _extract_hard_tokens / _grounding_check ----------
 results = ["City report: the metro area has 8,340,000 residents. Published 2021-03-05. See http://ex.com/data"]
 # supported answer: number reformatted, url and date present
-ok = agent._grounding_check("Population is 8340000 (as of 2021-03-05) per http://ex.com/data.", results)
+ok = loop._grounding_check("Population is 8340000 (as of 2021-03-05) per http://ex.com/data.", results)
 assert ok == [], ok
 
 # fabricated: none present in the (empty-ish) results
-bad = agent._grounding_check(
+bad = loop._grounding_check(
     "The population is 9,999,999 as of 1999-12-31, source http://fake.example/none.",
     ["A generic status message with no figures."])
 assert "9,999,999" in bad or "9999999" in " ".join(bad), bad
@@ -20,19 +20,19 @@ assert "1999-12-31" in bad, bad
 assert any("fake.example" in b for b in bad), bad
 
 # quoted proper noun not in results
-q = agent._grounding_check('The report is titled "Operation Blue Falcon".', ["nothing relevant here"])
+q = loop._grounding_check('The report is titled "Operation Blue Falcon".', ["nothing relevant here"])
 assert any("Operation Blue Falcon" in b for b in q), q
 
 # no hard tokens → nothing
-assert agent._grounding_check("It went well, thanks.", ["whatever"]) == []
+assert loop._grounding_check("It went well, thanks.", ["whatever"]) == []
 
 # ---------- Unit: _claim_without_action ----------
-assert agent._claim_without_action("I fixed the bug.", had_edit=False, had_verification=False) == "fix"
-assert agent._claim_without_action("I fixed the bug.", had_edit=True, had_verification=False) is None
-assert agent._claim_without_action("Verified it works as expected.", had_edit=True, had_verification=False) in ("verification", "both")
-assert agent._claim_without_action("Done, I corrigé le bug et vérifié.", had_edit=False, had_verification=False) == "both"
-assert agent._claim_without_action("Here is the summary.", had_edit=False, had_verification=False) is None
-assert agent._claim_without_action("I fixed it.", had_edit=True, had_verification=True) is None
+assert loop._claim_without_action("I fixed the bug.", had_edit=False, had_verification=False) == "fix"
+assert loop._claim_without_action("I fixed the bug.", had_edit=True, had_verification=False) is None
+assert loop._claim_without_action("Verified it works as expected.", had_edit=True, had_verification=False) in ("verification", "both")
+assert loop._claim_without_action("Done, I corrigé le bug et vérifié.", had_edit=False, had_verification=False) == "both"
+assert loop._claim_without_action("Here is the summary.", had_edit=False, had_verification=False) is None
+assert loop._claim_without_action("I fixed it.", had_edit=True, had_verification=True) is None
 
 # ---------- Integration: monkeypatched run_agent ----------
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
@@ -63,7 +63,7 @@ script_a = [
 ]
 rag.ollama.chat = make_chat(script_a)
 msgs = [{"role": "system", "content": "sys"}, {"role": "user", "content": "fix it"}]
-final = agent.run_agent(msgs, "fake-model")
+final = loop.run_agent(msgs, "fake-model")
 assert "not actually fixed" in final, final
 assert any(m["role"] == "user" and "no successful file write" in m["content"] for m in msgs), \
     "claim_action fix nudge not injected"
@@ -76,7 +76,7 @@ script_b = [
 ]
 rag.ollama.chat = make_chat(script_b)
 msgs2 = [{"role": "system", "content": "sys"}, {"role": "user", "content": "population?"}]
-final2 = agent.run_agent(msgs2, "fake-model")
+final2 = loop.run_agent(msgs2, "fake-model")
 assert "could not confirm" in final2, final2
 assert any(m["role"] == "user" and "appear in none of this turn" in m["content"] for m in msgs2), \
     "grounding_check nudge not injected"
@@ -88,7 +88,7 @@ script_c = [
 ]
 rag.ollama.chat = make_chat(script_c)
 msgs3 = [{"role": "system", "content": "sys"}, {"role": "user", "content": "summarize"}]
-final3 = agent.run_agent(msgs3, "fake-model")
+final3 = loop.run_agent(msgs3, "fake-model")
 assert final3 == "Here is a plain summary with no claims or hard tokens.", final3
 
 log = state._AUDIT_LOG.read_text()

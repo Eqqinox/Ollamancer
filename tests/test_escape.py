@@ -1,7 +1,7 @@
 import os, tempfile, pathlib, types
 import agent
 from agentic.tools import rag
-from agentic import models
+from agentic import loop, models
 from agentic import config, state
 models.get_num_ctx = lambda m: 4096
 models.ollama_runner_rss_gb = lambda: None
@@ -15,7 +15,7 @@ def chunk(content="", tool_calls=None):
 
 # 1. _EscapeWatcher is a safe NO-OP when stdin isn't a TTY (tests, pipes, headless) —
 #    it must NEVER abort in non-interactive contexts.
-w = agent._EscapeWatcher()
+w = loop._EscapeWatcher()
 w.__enter__()
 assert w.pressed() is False   # non-tty → never "pressed"
 w.__exit__(None, None, None)
@@ -28,37 +28,37 @@ class ClosableIter:
     def close(self): self.closed = True
 s = ClosableIter([chunk("hi"), chunk(" there")])
 try:
-    agent._consume_stream(s, abort_check=lambda: True)
+    loop._consume_stream(s, abort_check=lambda: True)
     assert False, "should have raised _UserAbort"
-except agent._UserAbort:
+except loop._UserAbort:
     pass
 assert s.closed is True, "stream should be closed on abort (signals Ollama to stop)"
 
 # 3. _consume_stream completes normally when abort_check never fires
 s2 = ClosableIter([chunk("full "), chunk("answer")])
-resp = agent._consume_stream(s2, abort_check=lambda: False)
+resp = loop._consume_stream(s2, abort_check=lambda: False)
 assert resp.message.content == "full answer"
 
 # 4. run_agent propagates _UserAbort when a keypress is simulated (patch watcher.pressed → True)
-orig_pressed = agent._EscapeWatcher.pressed
-agent._EscapeWatcher.pressed = lambda self: True
+orig_pressed = loop._EscapeWatcher.pressed
+loop._EscapeWatcher.pressed = lambda self: True
 def fake_stream(**kw):
     return ClosableIter([chunk("partial answer being streamed…")])
 rag.ollama.chat = fake_stream
 try:
-    agent.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "do a long thing"}], "m")
+    loop.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "do a long thing"}], "m")
     assert False, "run_agent should propagate _UserAbort"
-except agent._UserAbort:
+except loop._UserAbort:
     pass
-agent._EscapeWatcher.pressed = orig_pressed   # restore
+loop._EscapeWatcher.pressed = orig_pressed   # restore
 
 # 5. run_agent completes normally when no key is pressed (watcher no-op in tests)
 seq = iter([ClosableIter([chunk("final answer")])])
 rag.ollama.chat = lambda **kw: next(seq)
-final = agent.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "hi"}], "m")
+final = loop.run_agent([{"role": "system", "content": "s"}, {"role": "user", "content": "hi"}], "m")
 assert final == "final answer", final
 
 # 6. _UserAbort is an Exception (so call sites' `except _UserAbort` work and it's catchable)
-assert issubclass(agent._UserAbort, Exception)
+assert issubclass(loop._UserAbort, Exception)
 
 print("ESCAPE-TO-STOP ALL PASS")

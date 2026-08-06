@@ -1,7 +1,7 @@
 import os, tempfile, pathlib
 import agent
 from agentic.tools import rag
-from agentic import models
+from agentic import loop, models
 from agentic import config, state
 config.STREAM_FINAL = "off"  # these predate streaming; use buffered path
 
@@ -41,7 +41,7 @@ def fake_chat(**kw):
     return Resp(Msg(content="Backup model answered fine.", tool_calls=None))
 rag.ollama.chat = fake_chat
 msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "do it"}]
-final = agent.run_agent(msgs, "primary:model")
+final = loop.run_agent(msgs, "primary:model")
 assert final == "Backup model answered fine.", final
 assert "primary:model" in calls["models"] and "backup:model" in calls["models"], calls["models"]
 log = state._AUDIT_LOG.read_text()
@@ -53,14 +53,14 @@ def fake_chat2(**kw):
     raise RErr("unexpected end of JSON input")
 rag.ollama.chat = fake_chat2
 msgs2 = [{"role": "system", "content": "s"}, {"role": "user", "content": "do it"}]
-final2 = agent.run_agent(msgs2, "primary:model")
+final2 = loop.run_agent(msgs2, "primary:model")
 assert "truncated tool-call response" in final2 or "tronquée" in final2, final2
 
 # --- Scenario 3: failover set to SAME model as current → no switch, fallback returned ---
 config.PLUMBING_FAILOVER_MODEL = "primary:model"
 rag.ollama.chat = fake_chat2
 msgs3 = [{"role": "system", "content": "s"}, {"role": "user", "content": "do it"}]
-final3 = agent.run_agent(msgs3, "primary:model")
+final3 = loop.run_agent(msgs3, "primary:model")
 assert "truncated" in final3 or "tronquée" in final3, final3
 
 print("A7 ALL PASS")

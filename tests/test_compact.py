@@ -1,7 +1,7 @@
 import os, tempfile, pathlib, types
 import agent
 from agentic.tools import rag
-from agentic import models
+from agentic import loop, models
 from agentic import config, state
 models.get_num_ctx = lambda m: 1000   # small window so thresholds are easy to hit in the test
 state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
@@ -23,17 +23,17 @@ def build():
 
 # ---- 1. turn boundaries ignore summary blocks ----
 m = build()
-bounds = agent._turn_boundaries(m)
+bounds = loop._turn_boundaries(m)
 assert len(bounds) == 6, bounds
-m2 = [{"role": "system", "content": "SYS"}, {"role": "user", "content": agent._COMPACT_MARKER + "old summary"}, user("real turn")]
-assert agent._turn_boundaries(m2) == [2], agent._turn_boundaries(m2)  # summary block not counted
+m2 = [{"role": "system", "content": "SYS"}, {"role": "user", "content": loop._COMPACT_MARKER + "old summary"}, user("real turn")]
+assert loop._turn_boundaries(m2) == [2], loop._turn_boundaries(m2)  # summary block not counted
 
 # ---- 2. lossless cleanup truncates old tool results ----
 m = build()
-keep_from = agent._turn_boundaries(m)[-config.COMPACT_KEEP_TURNS]
-before = agent._estimate_tokens(m)
-saved = agent._cleanup_old_tool_results(m, keep_from)
-assert saved > 0 and agent._estimate_tokens(m) < before
+keep_from = loop._turn_boundaries(m)[-config.COMPACT_KEEP_TURNS]
+before = loop._estimate_tokens(m)
+saved = loop._cleanup_old_tool_results(m, keep_from)
+assert saved > 0 and loop._estimate_tokens(m) < before
 # recent tool results (after keep_from) untouched
 assert any(len(x["content"]) == 3000 for x in m[keep_from:] if x["role"] == "tool")
 
@@ -48,11 +48,11 @@ rag.ollama.chat = fake_chat
 models.ollama_runner_rss_gb = lambda: None
 m = build()
 n_before = len(m)
-status = agent._compact_now(m, "model", forced=True)
+status = loop._compact_now(m, "model", forced=True)
 assert "compacted" in status.lower(), status
 # structure: system first, then exactly one summary block, then the kept tail
 assert m[0]["content"] == "SYS"
-assert m[1]["role"] == "user" and m[1]["content"].startswith(agent._COMPACT_MARKER)
+assert m[1]["role"] == "user" and m[1]["content"].startswith(loop._COMPACT_MARKER)
 assert "## Files Modified" in m[1]["content"]
 # tail = last 3 user turns verbatim (3 turns × 4 msgs = 12) → system + summary + 12
 assert len(m) == 2 + 12, len(m)
@@ -65,35 +65,35 @@ assert "## Files Modified" in captured["prompt"] and "turn 0 question" in captur
 # add 3 more turns after the compaction, then compact again
 for i in range(6, 9):
     m += [user(f"turn {i} question"), asst("", tc("read_file")), tool("Y"*3000), asst(f"turn {i} answer")]
-agent._compact_now(m, "model", forced=True)
+loop._compact_now(m, "model", forced=True)
 # still exactly one summary block, and it's fed the OLD summary (hierarchical)
-summary_blocks = [x for x in m if x["role"]=="user" and x["content"].startswith(agent._COMPACT_MARKER)]
+summary_blocks = [x for x in m if x["role"]=="user" and x["content"].startswith(loop._COMPACT_MARKER)]
 assert len(summary_blocks) == 1, len(summary_blocks)
-assert agent._COMPACT_MARKER.strip() in captured["prompt"] or "SUMMARY" in captured["prompt"].upper() or "## Files Modified" in captured["prompt"]
+assert loop._COMPACT_MARKER.strip() in captured["prompt"] or "SUMMARY" in captured["prompt"].upper() or "## Files Modified" in captured["prompt"]
 
 # ---- 5. too few turns → safe no-op ----
 tiny = [{"role":"system","content":"S"}, user("only one"), asst("a")]
-assert "Not enough" in agent._compact_now(tiny, "model", forced=True) or "compact" in agent._compact_now(tiny, "model", forced=True).lower()
+assert "Not enough" in loop._compact_now(tiny, "model", forced=True) or "compact" in loop._compact_now(tiny, "model", forced=True).lower()
 assert len(tiny) == 3  # unchanged
 
 # ---- 6. auto-compact OFF by default → never fires ----
 config.AUTO_COMPACT = "off"
 state._LAST_PROMPT_TOKENS = 999999
 m = build()
-assert agent._maybe_compact(m, "model") is False
+assert loop._maybe_compact(m, "model") is False
 
 # ---- 7. auto-compact ON + over threshold → fires ----
 config.AUTO_COMPACT = "on"
 config.COMPACT_THRESHOLD_PCT = 70
 state._LAST_PROMPT_TOKENS = 800   # 80% of 1000 > 70%
 m = build()
-assert agent._maybe_compact(m, "model") is True
-assert any(x["content"].startswith(agent._COMPACT_MARKER) for x in m if x["role"]=="user")
+assert loop._maybe_compact(m, "model") is True
+assert any(x["content"].startswith(loop._COMPACT_MARKER) for x in m if x["role"]=="user")
 
 # ---- 8. auto-compact ON but under threshold → no-op ----
 state._LAST_PROMPT_TOKENS = 500   # 50% < 70%
 m = build()
-assert agent._maybe_compact(m, "model") is False
+assert loop._maybe_compact(m, "model") is False
 
 log = state._AUDIT_LOG.read_text() if state._AUDIT_LOG.exists() else ""
 assert "COMPACT" in log

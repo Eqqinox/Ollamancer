@@ -1,13 +1,13 @@
 import os, sys, tempfile, pathlib, io, types, contextlib
 import agent
 from agentic.tools import rag
-from agentic import models
+from agentic import loop, models
 from agentic import mcp_client
 
 # 1. failure heuristic
-assert agent._looks_like_failure("⚠️ Stopped after 25 rounds")
-assert agent._looks_like_failure("⛔ Blocked: nope")
-assert not agent._looks_like_failure("Here is your answer, all good.")
+assert loop._looks_like_failure("⚠️ Stopped after 25 rounds")
+assert loop._looks_like_failure("⛔ Blocked: nope")
+assert not loop._looks_like_failure("Here is your answer, all good.")
 
 # 2. recipe parsing — Constraints + Steps headings
 d = pathlib.Path(tempfile.mkdtemp())
