@@ -115,7 +115,13 @@ def test_no_globals_mutation_of_live_values():
     if not PACKAGE.is_dir():
         return
     problems = []
-    for py in sorted(PACKAGE.rglob("*.py")):
+    # agent.py is included: a globals()[...] write there was a silent no-op for several
+    # commits, because the name it targeted had moved to state.py. Scanning only the package
+    # would have kept missing it.
+    files = [ROOT / "agent.py"] + sorted(PACKAGE.rglob("*.py"))
+    for py in files:
+        if not py.exists():
+            continue
         if py.stem in LIVE_MODULES:
             continue  # a live module writing its own globals() is fine
         tree = ast.parse(py.read_text(), filename=str(py))

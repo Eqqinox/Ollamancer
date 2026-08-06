@@ -1,7 +1,7 @@
 import agent
 from agentic.tools import web
 
-print("trafilatura installed:", agent.trafilatura is not None)
+print("trafilatura installed:", web.trafilatura is not None)
 
 # A real-looking UTF-8 article whose text contains a typographic apostrophe (’ = U+2019,
 # bytes E2 80 99 in UTF-8). This is the exact character that showed up as "â€™" when
