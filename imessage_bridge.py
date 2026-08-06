@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Agentic_1A — Pont iMessage v1.0
+Agentic_1A — iMessage bridge v1.0
 ─────────────────────────────────
-Depuis iPhone : envoie "! ta question" à toi-même (ton propre numéro/email)
-Le Mac reçoit, l'agent traite, tu reçois la réponse par iMessage.
+From an iPhone: send "! your question" to yourself (your own number/email).
+The Mac receives it, the agent handles it, and the answer comes back over iMessage.
 
-Prérequis :
-  - Réglages Système → Confidentialité → Accès complet au disque → Terminal ✓
-  - Messages.app ouvert sur le Mac
-  - Ollama démarré (ollama serve)
+Requirements (macOS only):
+  - System Settings -> Privacy -> Full Disk Access -> Terminal ✓
+  - Messages.app open on the Mac
+  - Ollama running (ollama serve)
 """
 
 import json
@@ -21,22 +21,22 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# ── Chemins ────────────────────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────────
 AGENT_DIR   = Path(__file__).parent
 CONFIG_FILE = Path.home() / ".agentic_imessage.json"
 MESSAGES_DB = Path.home() / "Library" / "Messages" / "chat.db"
 
-# ── Paramètres ─────────────────────────────────────────────────────────────────
-TRIGGER      = "!"    # Préfixe déclencheur — envoie "! ta question"
-POLL_SECS    = 3      # Fréquence de sondage en secondes
-MAX_MSG_LEN  = 1800   # Longueur max par fragment iMessage
+# ── Settings ──────────────────────────────────────────────────────────────────
+TRIGGER      = "!"    # Trigger prefix — send "! your question"
+POLL_SECS    = 3      # Polling interval in seconds
+MAX_MSG_LEN  = 1800   # Max length per iMessage fragment
 
-# ── Import de l'agent (outils, boucle ReAct, etc.) ────────────────────────────
+# ── Import the agent (tools, ReAct loop, etc.) ────────────────────────────────
 sys.path.insert(0, str(AGENT_DIR))
 try:
     import agent as _a
 except ImportError as e:
-    print(f"[Erreur] Impossible d'importer agent.py : {e}")
+    print(f"[Error] Could not import agent.py: {e}")
     sys.exit(1)
 
 try:
@@ -61,47 +61,47 @@ def save_config(cfg: dict):
 
 
 def setup():
-    """Assistant de configuration initiale (run once)."""
+    """First-run configuration wizard (run once)."""
     print("\n══════════════════════════════════════════")
     print("  Agentic_1A — Configuration iMessage")
     print("══════════════════════════════════════════\n")
-    print("Tu vas envoyer des commandes à toi-même depuis iPhone.")
-    print("Le pont a besoin de ton identifiant iMessage pour filtrer les messages.\n")
-    print("Format accepté : +33612345678  ou  tonemail@icloud.com\n")
+    print("You will send commands to yourself from your iPhone.")
+    print("The bridge needs your iMessage handle in order to filter messages.\n")
+    print("Accepted format: +33612345678  or  you@icloud.com\n")
 
-    handle  = input("Ton numéro / email iMessage : ").strip()
-    project = input(f"Dossier projet par défaut [{Path.home() / 'Desktop'}] : ").strip()
+    handle  = input("Your iMessage number / email: ").strip()
+    project = input(f"Default project folder [{Path.home() / 'Desktop'}] : ").strip()
 
     if not project:
         project = str(Path.home() / "Desktop")
 
     cfg = {"handle": handle, "project_root": project}
     save_config(cfg)
-    print(f"\n✓ Sauvegardé dans {CONFIG_FILE}")
+    print(f"\n✓ Saved to {CONFIG_FILE}")
     print(f"  Handle  : {handle}")
-    print(f"  Projet  : {project}\n")
+    print(f"  Project : {project}\n")
     return cfg
 
 
-# ── Lecture Messages ──────────────────────────────────────────────────────────
+# ── Reading Messages ─────────────────────────────────────────────────────────
 
 def _decode_attributed_body(data: bytes) -> str | None:
     """
-    Extrait le texte d'un blob attributedBody (NSKeyedArchive).
-    Nécessaire sur macOS Ventura+ où le champ text est parfois NULL.
+    Extract the text from an attributedBody blob (NSKeyedArchive).
+    Required on macOS Ventura+ where the text field is sometimes NULL.
     """
     if not data:
         return None
     try:
         blob = bytes(data)
-        # Motif principal observé dans les bplists iMessage
+        # Main pattern observed in iMessage bplists
         m = re.search(rb'\x01\+(.*?)(\x00\x00|\x86|\x85|\x84)', blob, re.DOTALL)
         if m:
             raw = m.group(1)
             txt = raw.decode("utf-8", errors="replace").strip()
             if txt:
                 return txt
-        # Fallback : extraire toutes les chaînes ASCII/UTF-8 lisibles
+        # Fallback: extract every readable ASCII/UTF-8 string
         strings = re.findall(rb'[\x20-\x7e\xc0-\xff]{3,}', blob)
         parts   = [s.decode("utf-8", errors="ignore") for s in strings]
         parts   = [p for p in parts if not p.startswith("NS") and len(p) > 2]
@@ -111,14 +111,14 @@ def _decode_attributed_body(data: bytes) -> str | None:
 
 
 def _get_text(text, attributed_body) -> str | None:
-    """Retourne le texte d'un message, quel que soit le format."""
+    """Return a message's text, whatever the format."""
     if text:
         return str(text).strip()
     return _decode_attributed_body(attributed_body)
 
 
 def get_max_rowid() -> int:
-    """Retourne le ROWID max actuel (pour ignorer l'historique au démarrage)."""
+    """Return the current max ROWID (to ignore history at startup)."""
     try:
         conn = sqlite3.connect(f"file:{MESSAGES_DB}?mode=ro", uri=True)
         row  = conn.execute("SELECT COALESCE(MAX(ROWID),0) FROM message").fetchone()
@@ -131,8 +131,8 @@ def get_max_rowid() -> int:
 
 def get_new_messages(since_rowid: int, handle_filter: str) -> list[tuple]:
     """
-    Retourne les nouveaux messages reçus depuis since_rowid.
-    Filtre sur handle_filter si défini.
+    Return the new messages received since since_rowid.
+    Filters on handle_filter when set.
     """
     try:
         conn = sqlite3.connect(f"file:{MESSAGES_DB}?mode=ro", uri=True)
@@ -153,9 +153,9 @@ def get_new_messages(since_rowid: int, handle_filter: str) -> list[tuple]:
         msg = _get_text(text, ab)
         if not msg:
             continue
-        # Filtre handle : si configuré, n'accepter que ce contact
+        # Handle filter: if configured, accept only that contact
         if handle_filter:
-            # Correspondance flexible (numéro ↔ email, préfixe international)
+            # Flexible matching (number <-> email, international prefix)
             norm_filter = re.sub(r"[\s\-\(\)]", "", handle_filter).lower()
             norm_handle = re.sub(r"[\s\-\(\)]", "", h_id).lower()
             if norm_filter not in norm_handle and norm_handle not in norm_filter:
@@ -165,10 +165,10 @@ def get_new_messages(since_rowid: int, handle_filter: str) -> list[tuple]:
     return results
 
 
-# ── Envoi iMessage ─────────────────────────────────────────────────────────────
+# ── Sending iMessage ───────────────────────────────────────────────────────────
 
 def send_imessage(to: str, text: str) -> bool:
-    """Envoie un iMessage via AppleScript (découpe si > MAX_MSG_LEN)."""
+    """Send an iMessage via AppleScript (split if longer than MAX_MSG_LEN)."""
     chunks = [text[i:i+MAX_MSG_LEN] for i in range(0, len(text), MAX_MSG_LEN)]
     ok = True
     for chunk in chunks:
@@ -185,17 +185,17 @@ end tell
 '''
         r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
         if r.returncode != 0:
-            print(f"[iMessage] Erreur envoi : {r.stderr.strip()}")
+            print(f"[iMessage] Send error: {r.stderr.strip()}")
             ok = False
         if len(chunks) > 1:
-            time.sleep(0.8)  # Anti-spam entre fragments
+            time.sleep(0.8)  # Anti-spam delay between fragments
     return ok
 
 
 # ── Agent ──────────────────────────────────────────────────────────────────────
 
 def init_agent(project_root: Path):
-    """Initialise les globaux de l'agent avant usage."""
+    """Initialise the agent's globals before use."""
     agentic_dir = AGENT_DIR / ".agentic"
     agentic_dir.mkdir(exist_ok=True)
     (agentic_dir / "snapshots").mkdir(exist_ok=True)
@@ -208,15 +208,15 @@ def init_agent(project_root: Path):
 
 
 def run_agent(command: str, project_root: Path) -> str:
-    """Exécute l'agent pour une commande iMessage et retourne la réponse."""
+    """Run the agent for one iMessage command and return the answer."""
     init_agent(project_root)
 
     system_prompt = (
         _a.make_system_prompt(project_root)
-        + "\n\nTu réponds via iMessage depuis un iPhone. "
-          "Sois concis, clair, et bien structuré. "
-          "Remplace les blocs de code longs par des descriptions si non demandés. "
-          "Utilise des emojis avec modération pour la lisibilité mobile."
+        + "\n\nYou are replying over iMessage to an iPhone. "
+          "Be concise, clear and well structured. "
+          "Replace long code blocks with a description unless code was asked for. "
+          "Use emojis sparingly, for mobile readability."
     )
 
     messages = [
@@ -227,18 +227,18 @@ def run_agent(command: str, project_root: Path) -> str:
     try:
         return _a.run_agent(messages, _a.DEFAULT_MODEL)
     except Exception as e:
-        return f"❌ Erreur : {e}"
+        return f"❌ Error: {e}"
 
 
-# ── Boucle principale ──────────────────────────────────────────────────────────
+# ── Main loop ──────────────────────────────────────────────────────────────────
 
 def main():
-    # ── Vérifications ─────────────────────────────────────────────────────────
+    # ── Checks ───────────────────────────────────────────────────────────────
     if not MESSAGES_DB.exists():
-        print(f"\n[Erreur] Base de données Messages introuvable :")
+        print(f"\n[Error] Messages database not found:")
         print(f"  {MESSAGES_DB}")
-        print(f"\n→ Accorder l'accès dans :")
-        print(f"  Réglages Système → Confidentialité → Accès complet au disque → Terminal ✓\n")
+        print(f"\n-> Grant access in:")
+        print(f"  System Settings -> Privacy -> Full Disk Access -> Terminal ✓\n")
         sys.exit(1)
 
     # ── Configuration ──────────────────────────────────────────────────────────
@@ -256,29 +256,29 @@ def main():
     if not project_root.exists():
         project_root = Path.home() / "Desktop"
 
-    # Ignorer les anciens messages au démarrage
+    # Ignore pre-existing messages at startup
     last_rowid = get_max_rowid()
 
     # ── Header ─────────────────────────────────────────────────────────────────
     ts = datetime.now().strftime("%H:%M:%S")
     console.print()
     console.print("─" * 50)
-    console.print(f"  [bold cyan]Agentic_1A — Pont iMessage[/bold cyan]")
-    console.print(f"  Démarré à [yellow]{ts}[/yellow]")
-    console.print(f"  Handle   : [green]{handle_filter or 'tous les contacts'}[/green]")
-    console.print(f"  Projet   : [white]{project_root}[/white]")
-    console.print(f"  Trigger  : [yellow]{TRIGGER}[/yellow]  (ex: [dim]{TRIGGER} quelle heure est-il ?[/dim])")
-    console.print(f"  Polling  : toutes les {POLL_SECS}s")
+    console.print(f"  [bold cyan]Agentic_1A — iMessage bridge[/bold cyan]")
+    console.print(f"  Started at [yellow]{ts}[/yellow]")
+    console.print(f"  Handle   : [green]{handle_filter or 'all contacts'}[/green]")
+    console.print(f"  Project  : [white]{project_root}[/white]")
+    console.print(f"  Trigger  : [yellow]{TRIGGER}[/yellow]  (e.g. [dim]{TRIGGER} what time is it?[/dim])")
+    console.print(f"  Polling  : every {POLL_SECS}s")
     console.print("─" * 50)
     console.print()
-    console.print(f"[dim]En attente de messages... (Ctrl+C pour arrêter)[/dim]")
+    console.print(f"[dim]Waiting for messages... (Ctrl+C to stop)[/dim]")
 
-    # Vérifier qu'Ollama est disponible
+    # Check that Ollama is available
     if not _a.check_ollama(_a.DEFAULT_MODEL):
-        console.print("[red]Lance Ollama avant de démarrer le pont : ollama serve[/red]")
+        console.print("[red]Start Ollama before launching the bridge: ollama serve[/red]")
         sys.exit(1)
 
-    # ── Boucle de polling ──────────────────────────────────────────────────────
+    # ── Polling loop ──────────────────────────────────────────────────────────
     try:
         while True:
             new_msgs = get_new_messages(last_rowid, handle_filter)
@@ -288,7 +288,7 @@ def main():
 
                 stripped = text.strip()
                 if not stripped.startswith(TRIGGER):
-                    continue  # Pas le bon trigger
+                    continue  # Not the trigger prefix
 
                 command = stripped[len(TRIGGER):].strip()
                 if not command:
@@ -297,15 +297,15 @@ def main():
                 ts_now = datetime.now().strftime("%H:%M:%S")
                 console.print(f"\n[{ts_now}] [cyan]📩 {handle}[/cyan] : {command[:80]}")
 
-                # ── Accusé de réception immédiat ──────────────────────────
+                # ── Immediate acknowledgement ─────────────────────────────
                 send_imessage(handle_filter or handle, "⏳")
 
-                # ── Traitement agent ───────────────────────────────────────
+                # ── Agent processing ───────────────────────────────────────
                 t0       = time.time()
                 response = run_agent(command, project_root)
                 elapsed  = time.time() - t0
 
-                # ── Envoi réponse ──────────────────────────────────────────
+                # ── Send the reply ──────────────────────────────────────────
                 final = f"{response}\n\n─ {elapsed:.0f}s"
                 if send_imessage(handle_filter or handle, final):
                     console.print(f"[{ts_now}] [green]✅ Réponse envoyée[/green] ({len(response)} chars, {elapsed:.0f}s)")

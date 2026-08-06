@@ -30,8 +30,8 @@ import time
 import urllib.robotparser
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 
-# Détection d'une touche Échap pendant la génération (Unix uniquement) — permet d'arrêter
-# le modèle et de revenir à l'invite sans tuer la session. No-op silencieux si indisponible.
+# Escape-key detection during generation (Unix only) — lets you stop the
+# model and return to the prompt without killing the session. Silent no-op if unavailable.
 try:
     import select as _select
     import termios
@@ -51,8 +51,8 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 
-# Réglages (valeurs réassignées à l'exécution) : toujours via le module, jamais
-# `from agentic.config import X` — une copie figée ne verrait aucun changement.
+# Settings (values are rebound at runtime): always via the module, never
+# `from agentic.config import X` — a frozen copy would never see a change.
 # Voir agentic/config.py et tests/test_import_rules.py.
 from agentic import config
 
@@ -87,8 +87,8 @@ except ImportError:
     _PROMPT_TOOLKIT_AVAILABLE = False  # repli sur input()/readline — voir _prompt()
 
 # Auto-complétion des commandes slash : (commande, description EN, description FR). Taper "/"
-# affiche toutes les commandes ; chaque caractère supplémentaire filtre la liste. Source de
-# vérité pour le menu de complétion — tenir synchronisé avec le dispatch de main() et HELP_TEXT.
+# lists every command; each extra character filters the list. Source of
+# truth for the completion menu — keep in sync with main()'s dispatch and HELP_TEXT.
 _SLASH_COMMANDS = [
     ("/help", "Show all commands", "Afficher toutes les commandes"),
     ("/exit", "Quit", "Quitter"),
@@ -145,28 +145,28 @@ if _PROMPT_TOOLKIT_AVAILABLE:
                                      display=cmd, display_meta=(fr if lang == "fr" else en))
 
 
-# Saisie interactive : prompt_toolkit gère lui-même le collage entre-guillemets
-# ("bracketed paste") au lieu de dépendre de la lib readline du système — sur
-# macOS, le Python système/Homebrew est très souvent lié à libedit plutôt qu'à
-# GNU readline, dont le support du collage est faible/incohérent (un texte
-# collé contenant des retours à la ligne se soumet prématurément à chaque
-# `\n`, avant que l'utilisateur n'appuie sur Entrée). Repli silencieux sur
-# input()/readline si prompt_toolkit n'est pas installé — comportement
-# identique à avant, juste sans le correctif.
+# Interactive input: prompt_toolkit handles bracketed paste itself
+# instead of depending on the system readline library — on
+# macOS the system/Homebrew Python is very often linked against libedit rather than
+# GNU readline, whose paste support is weak/inconsistent (pasted text
+# containing newlines submits prematurely at every
+# `\n`, before the user presses Enter). Silent fallback to
+# input()/readline if prompt_toolkit is not installed — behaviour
+# identical to before, just without the fix.
 _prompt_session = None
 if _PROMPT_TOOLKIT_AVAILABLE:
     try:
         _prompt_session = PromptSession(
             history=FileHistory(str(config.HISTORY_FILE)),
             completer=_SlashCompleter(),
-            complete_while_typing=True,   # le menu s'affiche/se filtre au fur et à mesure de la frappe
+            complete_while_typing=True,   # the menu appears/filters as you type
         )
     except Exception:
         _prompt_session = None  # ex: HISTORY_FILE illisible — repli sur input()
 
 
 def _prompt(label: str) -> str:
-    """Point d'entrée unique pour toute saisie interactive utilisateur."""
+    """Single entry point for all interactive user input."""
     if _prompt_session is not None:
         return _prompt_session.prompt(label)
     return input(label)
@@ -184,10 +184,10 @@ SAFE_MODE = False  # bascule via /safe ou --safe au lancement ; voir _RISKY_TOOL
 _RISKY_TOOLS = {"write_file", "append_file", "edit_file", "run_command", "run_tests", "run_background", "kill_process", "git_commit", "python_repl"}
 
 SANDBOX_MODE = False  # bascule via /sandbox ou --sandbox au lancement ; voir _run_shell
-PRIVATE_MODE = False  # via --private au lancement : session éphémère, rien de la conversation
-                       # n'est écrit sur disque (pas de session JSON, pas d'historique de saisie,
-                       # pas d'audit, pas de snapshots disque, pas de checkpoints, pas de mémoire).
-_SANDBOX_CONTAINER = None  # nom du conteneur Docker actif pour cette session (créé paresseusement)
+PRIVATE_MODE = False  # via --private at launch: ephemeral session, nothing from the conversation
+                       # is written to disk (no session JSON, no input history,
+                       # no audit log, no disk snapshots, no checkpoints, no memory).
+_SANDBOX_CONTAINER = None  # name of this session's active Docker container (created lazily)
 _SANDBOX_IMAGE_DEFAULT = "agentic1a-sandbox-default:latest"
 _DEFAULT_SANDBOX_DOCKERFILE = """FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \\
@@ -575,7 +575,7 @@ Réponds en français sauf si l'utilisateur écrit dans une autre langue.""",
 # ── État session ──────────────────────────────────────────────────────────────
 _snapshots: dict  = {}    # {str(path_absolu): contenu_original}
 _context_files: dict = {} # {str(path_absolu): nom_fichier}
-_todo: str = ""            # checklist texte libre pour la tâche multi-étapes en cours
+_todo: str = ""            # free-text checklist for the multi-step task in progress
 _memory: str = ""           # mémoire persistante texte libre, chargée/sauvée sur .agentic/memory.md
 _bg_processes: dict = {}   # {id_str: {"proc": Popen, "command": str, "log_path": Path, "log_file": file, "started_at": str}}
 _bg_counter = 0
@@ -584,35 +584,35 @@ _SNAPSHOT_DIR: Path | None = None # Initialisé dans main()
 _BG_LOG_DIR: Path | None = None   # Initialisé dans main()
 PROJECT_ROOT: Path | None  = None # Initialisé dans main()
 
-# ── Checkpoints git (B1) — remplace le /undo tout-ou-rien en mémoire ────────────
-# Un dépôt git "shadow" vit dans .agentic/checkpoints.git avec le dossier projet
-# comme work-tree. Il est totalement indépendant du git éventuel de l'utilisateur
-# (GIT_DIR/GIT_WORK_TREE dédiés) — il ne touche jamais son index, ses refs ni ses
-# commits — et fonctionne donc identiquement en projet git ET non-git (approche
-# aider). Un checkpoint = un commit de l'état AVANT la première écriture d'un tour.
+# ── Git checkpoints (B1) — replaces the all-or-nothing in-memory /undo ──────────
+# A "shadow" git repository lives in .agentic/checkpoints.git with the project folder
+# as its work tree. It is completely independent of the user's own git, if any
+# (dedicated GIT_DIR/GIT_WORK_TREE) — it never touches their index, refs or
+# commits — and therefore behaves identically in git AND non-git projects (the
+# aider approach). One checkpoint = a commit of the state BEFORE a turn's first write.
 _CHECKPOINT_GITDIR: Path | None = None
 _CHECKPOINTS: list = []           # [{"sha": str, "ts": str, "turn": int, "label": str}]
-_checkpoint_turn = 0              # incrémenté à chaque appel de run_agent (= un tour utilisateur)
+_checkpoint_turn = 0              # incremented on every run_agent call (= one user turn)
 _checkpoint_made_this_turn = False
 
 # ── Persistance de session (B3) ─────────────────────────────────────────────────
 _SESSION_DIR: Path | None = None  # .agentic/sessions/ — initialisé dans main()
-_SESSION_FILE: Path | None = None # fichier JSON de CETTE session (un par session, réécrit)
+_SESSION_FILE: Path | None = None # JSON file for THIS session (one per session, rewritten)
 
 # ── RAG local (B5) ───────────────────────────────────────────────────────────────
 _SEMANTIC_DB: Path | None = None  # .agentic/semantic_index.db — initialisé dans main()
 
 # ── Compaction de contexte (v3.0) ────────────────────────────────────────────────
-_LAST_PROMPT_TOKENS = 0           # dernier prompt_eval_count réel renvoyé par Ollama (taille réelle du prompt)
+_LAST_PROMPT_TOKENS = 0           # last real prompt_eval_count returned by Ollama (the prompt's true size)
 _COMPACT_MARKER = "[⎗ Summary of earlier conversation (auto-compacted to save context)]\n\n"
 
-# ── Modèle actif (pour les appels latéraux séquentiels : vision B6) ──────────────
-_CURRENT_MODEL = ""               # modèle de la boucle courante, mis à jour par run_agent
+# ── Active model (for sequential side calls: vision B6) ─────────────────────────
+_CURRENT_MODEL = ""               # the current loop's model, updated by run_agent
 
 
 # ── Sécurité ──────────────────────────────────────────────────────────────────
 
-# Patterns de commandes trop destructeurs pour être autorisés
+# Command patterns too destructive to ever allow
 _CMD_BLOCKLIST = [
     (r"rm\s+.*-[a-zA-Z]*r[a-zA-Z]*f\s+/",  "rm -rf on system root"),
     (r"rm\s+.*-[a-zA-Z]*r[a-zA-Z]*f\s+~",  "rm -rf on home directory"),
@@ -625,7 +625,7 @@ _CMD_BLOCKLIST = [
     (r"\bshred\b.*-[a-zA-Z]*u",             "irreversible secure deletion"),
 ]
 
-# Chemins de fichiers sensibles jamais accessibles
+# Sensitive file paths that are never accessible
 _SENSITIVE_PATH_PATTERNS = [
     r"/\.ssh/",
     r"/\.aws/",
@@ -811,7 +811,7 @@ def _init_checkpoints() -> None:
             if r.returncode != 0:
                 _CHECKPOINT_GITDIR = None
                 return
-            # Identité locale (le commit échoue si user.name/email global est absent).
+            # Local identity (the commit fails if a global user.name/email is missing).
             _git_ckpt("config", "user.email", "agentic@local")
             _git_ckpt("config", "user.name", "Agentic_1A")
             _git_ckpt("config", "commit.gpgsign", "false")
@@ -853,7 +853,7 @@ def _restore_checkpoint(sha: str) -> bool:
         return False
     try:
         r1 = _git_ckpt("reset", "--hard", sha)
-        _git_ckpt("clean", "-fd")   # supprime les fichiers non suivis créés depuis (respecte info/exclude)
+        _git_ckpt("clean", "-fd")   # removes untracked files created since (honours info/exclude)
         return r1.returncode == 0
     except Exception:
         return False
@@ -861,23 +861,23 @@ def _restore_checkpoint(sha: str) -> bool:
 
 # ── TOOLS ───────────────────────────────────────────────────────────────────
 
-# Mots-clés indiquant une intention "actualité" — déclenche silencieusement la
-# catégorie SearXNG "news" (vrais articles datés) au lieu de "general" (pages
-# catégorie/accueil génériques, même pour des requêtes du type "actu du jour").
-# Le choix de catégorie reste invisible au modèle : un seul outil, comme le
-# fait le tool web_search d'Anthropic (une déclaration, routage interne caché).
+# Keywords indicating a "news" intent — silently switches to the SearXNG
+# "news" category (real dated articles) instead of "general" (generic
+# category/home pages, even for queries like "today's news").
+# The category choice stays invisible to the model: one tool, the same way
+# Anthropic's web_search tool works (one declaration, hidden internal routing).
 _NEWS_INTENT_RE = re.compile(
     r'\b(news|breaking|headlines?|today|todays|this (week|month)|'
     r'current events|happening now|recently|updates?)\b',
     re.IGNORECASE,
 )
 
-# Déclencheur de recherche obligatoire : "search ..." en tête de message. Ceci est
-# une garantie côté code, pas une simple règle de system prompt — on a observé un
-# modèle ignorer complètement une instruction explicite "make a search" et répondre
-# depuis des connaissances inventées à la place (voir agentic_contexte.md). Une
-# règle de prompt reste une suggestion que le modèle peut ignorer ; celle-ci ne
-# peut pas l'être, la recherche a déjà eu lieu avant que le modèle ne voie le message.
+# Forced-search trigger: "search ..." at the start of a message. This is
+# a code-side guarantee, not just a system-prompt rule — a model was observed
+# ignoring an explicit "make a search" instruction entirely and answering
+# from invented knowledge instead (see DESIGN.md). A prompt
+# rule remains a suggestion the model can ignore; this one cannot
+# be, because the search has already happened before the model sees the message.
 _FORCE_SEARCH_RE = re.compile(r'^\s*search\s*:?\s*(for|about)?\s*', re.IGNORECASE)
 
 
@@ -917,9 +917,9 @@ def _maybe_force_search(user_input: str, messages: list) -> None:
 
 
 def _searxng_fetch(query: str, category: str = "general") -> list:
-    # language explicite : l'instance SearXNG a un default_lang FR — sans ce
-    # paramètre, toute recherche (même "top international news" en anglais)
-    # hérite du biais français de l'instance et se fait polluer par des
+    # explicit language: the SearXNG instance has a French default_lang — without this
+    # parameter every search (even "top international news" in English)
+    # inherits the instance's French bias and gets polluted by
     # sources francophones hors-sujet. "auto" (réglable via /parameters) laisse
     # l'instance décider.
     cache_key = (query.strip().lower(), category, config.SEARCH_LANGUAGE)
@@ -1084,8 +1084,8 @@ def search_web(query: str) -> str:
     Args:
         query: The search query (short, natural language)
     """
-    # Défense : un modèle peut parfois envoyer une liste au lieu d'une chaîne
-    # (ex: {"query": ["..."]}) — ne jamais planter ou envoyer un objet malformé à SearXNG.
+    # Defensive: a model can sometimes send a list instead of a string
+    # (e.g. {"query": ["..."]}) — never crash or send a malformed object to SearXNG.
     if isinstance(query, list):
         query = " ".join(str(q) for q in query)
     elif not isinstance(query, str):
@@ -1095,10 +1095,10 @@ def search_web(query: str) -> str:
         category = "news" if _NEWS_INTENT_RE.search(query) else "general"
         results = _searxng_fetch(query, category)
 
-        # Repli automatique : la catégorie "news" peut renvoyer 0 résultat sur une
-        # requête inhabituelle → retente en "general". Et "general" peut renvoyer
-        # des extraits non vides mais qui sont en fait des pages catégorie/accueil
-        # (pas détectable par la seule longueur d'extrait) → retente en "news".
+        # Automatic fallback: the "news" category can return 0 results on an
+        # unusual query -> retry with "general". And "general" can return
+        # non-empty snippets that are in fact category/home pages
+        # (not detectable from snippet length alone) -> retry with "news".
         if not results and category == "news":
             results = _searxng_fetch(query, "general")
         elif category == "general":
@@ -1108,11 +1108,11 @@ def search_web(query: str) -> str:
                 if alt:
                     results = alt
 
-        # Failover automatique vers le serveur MCP duckduckgo quand SearXNG ne
+        # Automatic failover to the duckduckgo MCP server when SearXNG does not
         # renvoie rien d'exploitable (0 résultat, ou extraits essentiellement vides
-        # = souvent une page CAPTCHA/rate-limit renvoyée telle quelle). Code-side et
-        # invisible au modèle, même pattern que le routage news (v2.9.3) : le modèle
-        # ne choisit jamais d'appeler l'outil MCP de lui-même (constaté en benchmark).
+        # = often a CAPTCHA/rate-limit page returned as-is). Code-side and
+        # invisible to the model, same pattern as the news routing (v2.9.3): the model
+        # never chooses to call the MCP tool on its own (confirmed in benchmarks).
         excerpts = [res.get("content", "") for res in results]
         thin = (not results) or all(len(e.strip()) < 40 for e in excerpts)
         if thin:
@@ -1137,8 +1137,8 @@ def search_web(query: str) -> str:
         return header + body
     except Exception as e:
         # SearXNG a levé (connexion refusée, JSON invalide = page CAPTCHA/HTML au
-        # lieu de JSON, timeout...) — mêmes conditions "CAPTCHA-shaped" que ci-dessus,
-        # côté transport cette fois. Tenter le failover avant de renvoyer l'erreur.
+        # instead of JSON, timeout...) — the same "CAPTCHA-shaped" conditions as above,
+        # on the transport side this time. Try the failover before returning the error.
         ddg = _duckduckgo_failover(query)
         if ddg:
             _audit("SEARCH_FAILOVER_DDG", {"query": query[:120], "trigger": f"searxng_error:{type(e).__name__}"})
@@ -1168,10 +1168,10 @@ def search_web_deep(query: str) -> str:
             results = _searxng_fetch(query, "general")
         results = results[:config.DEEP_SEARCH_FETCH_COUNT]
 
-        # RSS : pour les requêtes actualité, contourne complètement le problème de
-        # rendu JS/anti-bot pour la presse majeure — XML pur, pas de JavaScript à
-        # exécuter, date de publication réelle et structurée fournie par l'éditeur
-        # lui-même plutôt que devinée depuis le texte de la page.
+        # RSS: for news queries this bypasses the JS-rendering/anti-bot problem
+        # entirely for major press outlets — pure XML, no JavaScript to
+        # execute, and a real structured publication date supplied by the publisher
+        # itself rather than guessed from the page text.
         rss_items = _fetch_rss_headlines(query, max_items=3) if category == "news" else []
 
         if not results and not rss_items:
@@ -1189,8 +1189,8 @@ def search_web_deep(query: str) -> str:
                 r = requests.get(url, headers={"User-Agent": config.USER_AGENT}, timeout=config.DEEP_SEARCH_TIMEOUT)
                 text, date = _extract_with_meta(r.content, url, r.apparent_encoding)
                 # Texte trop mince = probable coquille JS (single-page app) plutôt
-                # qu'une vraie page pauvre — retente via un vrai navigateur avant
-                # d'abandonner, au lieu de compter sur le modèle pour y penser.
+                # than a genuinely thin page — retry through a real browser before
+                # giving up, instead of relying on the model to think of it.
                 if len(text.strip()) < config.DEEP_SEARCH_THIN_THRESHOLD:
                     rendered = _fetch_rendered_text(url, timeout_ms=10000)
                     if rendered and len(rendered) > len(text):
@@ -1204,7 +1204,7 @@ def search_web_deep(query: str) -> str:
             futures = [pool.submit(_fetch_one, res) for res in results]
             for future in as_completed(futures):
                 fetched.append(future.result())
-        # Préserve l'ordre de pertinence de la recherche, pas l'ordre d'arrivée des threads
+        # Preserves the search's relevance order, not the threads' completion order
         fetched.sort(key=lambda item: results.index(item[0]))
 
         header = (
@@ -1278,7 +1278,7 @@ def _fetch_rendered_text(url: str, timeout_ms: int = 15000) -> str | None:
             try:
                 page = browser.new_page(user_agent=config.USER_AGENT)
                 page.goto(url, timeout=timeout_ms, wait_until="domcontentloaded")
-                page.wait_for_timeout(2000)  # laisse le JS s'hydrater/peindre le contenu
+                page.wait_for_timeout(2000)  # let the JS hydrate/paint the content
                 text = page.inner_text("body")
             finally:
                 browser.close()
@@ -1302,7 +1302,7 @@ def fetch_url_rendered(url: str) -> str:
     if not allowed:
         return f"⛔ Blocked: {robots_reason}"
     try:
-        import playwright  # noqa: F401 — juste pour distinguer "non installé" d'un autre échec
+        import playwright  # noqa: F401 — only to tell "not installed" apart from another failure
     except ImportError:
         return ("Browser rendering unavailable: playwright not installed. "
                 "Run: pip install playwright && playwright install chromium")
@@ -1340,7 +1340,7 @@ def _closest_path_hint(path_str: str) -> str:
             rels.append(rel)
             names.setdefault(p.name, []).append(rel)
             count += 1
-            if count >= 2000:  # garde-fou perf sur les très gros repos
+            if count >= 2000:  # perf guardrail on very large repos
                 break
     except Exception:
         return ""
@@ -1452,12 +1452,12 @@ def _rename_consistency_warning(old_text: str, new_text: str, new_content: str) 
 
 
 def _large_write_note(content: str) -> str:
-    """Nudge côté résultat d'outil quand un write_file transporte un gros contenu.
-    Générer un unique argument de tool-call volumineux est l'opération la plus fragile
-    de toute la pile (bug de troncature JSON côté Ollama/llama-server, confirmé upstream
-    #14570/#15465 — corrélé directement aux gros write_file). La parade côté client est
-    de ne jamais demander au modèle d'émettre un énorme argument d'un coup : premier appel
-    write_file, puis append_file par morceaux de ≤80 lignes. Nudge, jamais un blocage."""
+    """Tool-result-side nudge when a write_file carries bulky content.
+    Generating a single large tool-call argument is the most fragile operation in the whole
+    stack (JSON truncation bug on the Ollama/llama-server side, confirmed upstream
+    #14570/#15465 — directly correlated with large write_file calls). The client-side
+    counter-measure is to never ask the model to emit a huge argument at once: a first
+    write_file call, then append_file in chunks of <=80 lines. A nudge, never a block."""
     n_lines = content.count("\n") + 1
     if n_lines <= config.LARGE_WRITE_LINES:
         return ""
@@ -1625,7 +1625,7 @@ def list_directory(path: str = ".") -> str:
             return f"📁 {p}\n  (empty folder)"
         lines = [f"📁 {p}"]
         for item in items:
-            # Fichiers cachés : afficher uniquement .gitignore et .gitkeep (pas .env)
+            # Hidden files: show only .gitignore and .gitkeep (not .env)
             if item.name.startswith(".") and item.name not in {".gitignore", ".gitkeep"}:
                 continue
             if item.is_dir():
@@ -1713,12 +1713,12 @@ def _iter_source_files(root: Path):
             continue
         yield p
         count += 1
-        if count >= 500:  # garde-fou perf sur les très gros repos
+        if count >= 500:  # perf guardrail on very large repos
             return
 
 
 def _ast_symbol_hits(path: Path, symbol: str) -> list[tuple[int, str]]:
-    """Analyse AST réelle (précise) pour les fichiers Python."""
+    """Real (precise) AST analysis for Python files."""
     try:
         tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"), filename=str(path))
     except Exception:
@@ -1809,12 +1809,12 @@ def find_references(symbol: str, path: str = ".") -> str:
 
 
 # ── RAG local / recherche sémantique (B5) ───────────────────────────────────────
-# Troisième pilier de recherche à côté de search_in_files (texte exact) et
+# The third search pillar alongside search_in_files (exact text) and
 # find_references (symboles) : la recherche *conceptuelle*. Embeddings locaux via
-# le modèle bge-m3 déjà installé (ollama.embed), stockés dans un SQLite stdlib
+# the already-installed bge-m3 model (ollama.embed), stored in a stdlib SQLite
 # (.agentic/semantic_index.db) ; similarité cosinus en pur Python (aucune dépendance
-# ajoutée — ni numpy, ni chromadb, ni sqlite-vec, absents de ce venv). Ré-indexation
-# incrémentale sur la mtime : seuls les fichiers nouveaux/modifiés sont ré-embeddés.
+# added — no numpy, no chromadb, no sqlite-vec, none of which are in this venv). Re-indexing
+# is incremental on mtime: only new/modified files are re-embedded.
 _SEMANTIC_EXTS = _REF_SOURCE_EXTS | {".md", ".txt", ".rst", ".toml", ".yaml", ".yml", ".json", ".sh", ".cfg", ".ini"}
 
 
@@ -1972,13 +1972,13 @@ def search_semantic(query: str) -> str:
 
 
 # ── Vision : analyze_image (B6) ──────────────────────────────────────────────────
-# Repli par nom, utilisé UNIQUEMENT si ollama.show() échoue pour un modèle donné (ancienne
-# version d'Ollama, modèle corrompu...) — la détection primaire est désormais la vraie
+# Name-based fallback, used ONLY if ollama.show() fails for a given model (an old
+# Ollama version, a corrupted model...) — primary detection is now the real
 # capacité "vision" exposée par ollama.show(model).capabilities. Vérifié en conditions
-# réelles (2026-08-05) que le nom seul est trompeur dans les deux sens sur les modèles
-# installés ici : `igorls/gemma-4-12B-...-heretic` matche "gemma-4" mais n'a PAS la
+# real ones (2026-08-05) that the name alone is misleading in both directions for the models
+# installed here: `igorls/gemma-4-12B-...-heretic` matches "gemma-4" but does NOT have the
 # capacité vision (recompression communautaire texte-only) alors que `qwen3.5:4b` a
-# bien la capacité vision sans matcher aucun des noms attendus (llava/-vl/moondream/...).
+# vision capability without matching any of the expected names (llava/-vl/moondream/...).
 _VISION_NAME_HINTS = ("llava", "vision", "-vl", "minicpm-v", "moondream", "bakllava",
                       "gemma3", "gemma-3", "gemma4", "gemma-4", "qwen2.5-vl", "qwen2-vl", "pixtral")
 _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff", ".heic"}
@@ -2045,7 +2045,7 @@ def analyze_image(path: str, question: str) -> str:
     if not vision_model:
         return ("No multimodal model available. Install one (e.g. `ollama pull llava` or a "
                 "gemma3 vision build) and select it with /vision-model.")
-    # Chargement séquentiel : libère le modèle courant avant de charger le modèle vision.
+    # Sequential loading: release the current model before loading the vision model.
     if _CURRENT_MODEL and _CURRENT_MODEL != vision_model:
         _unload_model(_CURRENT_MODEL)
     _audit("ANALYZE_IMAGE", {"path": str(p), "model": vision_model})
@@ -2059,18 +2059,18 @@ def analyze_image(path: str, question: str) -> str:
     except Exception as e:
         return f"Vision model error ({type(e).__name__}: {e}). Is '{vision_model}' installed and multimodal?"
     finally:
-        _unload_model(vision_model)   # libère la VRAM ; le modèle principal se recharge au tour suivant
+        _unload_model(vision_model)   # frees the VRAM; the main model reloads on the next turn
 
 
 # ── Skills (format ouvert SKILL.md, divulgation progressive) ─────────────────────
-# Tier 1 (découverte) : seuls name+description sont injectés dans le system prompt.
+# Tier 1 (discovery): only name+description are injected into the system prompt.
 # Tier 2 (activation) : load_skill(name) [ou /skill <name>] charge le corps complet.
-# Tier 3 (exécution) : le corps pointe vers des fichiers de référence, lus à la demande
+# Tier 3 (execution): the body points to reference files, read on demand
 # via read_file/run_command. Recherche : voir agentic_contexte.md (chantier skills).
 
 def _parse_skill_frontmatter(text: str) -> tuple[dict, str]:
-    """Parse le frontmatter YAML minimal (--- ... ---) d'un SKILL.md sans dépendance : lignes
-    `clé: valeur`. Renvoie (metadata, corps). Robuste à l'absence de frontmatter."""
+    """Parse a SKILL.md's minimal YAML frontmatter (--- ... ---) with no dependency: plain
+    `key: value` lines. Returns (metadata, body). Tolerates a missing frontmatter block."""
     meta: dict = {}
     body = text
     if text.lstrip().startswith("---"):
@@ -2087,8 +2087,8 @@ def _parse_skill_frontmatter(text: str) -> tuple[dict, str]:
 
 
 def _skill_dirs() -> list[Path]:
-    """Répertoires racines où chercher des skills, du moins au plus spécifique (le plus
-    spécifique gagne en cas de même nom)."""
+    """Root directories to search for skills, least to most specific (most specific wins
+    on a name clash)."""
     dirs = [config._AGENT_HOME / "skills", config.SKILLS_GLOBAL_DIR]
     if PROJECT_ROOT is not None:
         dirs.append(PROJECT_ROOT / ".agentic" / "skills")
@@ -2096,9 +2096,9 @@ def _skill_dirs() -> list[Path]:
 
 
 def _discover_skills() -> dict:
-    """Scanne les sources et renvoie {name: {"description","body_path","dir","source"}}. Un
-    skill = un sous-dossier contenant un SKILL.md (frontmatter name+description). Le name du
-    frontmatter prime, sinon le nom du dossier. Sources plus spécifiques écrasent les autres."""
+    """Scan the sources and return {name: {"description","body_path","dir","source"}}. One
+    skill = one subfolder containing a SKILL.md (frontmatter name+description). The frontmatter
+    name wins, otherwise the folder name. More specific sources override the others."""
     found: dict = {}
     for root in _skill_dirs():
         try:
@@ -2123,8 +2123,8 @@ def _discover_skills() -> dict:
 
 
 def _skills_prompt_block() -> str:
-    """Tier 1 (découverte) : bloc compact name+description à injecter dans le system prompt.
-    Vide si aucun skill — coût zéro quand il n'y en a pas."""
+    """Tier 1 (discovery): a compact name+description block to inject into the system prompt.
+    Empty when there are no skills — zero cost when none exist."""
     skills = _discover_skills()
     if not skills:
         return ""
@@ -2147,7 +2147,7 @@ def load_skill(name: str) -> str:
     key = (name or "").strip().lower()
     info = skills.get(key)
     if info is None:
-        # tolérance : correspondance approximative sur le nom
+        # tolerance: approximate match on the name
         match = difflib.get_close_matches(key, list(skills.keys()), n=1, cutoff=0.6)
         if match:
             info = skills[match[0]]
@@ -2259,7 +2259,7 @@ def lint_file(path: str) -> str:
         return f"{status} ({name}, exit {result.returncode})\n\n{output[:2000] or '(no output)'}"
 
     if p.suffix.lower() == ".py":
-        # Toujours disponible : vérification de syntaxe seule si aucun linter n'est installé.
+        # Always available: syntax check alone if no linter is installed.
         result = subprocess.run([sys.executable, "-m", "py_compile", str(p)], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             return "✅ CLEAN (syntax only — no linter installed, ran py_compile)"
@@ -2270,14 +2270,14 @@ def lint_file(path: str) -> str:
 
 # ── Sandbox Docker (opt-in) — isole run_command/run_tests du système hôte ──────
 #
-# Orthogonal à SAFE_MODE : l'un gate l'approbation avant exécution, l'autre
-# contient le rayon d'impact une fois exécuté — composables indépendamment.
-# Un conteneur persistant par session (pas un par appel, pour la latence),
-# dossier projet monté en bind à /workspace, image générique par défaut
+# Orthogonal to SAFE_MODE: one gates approval before execution, the other
+# contains the blast radius once executed — independently composable.
+# One persistent container per session (not one per call, for latency),
+# project folder bind-mounted at /workspace, generic default image
 # (rebuild seulement au premier usage), overridable via
-# .agentic/sandbox.Dockerfile. Fail-closed : si le sandbox est actif mais que
-# Docker est indisponible, la commande n'est PAS exécutée sur l'hôte — le but
-# du sandbox serait perdu si on repliait silencieusement sur l'exécution locale.
+# .agentic/sandbox.Dockerfile. Fail-closed: if the sandbox is active but
+# Docker is unavailable, the command is NOT run on the host — the sandbox's purpose
+# would be lost if we silently fell back to local execution.
 
 def _docker_available() -> tuple[bool, str]:
     try:
@@ -2305,8 +2305,8 @@ def _sandbox_image_tag() -> str:
 
 
 def _ensure_sandbox_image() -> tuple[bool, str]:
-    """Retourne (ok, tag_ou_message_erreur). Ne reconstruit que si l'image
-    n'existe pas déjà — un /sandbox répété ne rebuild pas à chaque fois."""
+    """Returns (ok, tag_or_error_message). Only rebuilds if the image does not
+    already exist — a repeated /sandbox does not rebuild every time."""
     tag = _sandbox_image_tag()
     check = subprocess.run(["docker", "images", "-q", tag], capture_output=True, text=True, timeout=10)
     if check.stdout.strip():
@@ -2332,8 +2332,8 @@ def _ensure_sandbox_image() -> tuple[bool, str]:
 
 
 def _ensure_sandbox_container() -> tuple[bool, str]:
-    """Retourne (ok, nom_du_conteneur_ou_message_erreur). Réutilise le
-    conteneur de cette session s'il tourne déjà."""
+    """Returns (ok, container_name_or_error_message). Reuses this session's
+    container if it is already running."""
     global _SANDBOX_CONTAINER
     if _SANDBOX_CONTAINER:
         check = subprocess.run(
@@ -2342,7 +2342,7 @@ def _ensure_sandbox_container() -> tuple[bool, str]:
         )
         if check.returncode == 0 and check.stdout.strip() == "true":
             return True, _SANDBOX_CONTAINER
-        _SANDBOX_CONTAINER = None  # mort/supprimé entretemps, on en recrée un
+        _SANDBOX_CONTAINER = None  # died/was removed in the meantime, so recreate one
 
     available, reason = _docker_available()
     if not available:
@@ -2378,10 +2378,10 @@ atexit.register(_cleanup_sandbox)
 
 
 def _run_shell(command: str, timeout: int) -> tuple[str, int]:
-    """Exécution partagée par run_command/run_tests : locale (comportement
-    inchangé) si SANDBOX_MODE est désactivé, sinon via `docker exec` dans le
-    conteneur de session. Lève RuntimeError (pas de repli silencieux sur
-    l'hôte) si le sandbox est demandé mais indisponible."""
+    """Execution shared by run_command/run_tests: local (unchanged behaviour)
+    when SANDBOX_MODE is off, otherwise via `docker exec` in the session
+    container. Raises RuntimeError (no silent fallback to the host) if the
+    sandbox is requested but unavailable."""
     if SANDBOX_MODE:
         ok, container_or_err = _ensure_sandbox_container()
         if not ok:
@@ -2433,13 +2433,13 @@ def run_command(command: str) -> str:
 
 
 # ── Python REPL persistant (B7) ──────────────────────────────────────────────────
-# Interpréteur Python sous-processus dont l'état (variables, imports) survit d'un
-# appel à l'autre dans la session. Même porte de sécurité que run_command : filtre
-# _check_command sur le code + gating sandbox Docker (le REPL tourne dans le conteneur
-# quand SANDBOX_MODE est actif) + approbation SAFE_MODE (python_repl ∈ _RISKY_TOOLS).
-# Protocole pilote : on envoie le code puis une ligne sentinelle EXEC ; le pilote
-# exécute le bloc dans un namespace persistant, capture stdout/stderr, échoie la
-# valeur de la dernière expression (comportement REPL), puis émet une sentinelle DONE.
+# A subprocess Python interpreter whose state (variables, imports) survives from one
+# call to the next within the session. Same security gate as run_command: the
+# _check_command filter on the code + Docker sandbox gating (the REPL runs in the container
+# when SANDBOX_MODE is active) + SAFE_MODE approval (python_repl is in _RISKY_TOOLS).
+# Driver protocol: we send the code then an EXEC sentinel line; the driver
+# runs the block in a persistent namespace, captures stdout/stderr, echoes
+# the last expression's value (REPL behaviour), then emits a DONE sentinel.
 _REPL_EXEC = "<<<AGENTIC_EXEC_5f2a>>>"
 _REPL_DONE = "<<<AGENTIC_DONE_5f2a>>>"
 _REPL_DRIVER = '''
@@ -2529,7 +2529,7 @@ def _repl_read_until_done(proc, timeout: float) -> tuple[bool, str]:
                 done.set()
                 return
             lines.append(raw.rstrip("\n"))
-        done.set()  # le process est mort
+        done.set()  # the process is dead
 
     threading.Thread(target=_reader, daemon=True).start()
     finished = done.wait(timeout)
@@ -2566,7 +2566,7 @@ def python_repl(code: str) -> str:
         return f"REPL write error: {e} (interpreter restarted; try again)."
     finished, output = _repl_read_until_done(proc, timeout=30)
     if not finished:
-        _repl_stop()  # boucle infinie / blocage → on tue et on repartira propre au prochain appel
+        _repl_stop()  # infinite loop / hang -> kill it and start clean on the next call
         return f"⏱ Timeout (>30s) — the interpreter was reset. Partial output:\n{output[:3000]}"
     return output[:5000] if output.strip() else "(no output)"
 
@@ -2723,7 +2723,7 @@ def _memory_path() -> Path | None:
 
 def _save_memory() -> None:
     if PRIVATE_MODE:
-        return  # session privée : la mémoire n'est jamais écrite sur disque
+        return  # private session: memory is never written to disk
     path = _memory_path()
     if path:
         try:
@@ -2783,30 +2783,30 @@ TOOL_MAP = {fn.__name__: fn for fn in TOOLS}
 
 # ── MCP (Model Context Protocol) — outils tiers optionnels ─────────────────────
 #
-# Config : ~/.agentic_1a_mcp.json, même format {"mcpServers": {...}} que Claude
-# Desktop/Claude Code — toute config déjà écrite pour ces outils est réutilisable
+# Config: ~/.agentic_1a_mcp.json, the same {"mcpServers": {...}} format as Claude
+# Desktop/Claude Code — any config already written for those tools is reusable
 # telle quelle. Absent ou paquet `mcp` non installé = MCP silencieusement
 # désactivé, reste de l'agent inchangé.
 #
-# Le pont synchrone→async (agent.py est entièrement synchrone, le SDK MCP est
-# async) fait tourner tout le cycle de vie de chaque session serveur — connexion,
-# service des appels, fermeture — dans une seule Task asyncio persistante par
-# serveur, portée par un thread dédié avec sa propre boucle d'événements. C'est
-# nécessaire : les cancel scopes anyio utilisés en interne par ClientSession sont
-# liés à la Task qui les a ouverts — les faire courir sur des Tasks différentes
-# (une par appel via run_coroutine_threadsafe naïf) casse la fermeture propre.
-# Prototypé et vérifié isolément avant intégration (connexion, deux appels
-# séquentiels sur la même session, fermeture propre sans sous-processus orphelin,
-# et échec propre — pas un crash — si un serveur ne démarre pas).
+# The sync-to-async bridge (agent.py is entirely synchronous, the MCP SDK is
+# async) runs each server session's whole lifecycle — connection,
+# serving calls, shutdown — in a single persistent asyncio Task per
+# server, carried by a dedicated thread with its own event loop. This is
+# necessary: the anyio cancel scopes used internally by ClientSession are
+# bound to the Task that opened them — running them on different Tasks
+# (one per call via a naive run_coroutine_threadsafe) breaks clean shutdown.
+# Prototyped and verified in isolation before integration (connection, two
+# sequential calls on the same session, clean shutdown with no orphan subprocess,
+# and clean failure — not a crash — when a server fails to start).
 
 _MCP_SHUTDOWN = object()
 
 
 class _MCPServerConnection:
-    """Une session MCP vivante (un serveur), portée par un thread dédié + une
-    boucle asyncio persistante. Lève une exception directement dans __init__
-    si la connexion échoue — l'appelant (_init_mcp) attrape ça par serveur
-    pour qu'un serveur cassé n'empêche pas les autres de démarrer."""
+    """One live MCP session (one server), carried by a dedicated thread + a
+    persistent asyncio loop. Raises directly from __init__ if the connection
+    fails — the caller (_init_mcp) catches that per server so one broken
+    server never prevents the others from starting."""
 
     def __init__(self, name: str, command: str, args: list, env: dict | None = None):
         self.name = name
@@ -2866,12 +2866,12 @@ class _MCPServerConnection:
         return self._submit(lambda session: session.list_tools())
 
     def call_tool(self, name: str, args: dict) -> tuple:
-        """Retourne (CallToolResult, liste des notifications de progression
-        reçues pendant l'appel). Sans progress_callback, le SDK MCP reçoit et
-        jette silencieusement ces notifications — ni l'humain (console) ni le
-        modèle (texte du résultat d'outil) ne les voyait jamais, même pour un
-        outil qui en envoie réellement (constaté en conditions réelles :
-        `trigger-long-running-operation` ne montrait qu'un message final)."""
+        """Returns (CallToolResult, list of progress notifications received during
+        the call). Without a progress_callback the MCP SDK receives and silently
+        discards those notifications — neither the human (console) nor the model
+        (tool-result text) ever saw them, even for a tool that genuinely sends
+        them (confirmed in real conditions: `trigger-long-running-operation`
+        showed only a final message)."""
         progress_events: list[str] = []
 
         async def _on_progress(progress: float, total: float | None, message: str | None) -> None:
@@ -2900,13 +2900,13 @@ MCP_TOOL_SCHEMAS: list = []                                 # dict schemas appen
 
 
 def _mcp_result_to_text(result, progress_events: list | None = None) -> str:
-    """Aplati un CallToolResult MCP (liste de blocs texte/image/...) vers le
-    même format texte brut que tous les autres outils renvoient déjà — rien en
-    aval (audit, panneau résultat, mode sûr) n'a besoin de savoir que la source
-    est un serveur MCP plutôt qu'une fonction Python locale. Les notifications
-    de progression (si il y en a eu) sont préfixées au résultat — sans ça, le
-    modèle n'a strictement aucun moyen de savoir qu'un outil long a rapporté
-    sa progression, seulement le message final."""
+    """Flatten an MCP CallToolResult (a list of text/image/... blocks) into the
+    same plain-text format every other tool already returns — nothing downstream
+    (audit, result panel, safe mode) needs to know the source is an MCP server
+    rather than a local Python function. Progress notifications (if there were
+    any) are prefixed to the result — without that, the model has no way
+    whatsoever to know a long-running tool reported progress, only the final
+    message."""
     parts = []
     for block in getattr(result, "content", None) or []:
         text = getattr(block, "text", None)
@@ -2924,9 +2924,9 @@ def _mcp_result_to_text(result, progress_events: list | None = None) -> str:
 
 
 def _init_mcp() -> None:
-    """Connecte chaque serveur MCP configuré. Un serveur qui échoue à démarrer
-    est journalisé et ignoré — n'empêche jamais les autres serveurs ni le reste
-    de l'agent de fonctionner."""
+    """Connect each configured MCP server. A server that fails to start is
+    logged and skipped — it never prevents the other servers or the rest of
+    the agent from working."""
     if not _MCP_AVAILABLE:
         return
     if not config.MCP_CONFIG_FILE.exists():
@@ -2981,8 +2981,8 @@ atexit.register(_cleanup_mcp)
 # ── Vérification Ollama ──────────────────────────────────────────────────────
 
 def _load_default_model() -> str:
-    """Modèle par défaut effectif : celui choisi par l'utilisateur via
-    /default-model si présent, sinon la constante DEFAULT_MODEL du code."""
+    """The effective default model: the one chosen by the user via /default-model
+    if present, otherwise the DEFAULT_MODEL constant in the code."""
     try:
         saved = config.DEFAULT_MODEL_FILE.read_text().strip()
         if saved:
@@ -2996,12 +2996,12 @@ def _save_default_model(model: str) -> None:
     try:
         config.DEFAULT_MODEL_FILE.write_text(model)
     except Exception:
-        pass  # non bloquant : un échec de sauvegarde ne doit jamais casser la session
+        pass  # non-blocking: a failed save must never break the session
 
 
 def _load_models_config() -> dict:
-    """Réglages nom-de-modèle persistés (failover/architect/editor/vision), séparés de
-    /parameters parce que le menu curses ajuste des valeurs par ←/→, pas du texte libre."""
+    """Persisted model-name settings (failover/architect/editor/vision), kept separate from
+    /parameters because the curses menu adjusts values with ←/→, not free text."""
     try:
         if config.MODELS_CONFIG_FILE.exists():
             data = json.loads(config.MODELS_CONFIG_FILE.read_text())
@@ -3022,8 +3022,8 @@ def _save_models_config(updates: dict) -> None:
 
 
 def _plumbing_failover_target(current_model: str) -> str | None:
-    """Modèle de secours à utiliser quand un bug de plumbing Ollama a épuisé son budget
-    de relances (A7). "" = désactivé (défaut). Jamais vers le même modèle."""
+    """The backup model to use when an Ollama plumbing bug has exhausted its retry
+    budget (A7). "" = disabled (default). Never fails over to the same model."""
     target = (config.PLUMBING_FAILOVER_MODEL or "").strip()
     if not target or target == current_model:
         return None
@@ -3031,10 +3031,10 @@ def _plumbing_failover_target(current_model: str) -> str | None:
 
 
 # ── Mode architecte/éditeur (B4) ────────────────────────────────────────────────
-# Outils lecture-seule autorisés pendant la phase architecte : navigation/recherche/
-# lecture/lint, mais rien qui écrit ou exécute du code (pas de write/append/edit/
+# Read-only tools allowed during the architect phase: navigation/search/
+# reading/linting, but nothing that writes or executes code (no write/append/edit/
 # create_directory/run_command/run_tests/run_background/kill/git_commit/memory_write,
-# et pas d'outils MCP, potentiellement destructeurs).
+# and no MCP tools, which are potentially destructive).
 _READ_ONLY_TOOL_NAMES = {
     "search_web", "search_web_deep", "fetch_url", "fetch_url_rendered",
     "read_file", "read_file_lines", "list_directory", "search_in_files",
@@ -3112,7 +3112,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
     console.print(Markdown(plan))
     console.print(Rule(style="dim"))
 
-    # ── Phase 2 : éditeur (tous outils) — chargement séquentiel ──
+    # ── Phase 2: editor (all tools) — sequential loading ──
     if editor_model != architect_model:
         _unload_model(architect_model)
     if config.LANG == "fr":
@@ -3177,7 +3177,7 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
     except Exception as e:
         return f"⚠️ Reviewer model error ({type(e).__name__}: {e}). Is '{reviewer_model}' installed and tool-free chat working?"
     if reviewer_model != current_model:
-        _unload_model(reviewer_model)   # séquentiel : le modèle principal se recharge pour répondre
+        _unload_model(reviewer_model)   # sequential: the main model reloads to answer
     console.print()
     console.print(Rule(f"[bold magenta] {t('review_by_title', model=reviewer_model)} [/bold magenta]", style="magenta"))
     console.print(Markdown(critique or "(the reviewer returned no text)"))
@@ -3187,9 +3187,9 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
 
 
 def _tool_capable_models() -> list:
-    """Modèles Ollama installés qui supportent le tool-calling — seuls
-    candidats valables pour cet agent, qui en dépend entièrement pour
-    fonctionner (mêmes vérifications que pick_model_interactive)."""
+    """Installed Ollama models that support tool calling — the only valid
+    candidates for this agent, which depends on it entirely to function
+    (same checks as pick_model_interactive)."""
     try:
         models = ollama.list().models
     except Exception:
@@ -3205,11 +3205,11 @@ def _tool_capable_models() -> list:
 
 
 def _resolve_startup_model() -> str | None:
-    """Modèle à utiliser au démarrage. Le défaut préféré (choisi ou constante
-    du code) s'il est encore installé ; sinon — au lieu de planter comme
-    avant si ce modèle a été supprimé depuis — un choix aléatoire parmi les
-    modèles tool-capable actuellement installés. None si aucun modèle
-    utilisable n'est installé du tout."""
+    """The model to use at startup. The preferred default (chosen, or the code
+    constant) if it is still installed; otherwise — instead of crashing as it
+    used to when that model had since been deleted — a random choice among the
+    currently installed tool-capable models. None if no usable model is
+    installed at all."""
     desired = _load_default_model()
     try:
         installed = [m.model for m in ollama.list().models]
@@ -3243,10 +3243,10 @@ def check_ollama(model: str) -> bool:
 
 
 def get_num_ctx(model: str) -> int:
-    """Contexte à demander à Ollama pour ce modèle : son max réel plafonné à
-    SAFE_NUM_CTX (pas Ollama par défaut, qui utilise 16384 sans jamais regarder
-    la capacité réelle du modèle). Mis en cache par modèle pour éviter un appel
-    ollama.show() à chaque message."""
+    """The context to request from Ollama for this model: its real maximum capped at
+    SAFE_NUM_CTX (not Ollama's default, which uses 16384 without ever looking at
+    the model's actual capacity). Cached per model to avoid an ollama.show() call
+    on every message."""
     if model in _num_ctx_cache:
         return _num_ctx_cache[model]
     num_ctx = config.SAFE_NUM_CTX
@@ -3341,12 +3341,12 @@ def _chat_with_live_ram(status_key: str, chat_fn):
             poller.join(timeout=1)
 
 
-# ── Streaming de la réponse finale (B2) ─────────────────────────────────────────
-# Historiquement tous les appels étaient stream=False à cause du bug Ollama
-# streaming+tools (#12557). On réévalue : streamer seulement le rendu final (bufferiser
-# si des tool_calls apparaissent) redonne un ressenti "temps réel" sur la longue
-# génération finale, sans changer la fiabilité du tool-calling. Toggle STREAM_FINAL
-# (défaut "on", désactivable dans /parameters si un modèle régresse sur les tools).
+# ── Streaming the final answer (B2) ─────────────────────────────────────────────
+# Historically every call was stream=False because of the Ollama
+# streaming+tools bug (#12557). Re-evaluated: streaming only the final render (buffering
+# if tool_calls appear) restores a "real time" feel on the long final
+# generation, without changing tool-calling reliability. STREAM_FINAL toggle
+# (default "on", can be disabled in /parameters if a model regresses on tools).
 class _StreamedMessage:
     def __init__(self, content, tool_calls, thinking):
         self.content = content
@@ -3400,7 +3400,7 @@ class _EscapeWatcher:
             follow, _, _ = _select.select([sys.stdin], [], [], 0.02)
             if follow:
                 try:
-                    sys.stdin.read(2)   # draine la séquence (flèche, etc.) — pas un abandon
+                    sys.stdin.read(2)   # drains the sequence (arrow key, etc.) — not an abort
                 except Exception:
                     pass
                 return False
@@ -3468,13 +3468,13 @@ def _consume_stream(stream, on_text=None, abort_check=None) -> _StreamedResp:
     for chunk in stream:
         if abort_check is not None and abort_check():
             try:
-                stream.close()   # ferme le flux HTTP → signale la déconnexion à Ollama
+                stream.close()   # closes the HTTP stream -> signals the disconnect to Ollama
             except Exception:
                 pass
             raise _UserAbort()
         pec = getattr(chunk, "prompt_eval_count", None)
         if pec:
-            prompt_eval_count = pec  # le chunk final (done=True) porte le vrai compte de tokens du prompt
+            prompt_eval_count = pec  # the final chunk (done=True) carries the prompt's true token count
         m = getattr(chunk, "message", None)
         if m is None:
             continue
@@ -3518,24 +3518,24 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
         stream = ollama.chat(model=model, messages=messages, tools=tools,
                               stream=True, options=_gen_options(model))
     except TypeError:
-        return _buffered()   # SDK sans support stream — repli
+        return _buffered()   # SDK without stream support — fallback
 
-    # Phase 1 : spinner + RAM en direct pendant l'attente/réflexion (jusqu'au 1er token de
-    # texte). Phase 2 : dès que du texte arrive, on arrête le spinner et on streame en direct.
-    # Sur un tour d'outils (aucun contenu, juste des tool_calls) le spinner reste affiché tout
-    # le temps — la RAM et l'indicateur "réflexion" restent donc visibles pendant les tours
-    # d'outils, comme avant l'ajout du streaming (régression corrigée).
+    # Phase 1: spinner + live RAM while waiting/thinking (until the first text token).
+    # Phase 2: as soon as text arrives, stop the spinner and stream live.
+    # On a tool round (no content, just tool_calls) the spinner stays up the
+    # whole time — so the RAM readout and the "thinking" indicator remain visible during tool
+    # rounds, as they were before streaming was added (a regression, since fixed).
     stop_spinner = _start_ram_spinner()
     holder: dict = {"live": None}
 
     def _on_text(txt: str) -> None:
         if holder["live"] is None:
-            stop_spinner()   # bascule spinner → rendu live dès le premier token de texte
+            stop_spinner()   # switch spinner -> live render on the first text token
             holder["live"] = Live(console=console, refresh_per_second=12, transient=True)
             holder["live"].start()
         holder["live"].update(Markdown(txt))
 
-    # Échap (ou Ctrl+C) pendant le streaming → arrête le modèle et revient à l'invite.
+    # Escape (or Ctrl+C) during streaming -> stops the model and returns to the prompt.
     watcher = _EscapeWatcher()
     watcher.__enter__()
     try:
@@ -3564,7 +3564,7 @@ def usage_tier(size_gb: float, ram_gb: float, is_moe: bool) -> str:
     else:
         tier = f"[red]{t('tier_very_heavy')}[/red]"
     if is_moe:
-        tier += " ⚡"  # MoE : plus rapide que sa taille ne suggère
+        tier += " ⚡"  # MoE: faster than its size suggests
     return tier
 
 
@@ -3579,8 +3579,8 @@ def _is_moe_model(modelinfo: dict) -> bool:
     return False
 
 
-# Base de connaissances locale (issue de recherches précédentes) — évite une
-# recherche web pour les familles de modèles déjà identifiées.
+# Local knowledge base (from earlier research) — avoids a
+# web search for model families already identified.
 _MODEL_CATEGORY_RULES = [
     (r"qwen3-coder",       "Code"),
     (r"devstral",          "Agentic coding"),
@@ -3775,9 +3775,9 @@ def pick_model_interactive(current_model: str) -> str | None:
 
 
 def _confirm_risky_call(name: str, args: dict) -> bool:
-    """Mode sûr : demande une approbation humaine avant un outil qui modifie l'état
-    (fichiers, shell, processus, git). Refus par défaut si l'utilisateur appuie juste
-    sur Entrée — on échoue du côté prudent."""
+    """Safe mode: ask for human approval before a tool that changes state (files,
+    shell, processes, git). Refusal by default if the user just presses Enter —
+    we fail on the cautious side."""
     args_s = json.dumps(args, ensure_ascii=False)
     console.print(f"[bold yellow]{t('safe_mode_prompt', name=name, args=args_s)}[/bold yellow]")
     choice = _prompt(t("safe_mode_input")).strip().lower()
@@ -3786,31 +3786,27 @@ def _confirm_risky_call(name: str, args: dict) -> bool:
 
 # ── Boucle ReAct ─────────────────────────────────────────────────────────────
 
-                              # (lecture seule), on pousse le modèle à écrire le plan en texte plutôt que de
-                              # continuer à retenter des outils qu'il n'a pas — trouvé nécessaire au test live
-                              # v3.0 (qwen3.5:4b comme architecte a brûlé ses 25 tours sur des refus).
-
-# Motifs observés en pratique (v2.9.14) : un modèle qui écrit un pseudo appel
-# d'outil comme texte brut au lieu d'utiliser le vrai mécanisme de tool-calling
-# d'Ollama — jamais exécuté, jamais rattrapé par le repli "réponse vide"
-# puisque msg.content n'est pas vide. Confirmé sur `brianmatzelle/qwen3-coder-heretic:30b`
+# Patterns observed in practice (v2.9.14): a model that writes a pseudo tool
+# call as plain text instead of using Ollama's real tool-calling mechanism
+# — never executed, never caught by the "empty response" fallback
+# since msg.content is not empty. Confirmed on `brianmatzelle/qwen3-coder-heretic:30b`
 # (`<function=search_in_files> <parameter=...> ... </tool_call>`) et `lfm2:24b-a2b`
 # (`<function=execute_tool> <parameter=command> ...`) — deux familles de modèles
-# différentes, même échec de format.
+# different families, same format failure.
 _FAKE_TOOLCALL_RE = re.compile(r"<function=|<tool_call>|<\|tool_call\|>|function_calls>", re.IGNORECASE)
 
 
 def _looks_like_fake_tool_call(text: str) -> bool:
     return bool(_FAKE_TOOLCALL_RE.search(text or ""))
 
-# Motif observé en pratique (v2.9.16, test T8 "tool disambiguation") : le modèle
-# n'appelle aucun outil ce tour-ci, mais décrit dans son texte ce qu'un appel
-# renverrait ("returns something like this", "might be { ... }") avec des
-# valeurs concrètes inventées (population, dates...), présentées comme un
-# exemple plausible plutôt que clairement signalées comme fabriquées. Ne se
-# déclenche que si le texte ressemble à une description de résultat d'outil
-# hypothétique ET contient une structure de type donnée ({ } ou bloc de code) —
-# évite de faux positifs sur une explication conceptuelle ordinaire.
+# Pattern observed in practice (v2.9.16, test T8 "tool disambiguation"): the model
+# calls no tool this turn, but describes in its text what a call
+# would return ("returns something like this", "might be { ... }") with
+# concrete invented values (population figures, dates...), presented as a
+# plausible example rather than clearly flagged as fabricated. Only fires
+# if the text looks like a description of a hypothetical tool result
+# AND contains a data-like structure ({ } or a code block) —
+# avoiding false positives on an ordinary conceptual explanation.
 _HYPOTHETICAL_TOOL_OUTPUT_RE = re.compile(
     r"\b(returns? something like|might (?:be|return|look like)|would (?:return|look like)|"
     r"something like this|calling `?[\w][\w-]*`? (?:for|with)?.{0,60}?\breturns?\b)",
@@ -3825,14 +3821,14 @@ def _looks_like_hypothetical_tool_output(text: str) -> bool:
     return "{" in text or "```" in text
 
 _EDIT_TOOLS   = {"write_file", "append_file", "edit_file"}
-# run_command compte comme vérification au même titre que lint_file/run_tests : observé
-# en pratique (v2.9.19, comparaison de 4 modèles sur un bug réel) que ruff/lint ne
-# détecte que la syntaxe/le style, jamais les bugs de logique (clé de dict manquante,
-# branche inatteignable...) — les 4 modèles se sont déclarés "vérifiés" après un simple
-# lint clean, sans jamais avoir réellement exécuté le script, et chacun a laissé passer
-# au moins un crash garanti. Si le modèle exécute vraiment le script, c'est une
-# vérification plus forte qu'un lint — le mécanisme doit la reconnaître comme telle,
-# sinon on continue à le relancer même quand il fait la bonne chose.
+# run_command counts as verification just like lint_file/run_tests: observed
+# in practice (v2.9.19, a 4-model comparison on a real bug) that ruff/lint only
+# detects syntax/style, never logic bugs (a missing dict key, an unreachable
+# branch...) — all 4 models declared themselves "verified" after a clean
+# lint, without ever actually running the script, and each let through
+# at least one guaranteed crash. If the model really runs the script, that is a
+# stronger verification than a lint — the mechanism must recognise it as such,
+# otherwise we keep re-prompting it even when it does the right thing.
 _VERIFY_TOOLS = {"lint_file", "run_tests", "run_command"}
 _EDIT_SUCCESS_PREFIX = {"write_file": "File written:", "append_file": "Appended:", "edit_file": "Modified:"}
 _THIN_SEARCH_MARKERS = ("No results.", "essentially empty")
@@ -3863,14 +3859,14 @@ def _stuck_search_nudge_suffix() -> str:
 
 
 # ── Vérification déterministe post-réponse : jetons durs non étayés (_grounding_check) ──
-# Idée (improvement_plusFixes.md 1.2) : chaque incident de confabulation documenté (nombres
-# de population inventés, champs de tableau inventés, une date inventée, du JSON inventé)
-# partage une propriété mécaniquement vérifiable — la réponse contient des jetons concrets
-# (nombres, dates, URLs, noms propres cités) qui n'apparaissent dans AUCUN résultat d'outil
-# de ce tour. Aucun LLM, aucune sémantique : simple extraction + match en sous-chaîne.
+# Idea: every documented confabulation incident (invented population
+# figures, invented table fields, an invented date, invented JSON)
+# shares a mechanically checkable property — the answer contains concrete tokens
+# (numbers, dates, URLs, quoted proper nouns) that appear in NO tool result
+# from this turn. No LLM, no semantics: plain extraction + substring match.
 _URL_TOKEN_RE   = re.compile(r"https?://[^\s\)\]\}<>\"']+")
 _ISO_DATE_RE    = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
-_NUMBER_RE      = re.compile(r"\d[\d.,   /:]*\d")  # jeton numérique avec ≥2 chiffres au total
+_NUMBER_RE      = re.compile(r"\d[\d.,   /:]*\d")  # numeric token with 2+ digits in total
 _QUOTED_RE      = re.compile(r"[\"“«]\s*([^\"”»\n]{3,60}?)\s*[\"”»]")
 
 
@@ -3990,29 +3986,29 @@ def _parse_recipe(path: str) -> list[str]:
 
 # ── Compaction de contexte (v3.0) ────────────────────────────────────────────────
 # Approche recherche-backed (voir agentic_contexte.md) : (1) nettoyage déterministe sans
-# perte d'abord (tronque les vieux résultats d'outils volumineux) ; (2) si toujours au-dessus
-# du seuil, résumé STRUCTURÉ (pas freeform — les résumés freeform perdent silencieusement les
-# détails techniques) des plus anciens tours, en gardant le system prompt + les N derniers
-# tours utilisateur mot pour mot. Coupe uniquement aux frontières de tour → jamais un message
-# tool orphelin de son assistant(tool_calls). Off par défaut ; /compact force à la main.
+# cleanup first (truncates old bulky tool results); (2) if still above
+# the threshold, a STRUCTURED summary (not freeform — freeform summaries silently lose
+# technical details) of the oldest turns, keeping the system prompt + the last N user
+# turns verbatim. Cuts only at turn boundaries -> never a tool message orphaned
+# from its assistant(tool_calls). Off by default; /compact forces it by hand.
 
 def _estimate_tokens(messages: list) -> int:
-    """Approximation tokens ≈ caractères/4 (heuristique standard). Utilisée comme repli quand
-    on n'a pas de compte réel, et pour décider si le nettoyage a suffi."""
+    """Token approximation ≈ characters/4 (the standard heuristic). Used as a fallback when
+    no real count is available, and to decide whether the cleanup was enough."""
     return sum(len(str(m.get("content", ""))) for m in messages) // 4
 
 
 def _turn_boundaries(messages: list) -> list[int]:
-    """Indices des messages 'user' qui démarrent un vrai tour utilisateur — exclut nos propres
-    blocs de résumé (préfixe _COMPACT_MARKER) pour qu'une nouvelle compaction replie l'ancien
-    résumé + les nouveaux tours ensemble (résumé roulant hiérarchique, pattern recommandé)."""
+    """Indices of the 'user' messages that start a real user turn — excludes our own summary
+    blocks (the _COMPACT_MARKER prefix) so a fresh compaction folds the old summary and the
+    new turns together (a hierarchical rolling summary, the recommended pattern)."""
     return [i for i, m in enumerate(messages)
             if m.get("role") == "user" and not str(m.get("content", "")).startswith(_COMPACT_MARKER)]
 
 
 def _cleanup_old_tool_results(messages: list, keep_from: int) -> int:
-    """Nettoyage déterministe sans perte (étape 1) : tronque les résultats d'outils anciens
-    (avant keep_from) plus longs que COMPACT_TOOL_TRUNC. Renvoie le nb de caractères économisés."""
+    """Deterministic lossless cleanup (step 1): truncates old tool results (before keep_from)
+    longer than COMPACT_TOOL_TRUNC. Returns the number of characters saved."""
     saved = 0
     for m in messages[:keep_from]:
         if m.get("role") == "tool":
@@ -4024,8 +4020,8 @@ def _cleanup_old_tool_results(messages: list, keep_from: int) -> int:
 
 
 def _render_transcript(span: list) -> str:
-    """Aplati une tranche de messages en texte pour le prompt de résumé (chaque message plafonné
-    pour borner la taille du prompt de résumé)."""
+    """Flatten a span of messages into text for the summary prompt (each message capped to
+    bound the size of the summary prompt)."""
     lines = []
     for m in span:
         role = str(m.get("role", "?")).upper()
@@ -4039,7 +4035,7 @@ def _render_transcript(span: list) -> str:
 
 
 def _summarize_span(span: list, model: str) -> str:
-    """Résumé structuré (pas freeform) d'une tranche de conversation, avec le modèle courant."""
+    """Structured (not freeform) summary of a conversation span, using the current model."""
     if not span:
         return ""
     transcript = _render_transcript(span)
@@ -4067,21 +4063,21 @@ def _summarize_span(span: list, model: str) -> str:
 
 
 def _compact_now(messages: list, model: str, forced: bool = False) -> str:
-    """Compacte la conversation EN PLACE (mutation via messages[:]). Renvoie un message de statut.
-    Structure-safe : ne coupe qu'aux frontières de tour utilisateur. Garde system + les
-    COMPACT_KEEP_TURNS derniers tours mot pour mot."""
+    """Compact the conversation IN PLACE (mutating via messages[:]). Returns a status message.
+    Structure-safe: cuts only at user-turn boundaries. Keeps the system prompt + the last
+    COMPACT_KEEP_TURNS turns verbatim."""
     bounds = _turn_boundaries(messages)
     if len(bounds) <= config.COMPACT_KEEP_TURNS:
         return t("compact_too_few")
     keep_from = bounds[-config.COMPACT_KEEP_TURNS]
     before_est = _estimate_tokens(messages)
-    # Étape 1 : nettoyage déterministe sans perte.
+    # Step 1: deterministic lossless cleanup.
     saved = _cleanup_old_tool_results(messages, keep_from)
     trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * get_num_ctx(model))
     if not forced and _estimate_tokens(messages) < trigger_tokens:
         _audit("COMPACT_CLEANUP", {"chars_saved": saved})
         return t("compact_cleanup_only", saved=saved)
-    # Étape 2 : résumé structuré des plus anciens tours (system + queue récente préservés).
+    # Step 2: structured summary of the oldest turns (system + recent tail preserved).
     summary = _summarize_span(messages[1:keep_from], model)
     if not summary:
         return t("compact_failed")
@@ -4094,8 +4090,8 @@ def _compact_now(messages: list, model: str, forced: bool = False) -> str:
 
 
 def _maybe_compact(messages: list, model: str) -> bool:
-    """Compaction automatique si activée et si le prompt réel dépasse le seuil. Utilise le vrai
-    prompt_eval_count d'Ollama en priorité, sinon une estimation par caractères."""
+    """Automatic compaction if enabled and the real prompt exceeds the threshold. Prefers
+    Ollama's true prompt_eval_count, falling back to a character-based estimate."""
     if config.AUTO_COMPACT != "on":
         return False
     trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * get_num_ctx(model))
@@ -4116,7 +4112,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     global _checkpoint_turn, _checkpoint_made_this_turn, _CURRENT_MODEL, _LAST_PROMPT_TOKENS
     _CURRENT_MODEL = model               # B6 : appels latéraux (vision) savent quel modèle décharger
     _checkpoint_turn += 1
-    _checkpoint_made_this_turn = False   # B1 : un checkpoint au plus par tour, avant la 1re écriture
+    _checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
     rounds = 0
     edited_since_verify = False
     nudges_used = 0
@@ -4134,13 +4130,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     json_truncation_retries = 0
     last_failure_signature = None
     stuck_search_nudges_used = 0
-    plumbing_failover_used = False   # A7 : bascule unique vers un modèle de secours par tour
-    readonly_refusals = 0            # B4 : outils d'écriture refusés en phase architecte lecture seule
+    plumbing_failover_used = False   # A7: a single switch to a backup model per turn
+    readonly_refusals = 0            # B4: write tools refused during the read-only architect phase
     readonly_nudged = False
-    # Suivi par tour pour les couches d'honnêteté déterministes (items A5/A6) :
-    turn_tool_results: list[str] = []   # résultats bruts d'outils de CE tour → _grounding_check
-    had_successful_edit = False         # une écriture/édition a réussi ce tour (persiste, ≠ edited_since_verify)
-    had_verification = False            # un outil de vérification a tourné ce tour
+    # Per-turn tracking for the deterministic honesty layers (items A5/A6):
+    turn_tool_results: list[str] = []   # raw tool results from THIS turn -> _grounding_check
+    had_successful_edit = False         # a write/edit succeeded this turn (persists, unlike edited_since_verify)
+    had_verification = False            # a verification tool ran this turn
     grounding_check_nudges_used = 0
     claim_action_nudges_used = 0
 
@@ -4154,30 +4150,30 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             resp = _stream_or_buffer_chat(model, messages, tool_schemas)
             pec = getattr(resp, "prompt_eval_count", 0) or 0
             if pec:
-                _LAST_PROMPT_TOKENS = pec   # vrai compte de tokens du prompt (pour la compaction)
+                _LAST_PROMPT_TOKENS = pec   # the prompt's true token count (for compaction)
         except ollama.ResponseError as e:
-            # e.error est un dict ({"code":..., "message":...}) quand le corps de
-            # réponse Ollama est un JSON avec une clé "error" imbriquée (cas de ce
+            # e.error is a dict ({"code":..., "message":...}) when the Ollama
+            # response body is JSON with a nested "error" key (the case for this
             # bug précis) — voir ollama/_types.py ResponseError.__init__. On extrait
-            # le message pour un affichage propre plutôt que le repr brut du dict.
+            # the message for clean display rather than the dict's raw repr.
             err_payload = e.error
             err_text = err_payload.get("message", str(err_payload)) if isinstance(err_payload, dict) else str(err_payload or e)
             if "Unable to generate parser for this template" in err_text:
                 # Bug Ollama confirmé (ollama/ollama#16988) : la génération automatique
-                # du parser de tool-calling pour le chat template embarqué dans un GGUF
-                # hf.co (pas de mapping natif côté bibliothèque Ollama) peut échouer en
-                # cours de session, pas seulement au premier appel — reproduit deux fois
-                # de suite avec Ornith-1.0-9B au même point (~20 tours d'outils), pas un
-                # problème lié au contenu de la conversation. Une simple relance de la
-                # requête identique est la seule intervention possible côté client (le
-                # bug est dans la génération interne du parser par Ollama, hors de
-                # portée depuis ce code) — voir agentic_contexte.md.
+                # generating the tool-calling parser for the chat template embedded in an
+                # hf.co GGUF (no native mapping on the Ollama library side) can fail
+                # mid-session, not only on the first call — reproduced twice
+                # in a row with Ornith-1.0-9B at the same point (~20 tool rounds), not a
+                # problem tied to the conversation's content. Simply retrying the
+                # identical request is the only possible client-side intervention (the
+                # bug is in Ollama's internal parser generation, out of
+                # reach from this code) — see DESIGN.md.
                 if template_parser_retries < config.MAX_TEMPLATE_PARSER_RETRIES:
                     template_parser_retries += 1
                     console.print(f"[dim]{t('template_parser_retry_note', n=template_parser_retries, max=config.MAX_TEMPLATE_PARSER_RETRIES)}[/dim]")
                     _audit("TEMPLATE_PARSER_RETRY", {"round": rounds, "retry": template_parser_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
-                    rounds -= 1  # cette tentative n'a pas atteint le modèle — ne pas la compter dans MAX_TOOL_ROUNDS
+                    rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
                     continue
                 target = None if plumbing_failover_used else _plumbing_failover_target(model)
                 if target:
@@ -4193,24 +4189,24 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 return t("template_parser_fallback", error=err_text[:200])
             if "xml syntax error" in err_text.lower():
                 # Bug modèle confirmé (ollama/ollama#14834, #16383, #16810) : contrairement
-                # au cas #16988 ci-dessus, le parser lui-même existe et fonctionne — c'est le
-                # *modèle* (famille Qwen3.5/3.6, observé aussi sur qwen3.5:4b) qui dérive
-                # occasionnellement de son propre format de tool-call documenté (ex: émet
+                # to case #16988 above, the parser itself exists and works — it is the
+                # *model* (Qwen3.5/3.6 family, also seen on qwen3.5:4b) that occasionally
+                # drifts from its own documented tool-call format (e.g. emitting
                 # "element <parameter> closed by </function>" ou un wrapper <function_invocation>
-                # obsolète), ce qu'Ollama ne tolère pas et remonte en erreur 500 au lieu
-                # d'ignorer/réparer la dérive. Aucun fix amont disponible à ce jour (issues
-                # ouvertes) — reproduit en conditions réelles sur qwen3.5:4b le 2026-08-04
-                # (voir agentic_contexte.md, section "7 sedecies") : avant ce correctif,
-                # l'exception remontait brute jusqu'à main() et terminait la session net,
-                # parfois juste après une édition de fichier cassée jamais corrigée. Même
-                # traitement que le bug #16988 : simple relance de la requête identique, seule
-                # intervention possible côté client (rien à corriger dans le contenu envoyé).
+                # obsolete), which Ollama does not tolerate and reports as a 500 error instead
+                # of ignoring/repairing the drift. No upstream fix available to date (issues
+                # open) — reproduced in real conditions on qwen3.5:4b on 2026-08-04
+                # (see DESIGN.md): before this fix,
+                # the exception propagated raw to main() and ended the session outright,
+                # sometimes right after a broken file edit that was never corrected. Same
+                # treatment as bug #16988: simply retry the identical request, the only
+                # possible client-side intervention (nothing to fix in the content we send).
                 if xml_parse_retries < config.MAX_XML_PARSE_RETRIES:
                     xml_parse_retries += 1
                     console.print(f"[dim]{t('xml_parse_retry_note', n=xml_parse_retries, max=config.MAX_XML_PARSE_RETRIES)}[/dim]")
                     _audit("XML_PARSE_RETRY", {"round": rounds, "retry": xml_parse_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
-                    rounds -= 1  # cette tentative n'a pas atteint le modèle — ne pas la compter dans MAX_TOOL_ROUNDS
+                    rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
                     continue
                 target = None if plumbing_failover_used else _plumbing_failover_target(model)
                 if target:
@@ -4225,18 +4221,18 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 _audit("XML_PARSE_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("xml_parse_fallback", error=err_text[:200])
             if "unexpected end of json input" in err_text.lower():
-                # Troisième signature d'échec Ollama, distincte des deux ci-dessus — voir le
-                # commentaire de MAX_JSON_TRUNCATION_RETRIES. Reproduit en conditions réelles sur
-                # Ornith le 2026-08-04 juste après un write_file sur un fichier volumineux (~14 Ko) :
-                # le tour précédent avait déjà laissé le fichier dans un état cassé (avertissement de
-                # syntaxe jamais corrigé) et cette erreur a mis fin à la session avant toute chance de
+                # A third Ollama failure signature, distinct from the two above — see the
+                # MAX_JSON_TRUNCATION_RETRIES comment. Reproduced in real conditions on
+                # Ornith on 2026-08-04 right after a write_file on a bulky file (~14 KB):
+                # the previous turn had already left the file in a broken state (a syntax
+                # warning never fixed) and this error ended the session before any chance to
                 # réparer — voir agentic_contexte.md, section "7 septdecies".
                 if json_truncation_retries < config.MAX_JSON_TRUNCATION_RETRIES:
                     json_truncation_retries += 1
                     console.print(f"[dim]{t('json_truncation_retry_note', n=json_truncation_retries, max=config.MAX_JSON_TRUNCATION_RETRIES)}[/dim]")
                     _audit("JSON_TRUNCATION_RETRY", {"round": rounds, "retry": json_truncation_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
-                    rounds -= 1  # cette tentative n'a pas atteint le modèle — ne pas la compter dans MAX_TOOL_ROUNDS
+                    rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
                     continue
                 target = None if plumbing_failover_used else _plumbing_failover_target(model)
                 if target:
@@ -4277,12 +4273,12 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 messages.append({"role": "user", "content": t("verify_nudge")})
                 continue
             if not (msg.content or "").strip():
-                # Réponse finale vide (pas de tool_calls non plus). Fréquent chez les
+                # Empty final answer (no tool_calls either). Common with
                 # modèles "thinking" : ils réfléchissent (msg.thinking) puis s'arrêtent
-                # sans jamais produire de texte final ni d'appel d'outil. On journalise
-                # le début de la réflexion (utile pour diagnostiquer) et on relance le
-                # modèle quelques fois avant d'abandonner — ne jamais montrer un panneau
-                # vide sans explication, mais ne pas abandonner après un seul raté non plus.
+                # without ever producing final text or a tool call. We log
+                # the start of the reasoning (useful for diagnosis) and re-prompt the
+                # model a few times before giving up — never show an empty panel
+                # without explanation, but don't give up after a single miss either.
                 thinking_preview = str(getattr(msg, "thinking", "") or "")[:200]
                 if empty_retries < config.MAX_EMPTY_RETRIES:
                     empty_retries += 1
@@ -4310,7 +4306,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 messages.append({"role": "user", "content": t("grounding_nudge")})
                 continue
             # Nudge affirmation-vs-action (A6, déterministe) : "corrigé"/"vérifié" sans
-            # édition/vérification réelle ce tour. Placé avant _grounding_check.
+            # a real edit/verification this turn. Placed before _grounding_check.
             claim_kind = _claim_without_action(msg.content, had_successful_edit, had_verification)
             if claim_kind is not None and claim_action_nudges_used < config.MAX_CLAIM_ACTION_NUDGES:
                 claim_action_nudges_used += 1
@@ -4319,8 +4315,8 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append({"role": "user", "content": t(f"claim_action_nudge_{claim_kind}")})
                 continue
-            # _grounding_check (A5, déterministe) : jetons durs de la réponse absents de
-            # tout résultat d'outil de ce tour. Seulement si des outils ont réellement tourné.
+            # _grounding_check (A5, deterministic): hard tokens in the answer absent from
+            # every tool result this turn. Only if tools actually ran.
             if turn_tool_results and grounding_check_nudges_used < config.MAX_GROUNDING_CHECK_NUDGES:
                 unsupported = _grounding_check(msg.content, turn_tool_results)
                 if unsupported:
@@ -4356,8 +4352,8 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 title=f"[yellow]{t('tool_panel_title')}[/yellow]", border_style="yellow", expand=False,
             ))
 
-            # B4 : phase architecte = lecture seule. Même si le modèle tente une écriture,
-            # on refuse sans exécuter (le schéma d'outils ne l'expose pas, ceci est la
+            # B4: architect phase = read-only. Even if the model attempts a write,
+            # we refuse without executing (the tool schema does not expose it, this is the
             # ceinture-et-bretelles côté exécution).
             if allowed_tools is not None and name not in allowed_tools and name not in MCP_TOOL_MAP:
                 readonly_refusals += 1
@@ -4368,14 +4364,14 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                                     title=f"[cyan]{t('result_panel_title')}[/cyan]", border_style="dim green", expand=False))
                 continue
 
-            # B1 : checkpoint git de l'état AVANT la première écriture de ce tour (une
-            # seule fois par tour). Capture le pré-écriture pour que /undo puisse revenir.
+            # B1: git checkpoint of the state BEFORE this turn's first write (once
+            # per turn only). Captures the pre-write state so /undo can go back.
             if name in _EDIT_TOOLS:
                 _make_turn_checkpoint(f"turn {_checkpoint_turn}: before {name}")
 
-            # Les outils MCP sont traités "à risque" par défaut en mode sûr — un
-            # serveur MCP peut faire tout ce qu'un outil local peut faire, il ne
-            # doit pas contourner la porte d'approbation existante.
+            # MCP tools are treated as risky by default in safe mode — an MCP
+            # server can do anything a local tool can do, so it must not
+            # bypass the existing approval gate.
             is_risky = name in _RISKY_TOOLS or name in MCP_TOOL_MAP
             if SAFE_MODE and is_risky and not _confirm_risky_call(name, args):
                 console.print(f"[dim]{t('safe_mode_denied_console')}[/dim]")
@@ -4401,12 +4397,12 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             blocked = str(result).startswith("⛔")
             _audit(name, args, blocked=blocked, reason=str(result)[:100] if blocked else "")
 
-            # Résultats bruts du tour (pour _grounding_check post-réponse) — MCP inclus,
-            # les résultats bloqués/⛔ n'apportent aucun fait donc on les garde tels quels
-            # (ils ne contiendront simplement aucun jeton dur à étayer).
+            # This turn's raw results (for the post-answer _grounding_check) — MCP included;
+            # blocked/⛔ results carry no facts, so we keep them as-is
+            # (they simply won't contain any hard token to support).
             turn_tool_results.append(str(result))
 
-            # Suivi self-correction : une édition réussie arme la vérification,
+            # Self-correction tracking: a successful edit arms the verification,
             # un lint/test l'éteint.
             if name in _EDIT_TOOLS and str(result).startswith(_EDIT_SUCCESS_PREFIX.get(name, "\0")):
                 edited_since_verify = True
@@ -4423,25 +4419,25 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     _audit("STUCK_SEARCH_NUDGE", {"round": rounds, "signature": sig, "nudge": stuck_search_nudges_used})
                 last_failure_signature = sig
 
-            # Coupe-circuit recherches infructueuses : évite qu'un modèle enchaîne
-            # 10+ search_web sans résultat exploitable jusqu'à épuiser le contexte.
+            # Circuit breaker for fruitless searches: stops a model from chaining
+            # 10+ search_web calls with no usable result until the context is exhausted.
             if name == "search_web":
                 if any(marker in str(result) for marker in _THIN_SEARCH_MARKERS):
                     consecutive_thin_searches += 1
                 else:
                     consecutive_thin_searches = 0
 
-            # Coupe-circuit recherches profondes qui ne convergent jamais : contrairement
-            # au coupe-circuit ci-dessus, se déclenche même si chaque résultat est réel —
-            # search_web_deep est coûteux (fetch complet de pages), et une longue chaîne
-            # de requêtes de plus en plus étroites sur un sous-sujet auto-affiné peut
-            # épuiser tout le budget de temps sans jamais produire de réponse finale.
+            # Circuit breaker for deep searches that never converge: unlike
+            # the breaker above, this fires even when every result is real —
+            # search_web_deep is expensive (a full page fetch), and a long chain
+            # of ever-narrower queries on a self-refining sub-topic can
+            # burn the whole time budget without ever producing a final answer.
             if name == "search_web_deep":
                 deep_search_count += 1
 
-            # Arme le rappel de citation : une recherche/lecture qui a réellement
-            # renvoyé du contenu (préfixe [WARNING: commun aux 4 outils en cas de
-            # succès) veut dire qu'il existe des URLs à citer dans la réponse finale.
+            # Arms the citation reminder: a search/read that actually
+            # returned content (the [WARNING: prefix is common to all 4 tools on
+            # success) means there are URLs to cite in the final answer.
             if name in _CITATION_ARMING_TOOLS and str(result).startswith("[WARNING:"):
                 searched_since_cite = True
 
@@ -4470,10 +4466,10 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             _audit("DEEP_SEARCH_STOP_NUDGE", {"round": rounds, "count": deep_search_count})
             messages.append({"role": "user", "content": t("deep_search_stop_nudge")})
 
-        # B4 : phase architecte — si le modèle s'entête à appeler des outils d'écriture/
-        # exécution (tous refusés en lecture seule), il peut brûler tout son budget de tours
-        # sans jamais produire de plan (observé en test live avec un petit modèle architecte,
-        # qwen3.5:4b). Après quelques refus, on le pousse une fois à écrire le plan en texte.
+        # B4: architect phase — if the model insists on calling write/execute tools
+        # (all refused in read-only mode), it can burn its entire round budget
+        # without ever producing a plan (observed in live testing with a small architect model,
+        # qwen3.5:4b). After a few refusals, push it once to write the plan as prose.
         if (allowed_tools is not None and readonly_refusals >= config.MAX_READONLY_REFUSALS
                 and not readonly_nudged):
             readonly_nudged = True
@@ -4692,8 +4688,8 @@ def cmd_diff() -> str:
 
 
 def cmd_undo_legacy() -> str:
-    """Ancien /undo tout-ou-rien en mémoire — utilisé seulement si git est indisponible
-    (pas de dépôt checkpoint shadow possible)."""
+    """The old all-or-nothing in-memory /undo — used only when git is unavailable
+    (no shadow checkpoint repository possible)."""
     if not _snapshots:
         return t("undo_none")
     restored = []
@@ -4740,8 +4736,8 @@ def cmd_undo_restore(which: str) -> str:
     if not _restore_checkpoint(ck["sha"]):
         return t("undo_ckpt_failed")
     _audit("UNDO_CHECKPOINT", {"sha": ck["sha"][:10], "label": ck["label"]})
-    del _CHECKPOINTS[idx:]  # tout ce qui est ≥ ce point n'est plus atteignable
-    _snapshots.clear()      # le /diff de session repart de zéro après un rollback
+    del _CHECKPOINTS[idx:]  # anything at or beyond this point is no longer reachable
+    _snapshots.clear()      # the session /diff starts over after a rollback
     return t("undo_ckpt_restored", label=ck["label"], ts=ck["ts"])
 
 
@@ -4792,7 +4788,7 @@ def _list_sessions() -> list[dict]:
             "preview": (first_user or "").strip().replace("\n", " ")[:60],
             "_mtime": mtime,
         })
-    out.sort(key=lambda s: s["_mtime"], reverse=True)   # mtime = résolution sous-seconde, plus fiable que le champ texte
+    out.sort(key=lambda s: s["_mtime"], reverse=True)   # mtime = sub-second resolution, more reliable than the text field
     return out
 
 
@@ -4866,9 +4862,9 @@ def make_system_prompt(project_root: Path) -> str:
 
 
 # ── /parameters : menu interactif de réglages ────────────────────────────────
-# Chaque entrée référence une variable globale par son nom (str) — la valeur
-# vive est toujours lue/écrite via getattr/setattr sur `config`, donc aucune dépendance d'ordre
-# de déclaration n'est nécessaire ici.
+# Each entry references a global variable by name (str) — the live
+# value is always read/written via getattr/setattr on `config`, so no declaration-order
+# dependency is needed here.
 
 _PARAM_SCHEMA = [
     ("Model Generation", [
@@ -5045,7 +5041,7 @@ def _param_adjust(p: dict, direction: int) -> None:
 
 
 def _flatten_schema():
-    """Retourne une liste plate de lignes : ('header', text) ou ('param', dict)."""
+    """Return a flat list of rows: ('header', text) or ('param', dict)."""
     rows = []
     for section, params in _PARAM_SCHEMA:
         rows.append(("header", section))
@@ -5055,25 +5051,25 @@ def _flatten_schema():
 
 
 def _all_params() -> list:
-    """Tous les dicts de paramètres (sans les en-têtes de section)."""
+    """All the parameter dicts (without the section headers)."""
     return [p for kind, p in _flatten_schema() if kind == "param"]
 
 
 def _save_params() -> None:
-    """Sauvegarde la valeur courante de chaque paramètre /parameters dans
-    PARAMS_FILE (niveau utilisateur, pas par projet — ce sont des réglages de
-    goût/matériel, pas des réglages de projet)."""
+    """Save the current value of every /parameters setting to PARAMS_FILE
+    (user level, not per project — these are taste/hardware settings, not
+    project settings)."""
     try:
         data = {p["var"]: getattr(config, p["var"]) for p in _all_params()}
         config.PARAMS_FILE.write_text(json.dumps(data, indent=2))
     except Exception:
-        pass  # non bloquant : un échec de sauvegarde ne doit jamais casser la session
+        pass  # non-blocking: a failed save must never break the session
 
 
 def _load_params() -> None:
-    """Recharge les valeurs sauvegardées au démarrage. Ignore silencieusement
-    les clés inconnues/obsolètes (ex: un paramètre renommé/supprimé depuis) au
-    lieu de planter sur un vieux fichier."""
+    """Reload the saved values at startup. Silently ignores unknown/obsolete keys
+    (e.g. a setting renamed or removed since) instead of crashing on an old
+    file."""
     if not config.PARAMS_FILE.exists():
         return
     try:
@@ -5127,7 +5123,7 @@ def _parameters_curses_main(stdscr):
                     stdscr.addstr(y, 2, line)
                 y += 1
 
-        # bandeau d'aide en bas, pour le paramètre sélectionné
+        # help bar at the bottom, for the selected parameter
         _, sel_param = rows[cur_row_idx]
         help_text = sel_param["help"]
         default = sel_param["default"]
@@ -5186,16 +5182,16 @@ def main():
 
     _load_params()  # réglages /parameters sauvegardés d'une session précédente
     _mc = _load_models_config()
-    config.PLUMBING_FAILOVER_MODEL = _mc.get("failover", "")  # A7 : modèle de secours persisté
+    config.PLUMBING_FAILOVER_MODEL = _mc.get("failover", "")  # A7: persisted backup model
     config.ARCHITECT_MODEL = _mc.get("architect", "")          # B4
     config.EDITOR_MODEL = _mc.get("editor", "")                # B4
     config.EMBED_MODEL = _mc.get("embed", config.EMBED_MODEL)         # B5 : modèle d'embedding (surchargeable)
     config.VISION_MODEL = _mc.get("vision", "")                # B6 : modèle vision (vide = auto-détection)
     try:
-        config.SKILLS_GLOBAL_DIR.mkdir(parents=True, exist_ok=True)  # emplacement des skills globaux (vide au début)
+        config.SKILLS_GLOBAL_DIR.mkdir(parents=True, exist_ok=True)  # location of the global skills (empty at first)
     except Exception:
         pass
-    _init_mcp()      # connecte les serveurs MCP configurés (silencieux si absent/non installé)
+    _init_mcp()      # connects the configured MCP servers (silent if absent/not installed)
 
     global console, PRIVATE_MODE
     argv = sys.argv[1:]
@@ -5203,7 +5199,7 @@ def main():
     SANDBOX_MODE = "--sandbox" in argv
     PRIVATE_MODE = "--private" in argv or "--incognito" in argv
 
-    # B9 : mode headless. --run "prompt" (une invite) / --recipe fichier.md (étapes).
+    # B9: headless mode. --run "prompt" (one prompt) / --recipe file.md (steps).
     run_prompt = None
     recipe_file = None
     cleaned: list[str] = []
@@ -5220,7 +5216,7 @@ def main():
     argv = cleaned
     headless = run_prompt is not None or recipe_file is not None
     if headless:
-        # stdout ne porte que la/les réponse(s) finale(s) ; bannière/panneaux → stderr.
+        # stdout carries only the final answer(s); banner/panels -> stderr.
         console = Console(file=sys.stderr)
         config.STREAM_FINAL = "off"
 
@@ -5235,15 +5231,15 @@ def main():
     os.chdir(project_root)
     PROJECT_ROOT = project_root
 
-    # Dossier .agentic/ pour audit log et snapshots persistants
+    # .agentic/ folder for the audit log and persistent snapshots
     agent_dir    = project_root / ".agentic"
     agent_dir.mkdir(exist_ok=True)
     global _SESSION_DIR, _SESSION_FILE, _SEMANTIC_DB, _CHECKPOINT_GITDIR
     if PRIVATE_MODE:
-        # Session éphémère : on ne branche AUCUNE trace de conversation sur disque.
+        # Ephemeral session: we wire up NO conversation trace on disk.
         # _AUDIT_LOG/_SNAPSHOT_DIR/_SESSION_FILE restent None → _audit/_auto_snapshot/
-        # _save_session sont des no-op. Checkpoints git désactivés (/undo → repli RAM).
-        # bg_logs dans un dossier temporaire effacé à la sortie.
+        # _save_session are no-ops. Git checkpoints disabled (/undo -> RAM fallback).
+        # bg_logs in a temporary folder deleted on exit.
         _AUDIT_LOG = None
         _SNAPSHOT_DIR = None
         _SESSION_DIR = None
@@ -5256,15 +5252,15 @@ def main():
         _SNAPSHOT_DIR.mkdir(exist_ok=True)
         _BG_LOG_DIR  = agent_dir / "bg_logs"
         _BG_LOG_DIR.mkdir(exist_ok=True)
-        _init_checkpoints()   # B1 : dépôt git shadow pour les checkpoints /undo (silencieux si git absent)
+        _init_checkpoints()   # B1: shadow git repository for /undo checkpoints (silent if git is absent)
         _SESSION_DIR = agent_dir / "sessions"   # B3 : persistance de session + /resume
         _SESSION_DIR.mkdir(exist_ok=True)
         _SESSION_FILE = _SESSION_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    _SEMANTIC_DB = agent_dir / "semantic_index.db"   # B5 : index RAG local (lecture ; ré-index seulement si search_semantic est utilisé)
-    _memory = _load_memory()   # lecture de la mémoire existante (contexte) ; en privé, _save_memory est bloqué
+    _SEMANTIC_DB = agent_dir / "semantic_index.db"   # B5: local RAG index (read; re-indexed only if search_semantic is used)
+    _memory = _load_memory()   # read existing memory (context); in private mode _save_memory is blocked
 
-    # Session privée : les lignes saisies ne doivent PAS aller dans ~/.agentic_1a_history.
-    # On recrée la session prompt_toolkit avec un historique en mémoire (effacé à la sortie).
+    # Private session: typed lines must NOT go into ~/.agentic_1a_history.
+    # We recreate the prompt_toolkit session with an in-memory history (cleared on exit).
     global _prompt_session
     if PRIVATE_MODE and _PROMPT_TOOLKIT_AVAILABLE and _prompt_session is not None:
         try:
@@ -5279,9 +5275,9 @@ def main():
         sys.exit(1)
 
     if _prompt_session is None and not PRIVATE_MODE:
-        # Repli input()/readline uniquement — prompt_toolkit gère sa propre
-        # persistance d'historique via FileHistory, les deux ne doivent pas
-        # écrire dans le même fichier avec des formats différents.
+        # input()/readline fallback only — prompt_toolkit handles its own
+        # history persistence via FileHistory, so the two must not
+        # write to the same file in different formats.
         readline.set_history_length(500)
         try:
             readline.read_history_file(config.HISTORY_FILE)
@@ -5313,10 +5309,10 @@ def main():
     system_prompt = make_system_prompt(project_root)
     messages = [{"role": "system", "content": system_prompt}]
 
-    # Log de début de session
+    # Session-start log entry
     _audit("SESSION_START", {"project": str(project_root), "model": model})
 
-    # ── B9 : exécution headless (une invite ou une recette), puis sortie ──
+    # ── B9: headless execution (one prompt or a recipe), then exit ──
     if headless:
         if recipe_file is not None:
             try:
@@ -5338,7 +5334,7 @@ def main():
                 all_ok = False
                 break
             messages.append({"role": "assistant", "content": final})
-            print(final)            # → stdout (la seule chose sur stdout)
+            print(final)            # -> stdout (the only thing on stdout)
             if _looks_like_failure(final):
                 all_ok = False
         _save_session(messages, model)
@@ -5352,12 +5348,12 @@ def main():
         try:
             user_input = _prompt(t("prompt_user")).strip()
         except KeyboardInterrupt:
-            # Ctrl+C à l'invite : annule la ligne en cours, ne quitte PAS (cohérent avec
-            # Ctrl+C = "arrêter" pendant la génération, et évite les sorties accidentelles).
+            # Ctrl+C at the prompt: cancels the current line, does NOT quit (consistent with
+            # Ctrl+C = "stop" during generation, and it avoids accidental exits).
             console.print(f"[dim]{t('ctrl_c_at_prompt')}[/dim]")
             continue
         except EOFError:
-            # Ctrl+D (ou fin de flux) : sortie volontaire.
+            # Ctrl+D (or end of stream): a deliberate exit.
             console.print(f"\n[dim]{t('session_ended')}[/dim]")
             break
 
@@ -5484,7 +5480,7 @@ def main():
             style = "bold yellow" if SANDBOX_MODE else "dim"
             console.print(f"[{style}]{t('sandbox_mode_on' if SANDBOX_MODE else 'sandbox_mode_off')}[/{style}]\n")
             if not SANDBOX_MODE:
-                _cleanup_sandbox()  # pas besoin de garder le conteneur tourner une fois désactivé
+                _cleanup_sandbox()  # no need to keep the container running once disabled
             continue
 
         if user_input in ("/parameters", "/params"):
@@ -5577,7 +5573,7 @@ def main():
             console.print(Markdown(final))
             console.print(Rule(style="dim"))
             console.print()
-            # Historique principal : la tâche + un résumé plan/résultat (sans le spam d'outils)
+            # Main history: the task + a plan/result summary (without the tool spam)
             messages.append({"role": "user", "content": f"/architect {task}"})
             messages.append({"role": "assistant", "content": f"**Plan (architect)**\n\n{plan}\n\n**Result (editor)**\n\n{final}"})
             _save_session(messages, model)
@@ -5738,7 +5734,7 @@ def main():
             if critique is None:
                 console.print(f"[yellow]{t('review_by_no_diff')}[/yellow]\n")
                 continue
-            # Le modèle principal répond à la critique (peut corriger les vrais problèmes).
+            # The main model answers the critique (and can fix the real problems).
             if config.LANG == "fr":
                 followup = (f"Un second modèle ({reviewer}) a relu tes changements de cette session. "
                             f"Voici sa critique :\n\n{critique}\n\nEs-tu d'accord ? Corrige les vrais "
@@ -5810,16 +5806,16 @@ def main():
         console.print()
 
         messages.append({"role": "assistant", "content": final})
-        _maybe_compact(messages, model)  # compaction auto si activée et contexte au-dessus du seuil
-        _save_session(messages, model)   # B3 : persistance après chaque tour (crash-safe)
+        _maybe_compact(messages, model)  # auto-compaction if enabled and the context is above the threshold
+        _save_session(messages, model)   # B3: persist after each turn (crash-safe)
 
-    _save_session(messages, model)       # B3 : sauvegarde finale à la sortie (no-op en privé)
+    _save_session(messages, model)       # B3: final save on exit (no-op in private mode)
     _cleanup_background_processes(verbose=True)
     _cleanup_sandbox()
     _audit("SESSION_END", {})
     if PRIVATE_MODE:
-        # Session privée : efface le dossier temporaire de logs bg (le reste n'a jamais
-        # été écrit). Rien de la conversation ne subsiste sur disque.
+        # Private session: delete the temporary bg-log folder (nothing else was ever
+        # written). Nothing from the conversation survives on disk.
         try:
             if _BG_LOG_DIR and str(_BG_LOG_DIR).startswith(tempfile.gettempdir()):
                 shutil.rmtree(_BG_LOG_DIR, ignore_errors=True)
