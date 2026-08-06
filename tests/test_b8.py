@@ -1,6 +1,6 @@
 import os, tempfile, pathlib, types
 import agent
-from agentic import config, state
+from agentic import config, models, state
 config.STREAM_FINAL = "off"
 agent.get_num_ctx = lambda m: 4096
 agent.ollama_runner_rss_gb = lambda: None
@@ -19,7 +19,7 @@ assert "diff" in agent.cmd_diff().lower() or "```diff" in agent.cmd_diff()
 
 # 3. reviewer critique + sequential unload
 unloaded = []
-agent._unload_model = lambda m: unloaded.append(m)
+models._unload_model = lambda m: unloaded.append(m)
 def fake_chat(**kw):
     assert kw["model"] == "reviewer:m"
     return types.SimpleNamespace(message=types.SimpleNamespace(

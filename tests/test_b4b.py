@@ -1,6 +1,6 @@
 import os, tempfile, pathlib
 import agent
-from agentic import config, state
+from agentic import config, models, state
 config.STREAM_FINAL = "off"
 config.MAX_VERIFY_NUDGES = 0
 agent.get_num_ctx = lambda m: 4096
@@ -9,7 +9,7 @@ agent.ollama_runner_rss_gb = lambda: None
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 state._AUDIT_LOG = d / "audit.log"
 state._CHECKPOINT_GITDIR = None
-agent._unload_model = lambda m: None
+models._unload_model = lambda m: None
 config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "ed:m"
 
 class F:

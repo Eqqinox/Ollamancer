@@ -112,6 +112,13 @@ COMPACT_THRESHOLD_PCT     = 70      # % of num_ctx reached before compacting (tr
 COMPACT_KEEP_TURNS        = 3       # number of recent user turns kept verbatim (the rest is summarised)
 COMPACT_TOOL_TRUNC        = 800     # characters: older tool results longer than this are truncated (lossless cleanup first)
 
+# ── Project scanning ─────────────────────────────────────────────────────────
+# Which files count as "source", and which directories to skip when walking a project.
+# Shared by three tool modules (files, codenav, rag), so they live here rather than in any
+# one of them — config imports nothing, so this can never create a cycle.
+_REF_SOURCE_EXTS  = {".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".rb", ".php", ".swift", ".kt"}
+_REF_EXCLUDE_DIRS = {".git", ".venv", "node_modules", "__pycache__", ".next", "dist", "build", ".cache"}
+
 # ── Local RAG (search_semantic) ──────────────────────────────────────────────
 SEMANTIC_CHUNK_LINES = 60      # B5: size of the indexed chunks (lines)
 SEMANTIC_TOP_K = 5             # B5: number of nearest chunks returned

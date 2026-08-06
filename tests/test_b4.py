@@ -1,6 +1,6 @@
 import os, tempfile, pathlib
 import agent
-from agentic import config, state
+from agentic import config, models, state
 config.STREAM_FINAL = "off"
 config.MAX_VERIFY_NUDGES = 0
 agent.get_num_ctx = lambda m: 4096
@@ -26,7 +26,7 @@ config.ARCHITECT_MODEL = "arch:m"; config.EDITOR_MODEL = "editor:m"
 
 # 3. record unload order (sequential loading guarantee)
 unloaded = []
-agent._unload_model = lambda m: unloaded.append(m)
+models._unload_model = lambda m: unloaded.append(m)
 
 class F:
     def __init__(s,n,a): s.name=n; s.arguments=a

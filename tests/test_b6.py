@@ -1,6 +1,6 @@
 import os, tempfile, pathlib, types
 import agent
-from agentic import config, state
+from agentic import config, models, state
 
 d = pathlib.Path(tempfile.mkdtemp()); os.chdir(d); state.PROJECT_ROOT = d.resolve()
 state._AUDIT_LOG = d / "audit.log"
@@ -46,7 +46,7 @@ assert agent._detect_vision_model() == "llama3-vl:8b"   # name-hint fallback pic
 config.VISION_MODEL = "vis:model"
 state._CURRENT_MODEL = "main:model"
 unloaded = []
-agent._unload_model = lambda m: unloaded.append(m)
+models._unload_model = lambda m: unloaded.append(m)
 captured = {}
 def fake_chat(**kw):
     captured.update(kw)
