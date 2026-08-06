@@ -133,7 +133,12 @@ def test_no_globals_mutation_of_live_values():
 
 
 def test_no_local_shadows_a_live_module():
-    """No function may bind a local named `config` or `state`.
+    """No file may bind a name it also imported as an agentic module.
+
+    The target set is derived per file from its own imports rather than hardcoded: three
+    separate times a module name was shadowed by an ordinary local (`config` in _init_mcp,
+    `state` in test_a7, `skills` in test_skills), and a fixed list kept lagging behind the
+    split. Whatever a file imports as a module, it must not rebind.
 
     Python decides scope per function: a single `config = ...` anywhere in a function makes
     every `config.X` in that function a local reference, so the *module* becomes unreachable
@@ -141,6 +146,19 @@ def test_no_local_shadows_a_live_module():
     used `config` as the name of the parsed MCP JSON — and no behavioural test covered MCP
     startup, so the suite stayed green while the agent could not start with MCP configured.
     """
+    def _module_names_bound_in(tree):
+        """Names this file binds to an agentic module, e.g. `from agentic import skills`."""
+        names = set(SHADOW_MODULES)
+        for n in ast.walk(tree):
+            if isinstance(n, ast.ImportFrom) and (n.module or "").startswith("agentic") \
+                    and (n.module or "") == "agentic":
+                names |= {a.asname or a.name for a in n.names}
+            elif isinstance(n, ast.Import):
+                for a in n.names:
+                    if a.name.startswith("agentic."):
+                        names.add(a.asname or a.name.split(".")[-1])
+        return names
+
     targets = set(SHADOW_MODULES)
     # tests count too: test_a7 shadowed `state` with its own counter dict and failed the
     # same way _init_mcp did, so the scan covers every file that imports the live modules.
@@ -154,6 +172,7 @@ def test_no_local_shadows_a_live_module():
         if not py.exists():
             continue
         tree = ast.parse(py.read_text(), filename=str(py))
+        targets = _module_names_bound_in(tree)   # per-file: whatever this file actually imports
         # module level: a top-level `state = ...` clobbers the imported module outright
         for n in tree.body:
             tgts = n.targets if isinstance(n, ast.Assign) else (

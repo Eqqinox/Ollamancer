@@ -1,22 +1,22 @@
 import os, tempfile, pathlib
 import agent
-from agentic import state
+from agentic import state, skills
 state._AUDIT_LOG = pathlib.Path(tempfile.mktemp())
 
 # 1. frontmatter parsing (dependency-free)
-meta, body = agent._parse_skill_frontmatter(
+meta, body = skills._parse_skill_frontmatter(
     "---\nname: my-skill\ndescription: Do a thing. Use when asked.\nlicense: MIT\n---\n\n# Title\nbody here")
 assert meta["name"] == "my-skill", meta
 assert meta["description"] == "Do a thing. Use when asked.", meta
 assert body.strip().startswith("# Title"), body
 # no frontmatter → whole text is body, empty meta
-m2, b2 = agent._parse_skill_frontmatter("# Just markdown\nno front")
+m2, b2 = skills._parse_skill_frontmatter("# Just markdown\nno front")
 assert m2 == {} and b2.startswith("# Just markdown")
 
 # 2. discovery finds the shipped example skill (bundled in <repo>/skills/)
-skills = agent._discover_skills()
-assert "commit-message" in skills, list(skills)
-assert "commit" in skills["commit-message"]["description"].lower()
+found = skills._discover_skills()
+assert "commit-message" in found, list(found)
+assert "commit" in found["commit-message"]["description"].lower()
 
 # 3. a project-level skill is discovered and OVERRIDES a same-named one (specificity wins)
 proj = pathlib.Path(tempfile.mkdtemp()); state.PROJECT_ROOT = proj
@@ -27,12 +27,12 @@ sk.mkdir(parents=True)
 sk2 = proj / ".agentic" / "skills" / "commit-message"
 sk2.mkdir(parents=True)
 (sk2 / "SKILL.md").write_text("---\nname: commit-message\ndescription: PROJECT-SPECIFIC commit rules.\n---\n\n# Custom\nuse ticket ids\n")
-skills = agent._discover_skills()
-assert "deploy" in skills
-assert skills["commit-message"]["description"] == "PROJECT-SPECIFIC commit rules.", "project skill should override bundled"
+found = skills._discover_skills()
+assert "deploy" in found
+assert found["commit-message"]["description"] == "PROJECT-SPECIFIC commit rules.", "project skill should override bundled"
 
 # 4. Tier-1 system-prompt block lists names + descriptions (cheap discovery)
-block = agent._skills_prompt_block()
+block = skills._skills_prompt_block()
 assert "deploy: Deploy the app safely." in block
 assert "load_skill" in block   # tells the model how to activate
 
