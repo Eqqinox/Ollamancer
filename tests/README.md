@@ -1,6 +1,9 @@
 # Tests
 
-Deterministic tests for the agent — one file per feature/fix. They use only monkeypatched
+Deterministic tests for the agent — one file per feature/fix. They import from the
+`agentic/` package; anything that is monkeypatched must be patched on the module that *owns*
+it, since a name imported elsewhere is a separate binding.
+ They use only monkeypatched
 `ollama.chat` (or direct function calls) plus `tempfile` working dirs, so they run offline with
 **no Ollama, no network, and no writes to your real config**.
 
@@ -19,7 +22,7 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root → "tests: 22 passed, 0 failed"
+bash tests/run_all.sh          # from the project root → "tests: 24 passed, 0 failed"
 ```
 
 Or a single test:
@@ -28,7 +31,7 @@ Or a single test:
 PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 ```
 
-## Coverage (22 files)
+## Coverage (24 files)
 
 | File | Feature under test |
 |---|---|
@@ -54,6 +57,8 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_ctrlc` | Ctrl+C at prompt cancels (doesn't quit) |
 | `test_private` | `--private` writes nothing to disk |
 | `test_skills` | skills discovery / `load_skill` |
+| `test_structure` | golden master: tool registry, slash commands, EN/FR parity, params schema |
+| `test_import_rules` | live-module import rules, no globals() across modules, no shadowing, no undefined names |
 
 ## Structural guardrails
 

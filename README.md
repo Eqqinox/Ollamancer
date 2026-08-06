@@ -135,11 +135,11 @@ exactly what's stored, where, and how to delete it.
 
 ## Tests
 
-The agent ships with 22 deterministic tests that run **fully offline** — no Ollama, no
-network, and no writes to your real config:
+The agent ships with 24 deterministic tests that run **fully offline** — no Ollama, no
+network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
-bash tests/run_all.sh          # → "tests: 22 passed, 0 failed"
+bash tests/run_all.sh          # → "tests: 24 passed, 0 failed"
 ```
 
 See [`tests/README.md`](./tests/README.md) for what each one covers.
@@ -149,7 +149,7 @@ See [`tests/README.md`](./tests/README.md) for what each one covers.
 ## How it compares (honest)
 
 - **Aider** — better at disciplined git-native multi-file editing (tree-sitter repo-map). Agentic_1A doesn't have a repo-map (yet).
-- **OpenCode** — far more popular, provider-neutral (many cloud + local). Agentic_1A is Ollama-only and local-first by design.
+- **OpenCode** — far more popular, and provider-neutral across many cloud and local backends. Agentic_1A declines that neutrality on purpose: Ollama-only means no API keys and nothing leaving your machine.
 - **Agentic_1A's niche** — the deterministic honesty layers, small-model reliability work, privacy mode, local RAG, and skills-beyond-MCP, in one transparent, from-scratch tool.
 
 ---
@@ -169,12 +169,26 @@ All documentation is in English. The **agent's interface is bilingual EN/FR** (`
 ## Project layout
 
 ```
-agent.py            # the whole agent (ReAct loop, tools, UI)
-launch.sh           # venv setup + launcher
-skills/             # bundled SKILL.md workflows (14)
-benchmarks/         # model-reliability fixtures + playthrough harness
-tests/              # deterministic offline test suite (22 tests)
-imessage_bridge.py  # optional: drive it from iPhone via iMessage (macOS)
+agent.py              # entry point + compatibility facade (45 lines)
+agentic/              # the implementation
+  config.py           #   persisted settings (the 30 /parameters values)
+  state.py            #   per-session runtime state + reset()
+  i18n.py             #   bilingual EN/FR strings and the system prompt
+  ui.py               #   console, prompt, autocomplete, /parameters menu
+  safety.py           #   blocklists, path confinement, safe mode, sandbox, audit
+  checkpoints.py      #   the shadow-git repo behind /undo
+  models.py           #   model discovery, context negotiation, /model picker
+  mcp_client.py       #   MCP servers + the sync-to-async bridge
+  skills.py           #   SKILL.md discovery, progressive disclosure
+  tools/              #   the 34 tools, one module per domain
+  loop.py             #   the ReAct loop, retries, honesty nudges, compaction
+  commands.py         #   slash commands, architect/review, sessions
+  cli.py              #   flags and the interactive/headless entry point
+launch.sh             # venv setup + launcher
+skills/               # bundled SKILL.md workflows (14)
+benchmarks/           # model-reliability fixtures + playthrough harness
+tests/                # deterministic offline test suite (24 tests)
+imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)
 ```
 
 ---
@@ -184,9 +198,12 @@ imessage_bridge.py  # optional: drive it from iPhone via iMessage (macOS)
 A mature **personal project**, open-sourced primarily as a transparent, local-first,
 honesty-focused alternative — not a bid to out-feature the incumbents.
 
-**Scope, stated up front:** it's currently a single-file agent (readable, but a real barrier
-to large PRs). Modularization, a CI test suite, cross-platform support (Linux first),
-OpenAI-compatible endpoints, and a tree-sitter repo-map are the roadmap, in that order.
+**Scope, stated up front:** packaging (`pip install`), a CI test suite, cross-platform
+support (Linux first), and a tree-sitter repo-map are the roadmap, in that order.
+
+**Ollama-only is permanent.** It is not a missing integration — it is the guarantee the
+project exists for. Adding a remote endpoint would mean API keys and data leaving your
+machine, which is precisely what this tool refuses to do.
 
 **Issues and small PRs are welcome.** Large feature PRs are likely to be declined — not
 because they aren't good, but because this is maintained by one person and unbounded scope is

@@ -26,7 +26,7 @@ models, and privacy.**
 
 - **Local and private first.** Everything runs offline via Ollama. A `--private` mode makes a
   session fully ephemeral (nothing written to disk).
-- **From scratch, no framework.** ~5,400 lines of readable Python you can audit end-to-end.
+- **From scratch, no framework.** ~6,700 lines of readable Python across fourteen focused modules, auditable end-to-end.
   The decision was validated repeatedly: many fixes required line-level control a framework
   would have hidden.
 - **Nudge, never gate.** The agent warns and re-prompts the model; it never silently rewrites

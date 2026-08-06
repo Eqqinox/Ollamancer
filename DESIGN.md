@@ -30,8 +30,9 @@ That decision was re-validated repeatedly. A large share of the fixes documented
 retry branches keyed on specific upstream error strings, a nudge injected between a model's
 final answer and the user, sequential model loading to fit 24 GB — required line-level control
 over the request/response loop that a framework abstraction would have hidden. The cost is
-real (it is a single large file, which is why modularization is on the roadmap), but the
-tradeoff has paid for itself.
+real, but the tradeoff has paid for itself. The code is now split into fourteen modules
+under `agentic/`, which cost nothing in control: the boundaries follow the layering that was
+already implicit — settings, session state, interface strings, safety rails, tools, the loop.
 
 ---
 
@@ -343,9 +344,11 @@ Cursor and Codex.
 - **Semantic citation verification is out of scope.** `_grounding_check` verifies that cited tokens *appear* in a tool result. Whether a claim faithfully reflects its source is not checked; `/review-by` is the partial mitigation.
 - **MCP `taskSupport` capability negotiation is not implemented.** Tools requiring it fail cleanly rather than crashing.
 - **macOS-centric.** `termios`, `ollama stop`, and several paths assume Unix/macOS.
-- **Ollama-only.** No OpenAI-compatible endpoint support yet.
+- **Ollama-only — by design, permanently.** This is the one entry here that is not a gap. The
+  project exists so that everything stays on your machine: no API keys, no data leaving the
+  computer. A remote endpoint would break that guarantee rather than extend the tool.
 - **No tree-sitter repo-map**, which remains Aider's clearest advantage for code editing.
-- **A single large `agent.py`** — readable, but a genuine barrier to contribution.
+- **No packaging yet** — `launch.sh` and a venv rather than `pip install`.
 
 The last four are the active roadmap.
 
