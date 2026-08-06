@@ -1,8 +1,15 @@
 # Tests
 
-Deterministic tests for `agent.py` — one file per feature/fix. They use only monkeypatched
+Deterministic tests for the agent — one file per feature/fix. They use only monkeypatched
 `ollama.chat` (or direct function calls) plus `tempfile` working dirs, so they run offline with
 **no Ollama, no network, and no writes to your real config**.
+
+> That last claim is now enforced, not just asserted. `run_all.sh` checksums every
+> `~/.agentic_1a_*` file before and after the run and fails if any changed. This was added
+> after `test_structure`'s `/parameters` round-trip silently rewrote the live
+> `~/.agentic_1a_params.json` — bumping all 30 settings one step, including
+> `GEN_NUM_PREDICT` from `-1` (unlimited) to `127`, which truncates every model answer. The
+> suite stayed green the whole time.
 
 ## How to run (today)
 

@@ -16,6 +16,9 @@ the `agentic/` package:
 
 Runs offline: importing agent has no side effects that need Ollama or the network.
 """
+import pathlib
+import tempfile
+
 import agent
 from agentic import config, i18n
 
@@ -144,6 +147,13 @@ def test_params_are_live():
     with them, the menu keeps working and keeps saving while the running agent never sees the
     new value. Reading and writing through the schema is the only way to prove the link.
     """
+    # _param_adjust persists through _save_params(), which writes config.PARAMS_FILE — the
+    # REAL ~/.agentic_1a_params.json. Redirect it first: an earlier version of this test
+    # rewrote the user's live settings (every value bumped one step, including
+    # GEN_NUM_PREDICT -1 -> 127, which silently truncates every answer).
+    real_params_file = config.PARAMS_FILE
+    config.PARAMS_FILE = pathlib.Path(tempfile.mkdtemp()) / "params.json"
+
     saved = {}
     try:
         for p in agent._all_params():
@@ -167,6 +177,7 @@ def test_params_are_live():
     finally:
         for var, value in saved.items():
             setattr(config, var, value)
+        config.PARAMS_FILE = real_params_file
 
 
 def test_no_duplicate_tool_docstrings():
