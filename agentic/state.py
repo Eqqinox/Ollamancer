@@ -63,6 +63,9 @@ _CHECKPOINTS: list = []            # [{"sha": str, "ts": str, "turn": int, "labe
 _checkpoint_turn = 0               # incremented on every run_agent call (= one user turn)
 _checkpoint_made_this_turn = False
 
+_last_turn_tool_results: list = []   # raw tool output of the last completed turn — lets a
+                                    # caller check whether URLs in an answer were really seen
+
 # ── Model & context tracking ─────────────────────────────────────────────────
 _CURRENT_MODEL = ""                # the current loop's model, updated by run_agent
 _LAST_PROMPT_TOKENS = 0            # last real prompt_eval_count returned by Ollama (the
@@ -111,5 +114,6 @@ def reset() -> None:
     for container in (_snapshots, _context_files, _bg_processes,
                       _num_ctx_cache, _search_cache, _robots_cache):
         container.clear()
+    _last_turn_tool_results.clear()
     _CHECKPOINTS.clear()
     _repl_state.update({"proc": None, "mode": None})

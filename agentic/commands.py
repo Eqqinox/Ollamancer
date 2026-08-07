@@ -43,6 +43,30 @@ def _architect_models(current_model: str) -> tuple[str, str]:
     return (config.ARCHITECT_MODEL or current_model, config.EDITOR_MODEL or current_model)
 
 
+def _unseen_urls(plan: str, tool_results: list) -> list[str]:
+    """URLs cited in a plan that appear in none of the phase's raw tool results.
+
+    A planning model that invents a URL poisons everything downstream: the editor treats the
+    plan as approved and copies the citation into the file, so a fabricated source ends up
+    looking verified. Seen live — an architect model emitted three mangled variants of one
+    real AP article (a transposed hex character, a truncated one, and "https/" with no colon),
+    none of which it had ever fetched.
+
+    Substring match against the raw results, exactly like _grounding_check: no model call, no
+    semantics. Reported, never rewritten — the plan is the model's output and stays intact.
+    """
+    haystack = "\n".join(tool_results)
+    seen, out = set(), []
+    for url in re.findall(r"https?[:/][^\s\)\]\}>\"',]+", plan or ""):
+        url = url.rstrip(".,;")
+        if url in seen:
+            continue
+        seen.add(url)
+        if url not in haystack:
+            out.append(url)
+    return out
+
+
 def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, str]:
     """Two-model plan-then-execute pass. Model A (architect) plans with read-only tools;
     model B (editor) executes the plan with full tools. STRICTLY sequential loading — the
@@ -90,6 +114,20 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
     ui.console.print(Markdown(plan))
     ui.console.print(Rule(style="dim"))
 
+    # Citations in the plan that the architect never actually fetched. The editor treats the
+    # plan as approved, so an invented URL becomes a "verified" source in the output file
+    # unless it is called out here. Warn the user and tell the editor — never edit the plan.
+    unseen = _unseen_urls(plan, state._last_turn_tool_results)
+    if unseen:
+        safety._audit("ARCHITECT_UNSEEN_URLS", {"count": len(unseen), "urls": unseen[:8]})
+        ui.console.print(f"[yellow]{t('architect_unseen_urls', n=len(unseen))}[/yellow]")
+        for u in unseen[:8]:
+            ui.console.print(f"  [dim]· {u}[/dim]")
+        ui.console.print()
+        plan_for_editor = plan + "\n\n" + t("architect_unseen_urls_editor", urls="\n".join(unseen[:8]))
+    else:
+        plan_for_editor = plan
+
     # ── Phase 2: editor (all tools) — sequential loading ──
     if editor_model != architect_model:
         models._unload_model(architect_model)
@@ -99,14 +137,14 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
             "produit par l'architecte. Exécute-le étape par étape avec tous tes outils "
             "(write_file/append_file/edit_file/run_command...), en vérifiant au fur et à mesure. "
             "Si une étape est erronée ou impossible, adapte-toi mais reste proche du plan.\n\n"
-            f"Plan :\n{plan}\n\nTâche d'origine : {task}")
+            f"Plan :\n{plan_for_editor}\n\nTâche d'origine : {task}")
     else:
         editor_instr = (
             "EXECUTION PHASE — you are the EDITOR. Here is an approved implementation plan from "
             "the architect. Execute it step by step using your full tools "
             "(write_file/append_file/edit_file/run_command...), verifying as you go. If a step "
             "is wrong or impossible, adapt but stay close to the plan.\n\n"
-            f"Plan:\n{plan}\n\nOriginal task: {task}")
+            f"Plan:\n{plan_for_editor}\n\nOriginal task: {task}")
     ui.console.print(f"\n[bold green]{t('architect_executing', model=editor_model)}[/bold green]")
     editor_messages = list(messages) + [{"role": "user", "content": editor_instr}]
     result = loop.run_agent(editor_messages, editor_model)

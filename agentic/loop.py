@@ -709,6 +709,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
 
             # a real edit/verification this turn. Placed before _grounding_check.
             claim_kind = _claim_without_action(msg.content, had_successful_edit, had_verification)
+            # Never in a read-only phase. The architect (B4) is *forbidden* to write, so
+            # had_successful_edit can never become True there: the nudge would demand an action
+            # the model is structurally unable to take, and it fires on any plan that merely
+            # uses the word "fix". Seen live — it fired three times before a plan even existed,
+            # burning rounds on an impossible instruction.
+            if allowed_tools is not None:
+                claim_kind = None
             if claim_kind is not None and claim_action_nudges_used < config.MAX_CLAIM_ACTION_NUDGES:
                 claim_action_nudges_used += 1
                 ui.console.print(f"[dim]{t('auto_claim_action_note', n=claim_action_nudges_used, max=config.MAX_CLAIM_ACTION_NUDGES)}[/dim]")
@@ -728,6 +735,9 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     messages.append({"role": "assistant", "content": msg.content or ""})
                     messages.append({"role": "user", "content": t("grounding_check_nudge", values=shown)})
                     continue
+            # Keep this turn's raw tool results reachable: cmd_architect uses them to tell
+            # whether the URLs in a plan were actually seen, or invented.
+            state._last_turn_tool_results = list(turn_tool_results)
             return msg.content or ""
 
         messages.append({
