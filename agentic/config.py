@@ -68,7 +68,12 @@ GEN_TEMPERATURE     = 0.8
 GEN_TOP_P           = 0.9
 GEN_TOP_K           = 40
 GEN_REPEAT_PENALTY  = 1.1
-GEN_NUM_PREDICT     = -1     # -1 = no limit
+GEN_NUM_PREDICT     = 4096   # ceiling on one reply; -1 (unlimited) is selectable but not the
+                             # default: with no ceiling, a model that falls into a repetition
+                             # loop generates until the whole context is full. Measured on a
+                             # 9B Q4 at ~6 tok/s that is ~3 HOURS of apparent hang; 4096 caps
+                             # the worst case at ~11 min and is ~2.5x the longest real answer
+                             # observed (a multi-section sourced news roundup, ~1600 tokens).
 GEN_SEED            = -1     # -1 = random
 STREAM_FINAL              = "on"    # "on"/"off" — stream the final answer live (B2); "off" = the older buffered behaviour (fallback if a model regresses on tool-calling while streaming)
 

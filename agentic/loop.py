@@ -230,6 +230,35 @@ def _claim_without_action(answer: str, had_edit: bool, had_verification: bool) -
     return None
 
 
+_REPETITION_MIN_LINE = 25   # ignore bullets, rules and one-word lines
+_REPETITION_HITS     = 3    # the same substantial line this many times = degenerating
+
+
+def _looks_repetitive(text: str) -> bool:
+    """True when an answer has collapsed into repeating itself.
+
+    Small local models under nudge pressure fall into a loop — restating the same header or
+    the same "You're absolutely right, let me redo this" line over and over. Nudging a model
+    in that state makes it worse: each nudge triggers another full rewrite, and with an
+    unbounded generation length a single runaway can take hours.
+
+    Deliberately crude and deterministic: count substantial lines (long enough not to be a
+    bullet or a horizontal rule) that appear at least _REPETITION_HITS times. No model call,
+    no semantics — the same philosophy as the other checks in this module.
+    """
+    if not text:
+        return False
+    counts: dict[str, int] = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if len(line) < _REPETITION_MIN_LINE or set(line) <= set("-=_*# "):
+            continue
+        counts[line] = counts.get(line, 0) + 1
+        if counts[line] >= _REPETITION_HITS:
+            return True
+    return False
+
+
 # ── Mode headless / batch (B9) ───────────────────────────────────────────────────
 _FAILURE_PREFIXES = ("⚠️", "⛔")
 
@@ -669,6 +698,15 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 messages.append({"role": "user", "content": t("grounding_nudge")})
                 continue
             # Nudge affirmation-vs-action (A6, déterministe) : "corrigé"/"vérifié" sans
+            # Circuit breaker: if the answer has collapsed into repeating itself, stop
+            # nudging. Every nudge triggers another full rewrite, and a model already looping
+            # loops harder — this is the same class of guard as the thin-search and
+            # deep-search breakers, applied to writing instead of searching.
+            if _looks_repetitive(msg.content):
+                safety._audit("REPETITION_STOP", {"round": rounds, "chars": len(msg.content or "")})
+                ui.console.print(f"[dim]{t('repetition_stop_note')}[/dim]")
+                return msg.content or ""
+
             # a real edit/verification this turn. Placed before _grounding_check.
             claim_kind = _claim_without_action(msg.content, had_successful_edit, had_verification)
             if claim_kind is not None and claim_action_nudges_used < config.MAX_CLAIM_ACTION_NUDGES:

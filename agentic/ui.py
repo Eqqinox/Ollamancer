@@ -327,9 +327,11 @@ _PARAM_SCHEMA = [
          "help": "Penalizes tokens already used, to reduce repetition. 1.0 = no penalty. "
                  "Too high can make text feel unnatural or avoid necessary repeated words."},
         {"var": "GEN_NUM_PREDICT", "label": "Max Output Tokens", "kind": "int",
-         "min": -1, "max": 8192, "step": 128, "default": -1, "special_min_label": "unlimited",
+         "min": -1, "max": 8192, "step": 128, "default": 4096, "special_min_label": "unlimited",
          "help": "Maximum tokens the model can generate in one reply. "
-                 "-1 (unlimited) = stops naturally or when context runs out."},
+                 "-1 (unlimited) lets a model stuck in a repetition loop generate until the "
+                 "whole context is full — hours, not minutes. 4096 is roughly 2.5x the "
+                 "longest real answer seen and caps a runaway at a few minutes."},
         {"var": "GEN_SEED", "label": "Seed", "kind": "int",
          "min": -1, "max": 999999, "step": 1, "default": -1, "special_min_label": "random",
          "help": "Fixed seed for reproducible outputs (same input -> same output). "
