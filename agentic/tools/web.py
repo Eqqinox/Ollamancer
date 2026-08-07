@@ -112,13 +112,17 @@ def _maybe_force_search(user_input: str, messages: list) -> None:
     messages.append({"role": "tool", "content": str(result)})
 
 
-def _searxng_fetch(query: str, category: str = "general") -> list:
+def _searxng_fetch(query: str, category: str = "general", cap: int | None = None) -> list:
     # explicit language: the SearXNG instance has a French default_lang — without this
     # parameter every search (even "top international news" in English)
     # inherits the instance's French bias and gets polluted by
     # sources francophones hors-sujet. "auto" (réglable via /parameters) laisse
     # l'instance décider.
-    cache_key = (query.strip().lower(), category, config.SEARCH_LANGUAGE)
+    # `cap` lets search_web_deep ask for a wider candidate pool than search_web keeps: it
+    # then picks a domain-diverse subset from it. Without that, capping at SEARCH_RESULT_CAP
+    # first can hand the deep read a pool that is already single-source.
+    cap = config.SEARCH_RESULT_CAP if cap is None else cap
+    cache_key = (query.strip().lower(), category, config.SEARCH_LANGUAGE, cap)
     cached = state._search_cache.get(cache_key)
     if cached and (time.time() - cached[0]) < config.SEARCH_CACHE_TTL:
         return cached[1]
@@ -129,7 +133,7 @@ def _searxng_fetch(query: str, category: str = "general") -> list:
     if category != "general":
         params["categories"] = category
     r = requests.get(config.SEARXNG_URL, params=params, timeout=10)
-    results = r.json().get("results", [])[:config.SEARCH_RESULT_CAP]
+    results = r.json().get("results", [])[:cap]
     state._search_cache[cache_key] = (time.time(), results)
     return results
 
@@ -342,6 +346,38 @@ def search_web(query: str) -> str:
         return f"Search error: {e}"
 
 
+def _diversify_by_domain(results: list, limit: int, per_domain: int = 1) -> list:
+    """Pick up to `limit` results while spreading them across distinct domains.
+
+    Relevance order alone is not enough for a "what happened today" question: a search can
+    legitimately return six articles from one wire service, and reading six pages from one
+    outlet gives the user nothing they could not get by visiting that outlet. Six pages from
+    six outlets is the whole point of a deep read.
+
+    Takes at most `per_domain` per host on a first pass, in relevance order, then fills any
+    remaining slots from the leftovers (so a thin result set still uses its full budget rather
+    than returning fewer pages). Ordering within each pass is preserved, so the most relevant
+    result is still read first.
+    """
+    seen: dict[str, int] = {}
+    picked, leftover = [], []
+    for res in results:
+        host = urlparse(res.get("url", "")).netloc.lower()
+        host = host[4:] if host.startswith("www.") else host
+        if seen.get(host, 0) < per_domain:
+            seen[host] = seen.get(host, 0) + 1
+            picked.append(res)
+            if len(picked) >= limit:
+                return picked
+        else:
+            leftover.append(res)
+    for res in leftover:                      # not enough distinct domains — top up
+        picked.append(res)
+        if len(picked) >= limit:
+            break
+    return picked
+
+
 def search_web_deep(query: str) -> str:
     """Search the internet AND read the top results, not just their snippets — use this
     instead of search_web whenever the answer needs specific, verifiable facts (news,
@@ -359,10 +395,14 @@ def search_web_deep(query: str) -> str:
 
     try:
         category = "news" if _NEWS_INTENT_RE.search(query) else "general"
-        results = _searxng_fetch(query, category)
+        # Ask for ~3x the pages we will read, so there is something to diversify across.
+        pool = max(config.SEARCH_RESULT_CAP, config.DEEP_SEARCH_FETCH_COUNT * 3)
+        results = _searxng_fetch(query, category, cap=pool)
         if not results and category == "news":
-            results = _searxng_fetch(query, "general")
-        results = results[:config.DEEP_SEARCH_FETCH_COUNT]
+            results = _searxng_fetch(query, "general", cap=pool)
+        # One page per outlet where possible: relevance order alone can return six
+        # articles from a single wire service, which defeats the point of a deep read.
+        results = _diversify_by_domain(results, config.DEEP_SEARCH_FETCH_COUNT)
 
         # RSS: for news queries this bypasses the JS-rendering/anti-bot problem
         # entirely for major press outlets — pure XML, no JavaScript to
