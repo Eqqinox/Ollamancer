@@ -274,6 +274,79 @@ def _looks_repetitive(text: str) -> bool:
     return False
 
 
+# Words that start a sentence or label a row, so they pair with a real noun and look like a
+# multi-word entity without being one ("The Guardian", "August Reuters", "Source Reuters").
+_ENTITY_STOPWORDS = {
+    "The", "This", "That", "These", "Those", "There", "Here", "Source", "Sources", "Note",
+    "Read", "More", "Based", "According", "While", "Both", "New", "Also", "However",
+    "Additionally", "Meanwhile", "Following", "Despite", "After", "Before", "Today",
+    "January", "February", "March", "April", "May", "June", "July", "August", "September",
+    "October", "November", "December",
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+}
+_LIST_ITEM_RE = re.compile(r"^([-•*]|\d+[.)]|\|?\s*\d+\s)")
+_ENTITY_RE = re.compile(r"\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,}){1,3})\b")
+_DUPE_MIN_ITEM_CHARS = 30   # ignore one-word bullets and separators
+
+
+def _answer_items(answer: str) -> list[str]:
+    """Split an answer into its list items (bullets, numbered rows, table rows)."""
+    out, cur = [], []
+    for line in (answer or "").splitlines():
+        line = line.strip()
+        if _LIST_ITEM_RE.match(line) and len(line) > _DUPE_MIN_ITEM_CHARS:
+            if cur:
+                out.append(" ".join(cur))
+            cur = [line]
+        elif cur and line:
+            cur.append(line)
+    if cur:
+        out.append(" ".join(cur))
+    return out
+
+
+def _rare_entities(text: str) -> set[str]:
+    """Multi-word proper nouns: two or more consecutive capitalised words.
+
+    Multi-word is the whole point. Single words ("Iran", "Reuters") recur legitimately across
+    a news roundup; "Debsirin Nonthaburi School" does not.
+    """
+    text = re.sub(r"https?://\S+", " ", text)   # a shared URL is not a shared entity
+    return {m.group(1) for m in _ENTITY_RE.finditer(text)
+            if not any(w in _ENTITY_STOPWORDS for w in m.group(1).split())}
+
+
+def _duplicate_items(answer: str) -> tuple[int, int, str] | None:
+    """Two list items describing the same event, reported as if they were different ones.
+
+    Every other check in this module validates a claim against the *sources*; none validates
+    the answer against *itself*. So an answer can say "seven killed" in item 1 and "nine
+    killed, including the shooter" in item 5 about one school shooting, and both pass
+    _grounding_check because both numbers really do appear in some tool result. Observed
+    exactly that from gpt-oss:20b.
+
+    Detection is deliberately narrow: two items sharing a *rare multi-word* proper noun.
+    Measured against six real answers from a cross-model comparison — caught the real
+    duplicate, and stayed silent on four clean answers including one that mentions "Strait of
+    Hormuz" in two separate items. A shared URL was tried as a second signal and rejected: a
+    live-blog page legitimately sources several unrelated stories.
+
+    Returns (item_a, item_b, shared_entity) or None. Catches roughly half of real duplicates
+    and, so far, none of the false ones — the right trade for a nudge, since a silent miss
+    costs nothing while a false alarm teaches you to ignore the warnings.
+    """
+    items = _answer_items(answer)
+    if len(items) < 2:
+        return None
+    ents = [_rare_entities(i) for i in items]
+    for a in range(len(items)):
+        for b in range(a + 1, len(items)):
+            shared = ents[a] & ents[b]
+            if shared:
+                return (a + 1, b + 1, sorted(shared)[0])
+    return None
+
+
 # ── Mode headless / batch (B9) ───────────────────────────────────────────────────
 _FAILURE_PREFIXES = ("⚠️", "⛔")
 
@@ -521,6 +594,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     state._checkpoint_turn += 1
     state._checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
     rounds = 0
+    dupe_nudges_used = 0          # same-event-twice check, capped at one per turn
     edited_since_verify = False
     nudges_used = 0
     consecutive_thin_searches = 0
@@ -750,6 +824,19 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     messages.append({"role": "assistant", "content": msg.content or ""})
                     messages.append(_nudge(t("grounding_check_nudge", values=shown)))
                     continue
+            # Same event reported twice as if it were two. Every check above compares the
+            # answer to its sources; this one compares the answer to itself.
+            if dupe_nudges_used < 1:
+                dupe = _duplicate_items(msg.content)
+                if dupe is not None:
+                    a, b, shared = dupe
+                    dupe_nudges_used += 1
+                    safety._audit("AUTO_DUPLICATE_ITEM_NUDGE", {"round": rounds, "items": [a, b], "entity": shared})
+                    ui.console.print(f"[dim]{t('auto_duplicate_note', a=a, b=b, entity=shared)}[/dim]")
+                    messages.append({"role": "assistant", "content": msg.content or ""})
+                    messages.append(_nudge(t("duplicate_nudge", a=a, b=b, entity=shared)))
+                    continue
+
             # Keep this turn's raw tool results reachable: cmd_architect uses them to tell
             # whether the URLs in a plan were actually seen, or invented.
             state._last_turn_tool_results = list(turn_tool_results)

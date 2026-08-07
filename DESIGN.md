@@ -159,11 +159,37 @@ without a model*:
 
 - **`_grounding_check`** — after the final answer, extract its **hard tokens** (numbers with ≥2 digits, ISO dates, URLs, quoted proper nouns) and substring-search each one in the raw tool results **from that turn**. Anything present in the answer but in no tool result gets flagged and the model is re-prompted once.
 - **The claim-vs-action nudge** — if the answer claims "fixed"/"verified" but the turn contains no successful edit (`write_file`/`append_file`/`edit_file` returning its success prefix) and no verification (`lint_file`/`run_tests`/`run_command`), re-prompt once.
+- **`_duplicate_items`** — two list items describing the *same event* as if they were two. Every other check compares the answer to its **sources**; this one compares the answer to **itself**, a gap the others structurally cannot cover. Observed from `gpt-oss:20b`: item 1 said "seven people were killed" at a named school and item 5 said "nine people were killed, including the shooter" at the same school — one event, two death tolls, four rows apart. Both passed `_grounding_check`, because both figures genuinely appeared in tool results (one from BBC, one from a Wikipedia portal). Detection is a shared **rare multi-word proper noun** between two items.
 
 Both run without an LLM, both are capped at 1 re-prompt, and **both are honest about their
 limits**: legitimately derived values (sums, unit conversions) and paraphrased content can
 false-positive, which is exactly why they are nudges with a cap of 1 rather than gates. They
 do not cover paraphrased structure. They are a layer, not a guarantee.
+
+### Measuring a heuristic before shipping it
+
+`_duplicate_items` is worth recording as a *method*, not just a feature. The first instinct was
+that it could not be done deterministically — separating "seven killed" and "nine killed,
+including the shooter" from two genuinely different casualty figures looks like it needs
+semantics. Rather than argue the point, the rule was measured against **six real answers** from
+a cross-model comparison, two of which contained a known duplicate:
+
+| Signal | Real duplicates caught | False positives (4 clean answers) |
+|---|---|---|
+| Shared rare multi-word proper noun | 1 / 2 | **0** |
+| Shared source URL | 2 / 2 | **1** — a live-blog page legitimately sourcing two unrelated stories |
+
+The URL signal was **rejected despite catching more**. A roundup or live-blog page covers many
+stories, so a shared link means nothing. The entity signal shipped: it catches roughly half of
+real duplicates and, on this corpus, none of the false ones.
+
+That asymmetry is the design rule behind every nudge in this module — **a silent miss costs
+nothing; a false alarm teaches the user to ignore the warnings.** Worth noting the predicted
+false positive did *not* materialise: an answer mentioning "Strait of Hormuz" in two separate
+items stayed quiet, because the second item shared no multi-word entity with the first.
+
+Limitation, stated plainly: six answers is a small corpus and all of them are news-shaped.
+Entity density differs in code or research output, and that has not been tested.
 
 The claim-vs-action nudge exists because of two specific measured events: a model that
 declared a bug fixed on a file that was **bit-for-bit identical to the original** (confirmed by
