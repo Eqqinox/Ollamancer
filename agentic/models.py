@@ -366,6 +366,27 @@ def _save_category_cache(cache: dict) -> None:
             pass
 
 
+def _parameter_size(info) -> str:
+    """Human-readable parameter count from an ollama.show() response.
+
+    `ollama.list()` reports an empty parameter_size for MLX builds, which left the Params
+    column blank in the /model table. show() still knows: either details.parameter_size
+    ("12.4B") or modelinfo["general.parameter_count"] (12382568756). Prefer the former, derive
+    the latter, and return "" rather than guessing from the model name — a name like
+    "gemma-4-26B-A4B" states two different numbers and neither is the real total.
+    """
+    try:
+        size = (getattr(getattr(info, "details", None), "parameter_size", "") or "").strip()
+        if size:
+            return size
+        count = (info.modelinfo or {}).get("general.parameter_count")
+        if isinstance(count, (int, float)) and count > 0:
+            return f"{count / 1e9:.1f}B" if count >= 1e9 else f"{count / 1e6:.2f}M"
+    except Exception:
+        pass
+    return ""
+
+
 def pick_model_interactive(current_model: str) -> str | None:
     """Show the list of installed Ollama models and let the user pick one."""
     try:
@@ -389,14 +410,20 @@ def pick_model_interactive(current_model: str) -> str | None:
         tools_ok = {}
         is_moe = {}
         categories = {}
+        param_size = {}
         for m in models:
             try:
                 info = ollama.show(m.model)
                 tools_ok[m.model] = "tools" in info.capabilities
                 is_moe[m.model] = _is_moe_model(info.modelinfo or {})
+                # ollama.list() leaves parameter_size empty for MLX builds, so the Params
+                # column was blank for them — and the size-only fallback made the usage tier
+                # less accurate too. show() has the number; we are already calling it here.
+                param_size[m.model] = _parameter_size(info)
             except Exception:
-                tools_ok[m.model] = None  # inconnu
+                tools_ok[m.model] = None  # unknown
                 is_moe[m.model] = False
+                param_size[m.model] = ""
 
             cat = classify_model_by_name(m.model)
             if cat is None:
@@ -423,7 +450,8 @@ def pick_model_interactive(current_model: str) -> str | None:
     for i, m in enumerate(models, start=1):
         size_gb = m.size / 1_000_000_000 if m.size else 0.0
         size_cell = f"{size_gb:.1f} GB" if m.size else "?"
-        params  = (m.details.parameter_size if m.details else "") or ""
+        params  = ((m.details.parameter_size if m.details else "") or ""
+                   or param_size.get(m.model, ""))   # MLX: falls back to show()
         actif   = "✓" if m.model == current_model else ""
         ok      = tools_ok.get(m.model)
         tools_cell = "[green]✓[/green]" if ok else ("[red]✗[/red]" if ok is False else "[dim]?[/dim]")

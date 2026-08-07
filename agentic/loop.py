@@ -64,6 +64,21 @@ _COMPACT_MARKER = "[⎗ Summary of earlier conversation (auto-compacted to save 
 _FAKE_TOOLCALL_RE = re.compile(r"<function=|<tool_call>|<\|tool_call\|>|function_calls>", re.IGNORECASE)
 
 
+def _nudge(body: str) -> dict:
+    """Wrap an automatic nudge so a model cannot mistake it for a new user request.
+
+    Nudges arrive as ordinary `role: user` messages, which is indistinguishable from the human
+    typing. Weaker models act on them as tasks: one wrote the citation nudge verbatim into
+    persistent memory (where it would then be re-injected into every future session's system
+    prompt), and another ran a web search *for the text of the nudge*. Neither corrected its
+    answer, which was the entire point.
+
+    The prefix says explicitly what the message is and names the three wrong reactions
+    observed in the wild: don't search it, don't remember it, don't write it to a file.
+    """
+    return {"role": "user", "content": t("nudge_prefix") + body}
+
+
 def _looks_like_fake_tool_call(text: str) -> bool:
     return bool(_FAKE_TOOLCALL_RE.search(text or ""))
 
@@ -651,7 +666,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[dim]{t('fake_toolcall_retry_note', n=fake_toolcall_retries, max=config.MAX_FAKE_TOOLCALL_RETRIES)}[/dim]")
                 safety._audit("FAKE_TOOLCALL_RETRY", {"round": rounds, "retry": fake_toolcall_retries, "content_preview": (msg.content or "")[:200]})
                 messages.append({"role": "assistant", "content": msg.content or ""})
-                messages.append({"role": "user", "content": t("fake_toolcall_nudge")})
+                messages.append(_nudge(t("fake_toolcall_nudge")))
                 continue
             if _looks_like_fake_tool_call(msg.content) and fake_toolcall_retries >= config.MAX_FAKE_TOOLCALL_RETRIES:
                 ui.console.print(f"[red]{t('fake_toolcall_fallback')}[/red]")
@@ -662,7 +677,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[dim]{t('auto_verify_note', n=nudges_used, max=config.MAX_VERIFY_NUDGES)}[/dim]")
                 safety._audit("AUTO_VERIFY_NUDGE", {"round": rounds, "nudge": nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
-                messages.append({"role": "user", "content": t("verify_nudge")})
+                messages.append(_nudge(t("verify_nudge")))
                 continue
             if not (msg.content or "").strip():
                 # Empty final answer (no tool_calls either). Common with
@@ -676,7 +691,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     empty_retries += 1
                     ui.console.print(f"[dim]{t('empty_retry_note', n=empty_retries, max=config.MAX_EMPTY_RETRIES)}[/dim]")
                     safety._audit("EMPTY_RESPONSE_RETRY", {"round": rounds, "retry": empty_retries, "thinking_preview": thinking_preview})
-                    messages.append({"role": "user", "content": t("empty_retry_nudge")})
+                    messages.append(_nudge(t("empty_retry_nudge")))
                     continue
                 ui.console.print(f"[red]{t('empty_response_fallback')}[/red]")
                 safety._audit("EMPTY_RESPONSE", {"round": rounds, "thinking_preview": thinking_preview})
@@ -687,7 +702,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[dim]{t('auto_citation_note', n=citation_nudges_used, max=config.MAX_CITATION_NUDGES)}[/dim]")
                 safety._audit("AUTO_CITATION_NUDGE", {"round": rounds, "nudge": citation_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
-                messages.append({"role": "user", "content": t("citation_nudge")})
+                messages.append(_nudge(t("citation_nudge")))
                 continue
             if (_looks_like_hypothetical_tool_output(msg.content)
                     and grounding_nudges_used < config.MAX_GROUNDING_NUDGES):
@@ -695,7 +710,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[dim]{t('auto_grounding_note', n=grounding_nudges_used, max=config.MAX_GROUNDING_NUDGES)}[/dim]")
                 safety._audit("AUTO_GROUNDING_NUDGE", {"round": rounds, "nudge": grounding_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
-                messages.append({"role": "user", "content": t("grounding_nudge")})
+                messages.append(_nudge(t("grounding_nudge")))
                 continue
             # Nudge affirmation-vs-action (A6, déterministe) : "corrigé"/"vérifié" sans
             # Circuit breaker: if the answer has collapsed into repeating itself, stop
@@ -721,7 +736,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[dim]{t('auto_claim_action_note', n=claim_action_nudges_used, max=config.MAX_CLAIM_ACTION_NUDGES)}[/dim]")
                 safety._audit("AUTO_CLAIM_ACTION_NUDGE", {"round": rounds, "kind": claim_kind, "nudge": claim_action_nudges_used})
                 messages.append({"role": "assistant", "content": msg.content or ""})
-                messages.append({"role": "user", "content": t(f"claim_action_nudge_{claim_kind}")})
+                messages.append(_nudge(t(f"claim_action_nudge_{claim_kind}")))
                 continue
             # _grounding_check (A5, deterministic): hard tokens in the answer absent from
             # every tool result this turn. Only if tools actually ran.
@@ -733,7 +748,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     ui.console.print(f"[dim]{t('auto_grounding_check_note', n=grounding_check_nudges_used, max=config.MAX_GROUNDING_CHECK_NUDGES)}[/dim]")
                     safety._audit("AUTO_GROUNDING_CHECK_NUDGE", {"round": rounds, "unsupported": unsupported[:12], "nudge": grounding_check_nudges_used})
                     messages.append({"role": "assistant", "content": msg.content or ""})
-                    messages.append({"role": "user", "content": t("grounding_check_nudge", values=shown)})
+                    messages.append(_nudge(t("grounding_check_nudge", values=shown)))
                     continue
             # Keep this turn's raw tool results reachable: cmd_architect uses them to tell
             # whether the URLs in a plan were actually seen, or invented.
@@ -869,13 +884,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             consecutive_thin_searches = 0
             ui.console.print(f"[dim]{t('search_stop_note')}[/dim]")
             safety._audit("SEARCH_STOP_NUDGE", {"round": rounds})
-            messages.append({"role": "user", "content": t("search_stop_nudge")})
+            messages.append(_nudge(t("search_stop_nudge")))
 
         if deep_search_count >= config.MAX_DEEP_SEARCHES and not deep_search_stop_nudged:
             deep_search_stop_nudged = True
             ui.console.print(f"[dim]{t('deep_search_stop_note')}[/dim]")
             safety._audit("DEEP_SEARCH_STOP_NUDGE", {"round": rounds, "count": deep_search_count})
-            messages.append({"role": "user", "content": t("deep_search_stop_nudge")})
+            messages.append(_nudge(t("deep_search_stop_nudge")))
 
         # B4: architect phase — if the model insists on calling write/execute tools
         # (all refused in read-only mode), it can burn its entire round budget
@@ -886,4 +901,4 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             readonly_nudged = True
             ui.console.print(f"[dim]{t('readonly_plan_note')}[/dim]")
             safety._audit("READONLY_PLAN_NUDGE", {"round": rounds, "refusals": readonly_refusals})
-            messages.append({"role": "user", "content": t("readonly_plan_nudge")})
+            messages.append(_nudge(t("readonly_plan_nudge")))
