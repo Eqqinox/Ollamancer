@@ -392,30 +392,17 @@ def _start_ram_spinner():
     return stop
 
 
-def _chat_with_live_ram(status_key: str, chat_fn, round_no: int | None = None):
-    """Run a blocking ollama.chat() call while showing live progress next to the spinner.
-
-    A spinning dot proves nothing on a 60-second wait — it looks the same whether the model
-    is working or wedged. So the line also carries an elapsed-seconds counter (a number that
-    keeps climbing is unambiguous proof of life), the round against MAX_TOOL_ROUNDS (progress
-    through tool calls, and warning when it approaches the cap), and live RAM. All transient:
-    Rich erases the whole line the moment real output prints.
-    """
+def _chat_with_live_ram(status_key: str, chat_fn):
+    """Run a blocking ollama.chat() call while showing live RAM usage next to the spinner."""
     with ui.console.status(f"[bold blue]{t(status_key)}[/bold blue]", spinner="dots") as status:
         stop = threading.Event()
-        started = time.monotonic()
 
         def _poll():
             while not stop.is_set():
                 rss = models.ollama_runner_rss_gb()
                 label = t(status_key)
-                elapsed = int(time.monotonic() - started)
-                bits = [f"{elapsed}s"]
-                if round_no is not None:
-                    bits.append(f"round {round_no}/{config.MAX_TOOL_ROUNDS}")
                 if rss is not None:
-                    bits.append(f"{rss:.1f} GB RAM")
-                label += "  [dim]· " + " · ".join(bits) + "[/dim]"
+                    label += f"  [dim]· {rss:.1f} GB RAM[/dim]"
                 status.update(f"[bold blue]{label}[/bold blue]")
                 stop.wait(0.7)
 
@@ -428,7 +415,7 @@ def _chat_with_live_ram(status_key: str, chat_fn, round_no: int | None = None):
             poller.join(timeout=1)
 
 
-def _stream_or_buffer_chat(model, messages, tool_schemas=None, round_no=None, final_phase=False):
+def _stream_or_buffer_chat(model, messages, tool_schemas=None):
     """The model call used by run_agent. With STREAM_FINAL on, streams and renders assistant
     text live (transient — erased on completion, so tool rounds proceed cleanly and the final
     answer is re-rendered persistently by main()). With it off, uses the classic buffered
@@ -438,13 +425,10 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None, round_no=None, fi
     tool_list = tools.TOOLS + mcp_client.MCP_TOOL_SCHEMAS if tool_schemas is None else tool_schemas
 
     def _buffered():
-        # "Writing the answer..." on the round that produced no tool calls last time: that is
-        # the long one, and knowing the wait is nearly over is worth a distinct word.
         return _chat_with_live_ram(
-            "writing_status" if final_phase else "thinking_status",
+            "thinking_status",
             lambda: ollama.chat(model=model, messages=messages, tools=tool_list,
                                  stream=False, options=models._gen_options(model)),
-            round_no=round_no,
         )
 
     if config.STREAM_FINAL != "on":
@@ -493,7 +477,6 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     state._checkpoint_turn += 1
     state._checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
     rounds = 0
-    last_round_had_no_tools = False   # drives the "Writing the answer..." label
     edited_since_verify = False
     nudges_used = 0
     consecutive_thin_searches = 0
@@ -527,8 +510,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             return t("max_rounds_hit", n=config.MAX_TOOL_ROUNDS)
 
         try:
-            resp = _stream_or_buffer_chat(model, messages, tool_schemas,
-                                          round_no=rounds, final_phase=last_round_had_no_tools)
+            resp = _stream_or_buffer_chat(model, messages, tool_schemas)
             pec = getattr(resp, "prompt_eval_count", 0) or 0
             if pec:
                 state._LAST_PROMPT_TOKENS = pec   # the prompt's true token count (for compaction)
@@ -630,10 +612,6 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             raise
 
         msg = resp.message
-        # A round that produced no tool calls means the model was answering. If a nudge sends
-        # it round again, that next round is another answer-writing pass — the long one — so
-        # the spinner can say so instead of the generic "Thinking...".
-        last_round_had_no_tools = not msg.tool_calls
 
         if msg.content and msg.tool_calls:
             ui.console.print(f"\n[dim italic]{rich_escape(msg.content)}[/dim italic]")
