@@ -1,6 +1,6 @@
 # Tests
 
-Deterministic tests for the agent — one file per feature/fix. They import from the
+Deterministic tests for the agent, one file per feature/fix. They import from the
 `agentic/` package; anything that is monkeypatched must be patched on the module that *owns*
 it, since a name imported elsewhere is a separate binding.
  They use only monkeypatched
@@ -10,7 +10,7 @@ it, since a name imported elsewhere is a separate binding.
 > That last claim is now enforced, not just asserted. `run_all.sh` checksums every
 > `~/.agentic_1a_*` file before and after the run and fails if any changed. This was added
 > after `test_structure`'s `/parameters` round-trip silently rewrote the live
-> `~/.agentic_1a_params.json` — bumping all 30 settings one step, including
+> `~/.agentic_1a_params.json`, bumping all 30 settings one step, including
 > `GEN_NUM_PREDICT` from `-1` (unlimited) to `127`, which truncates every model answer. The
 > suite stayed green the whole time.
 
@@ -18,17 +18,17 @@ it, since a name imported elsewhere is a separate binding.
 
 Each test must run in its **own process**. They are currently standalone scripts (module-level
 assertions ending in `... ALL PASS`), and several deliberately mutate module globals
-(`agent.STREAM_FINAL`, `agent.ollama.chat`, `agent.PROJECT_ROOT`, …) — so running them all in a
+(`agent.STREAM_FINAL`, `agent.ollama.chat`, `agent.PROJECT_ROOT`, …), so running them all in a
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root → "tests: 29 passed, 0 failed"
+bash tests/run_all.sh # from the project root "tests: 29 passed, 0 failed"
 ```
 
 Or a single test:
 
 ```bash
-PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
+PYTHONPATH="$PWD".venv/bin/python tests/test_skills.py
 ```
 
 ## Coverage (24 files)
@@ -36,8 +36,8 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | File | Feature under test |
 |---|---|
 | `test_a1` | `append_file` + chunked-write note |
-| `test_a2` | SearXNG → DuckDuckGo-MCP failover |
-| `test_a3` | bytes→trafilatura encoding fix (mojibake) |
+| `test_a2` | SearXNG DuckDuckGo-MCP failover |
+| `test_a3` | bytestrafilatura encoding fix (mojibake) |
 | `test_a4` | closest-path hint on file-not-found |
 | `test_a56` | `_grounding_check` + claim-vs-action nudge |
 | `test_a7` | model failover on plumbing-bug exhaustion |
@@ -67,30 +67,30 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 
 ## Structural guardrails
 
-Two of the tests are not behavioural — they exist to make the ongoing modularization safe:
+Two of the tests are not behavioural. They exist to make the ongoing modularization safe:
 
 | File | Enforces |
 |---|---|
-| `test_structure.py` | Golden master over the agent's *shape*: the 34-tool registry, the slash-command set, EN/FR parity across `STR`/`SYSTEM_PROMPT`/`HELP_TEXT`, and the 30-entry `/parameters` schema — including a live write/read round-trip proving the menu is still wired to the variables the agent reads. |
+| `test_structure.py` | Golden master over the agent's *shape*: the 34-tool registry, the slash-command set, EN/FR parity across `STR`/`SYSTEM_PROMPT`/`HELP_TEXT`, and the 30-entry `/parameters` schema, including a live write/read round-trip proving the menu is still wired to the variables the agent reads. |
 | `test_import_rules.py` | `config` and `state` must always be reached through the module object (`config.X`), never `from config import X`, which copies a value that never sees a later rebinding. Also bans `globals()[...]` across module boundaries and any local shadowing those module names. |
 
-Both were verified *negatively* — each fails on the bug it exists to catch.
+Both were verified *negatively*, each fails on the bug it exists to catch.
 
-## TODO (roadmap #3 — CI)
+## TODO (roadmap #3: CI)
 
 These were written as fast standalone verification scripts. To formalize:
 1. Wrap each script's body in `def test_*()` functions.
 2. Add fixtures that reset mutated globals between tests. **`agentic.state.reset()` does this in
-   one call** — it restores every per-session global to its startup default and clears the caches
-   in place, without touching `config` (settings survive). So the fixture is roughly:
-   ```python
-   @pytest.fixture(autouse=True)
-   def clean_state():
-       state.reset()
-       yield
-       state.reset()
-   ```
-   Note some tests also monkeypatch `agent.ollama.chat`, which is not state — restore that separately.
+ one call**, it restores every per-session global to its startup default and clears the caches
+ in place, without touching `config` (settings survive). So the fixture is roughly:
+ ```python
+ @pytest.fixture(autouse=True)
+ def clean_state():
+ state.reset()
+ yield
+ state.reset()
+ ```
+ Note some tests also monkeypatch `agent.ollama.chat`, which is not state, restore that separately.
 3. Add a `conftest.py` that puts the project root on `sys.path`.
 4. Wire up a **GitHub Actions** workflow running them on push (matrix: Python 3.12 and 3.14, to
-   prove the declared 3.12 floor).
+ prove the declared 3.12 floor).

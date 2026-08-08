@@ -9,8 +9,8 @@ MIT license. **Two are adapted from third-party Apache-2.0 work and remain Apach
 
 | Skill | Upstream |
 |---|---|
-| [`skill-creator/`](./skill-creator/SKILL.md) | [anthropics/skills](https://github.com/anthropics/skills) — `skill-creator` |
-| [`mcp-builder/`](./mcp-builder/SKILL.md) | [anthropics/skills](https://github.com/anthropics/skills) — `mcp-builder` |
+| [`skill-creator/`](./skill-creator/SKILL.md) | [anthropics/skills](https://github.com/anthropics/skills), `skill-creator` |
+| [`mcp-builder/`](./mcp-builder/SKILL.md) | [anthropics/skills](https://github.com/anthropics/skills), `mcp-builder` |
 
 Both were **modified** for this agent: rewritten to target Agentic_1A's own tools, its
 `~/.agentic_1a_skills/` and `<project>/.agentic/skills/` discovery paths, and its
@@ -34,4 +34,4 @@ and limitations under the License.
 ## Skills you add yourself
 
 Skills you drop into `~/.agentic_1a_skills/` or `<project>/.agentic/skills/` are yours and
-are not covered by either license — nothing in this repository claims them.
+are not covered by either license, nothing in this repository claims them.
