@@ -56,10 +56,10 @@ _COMPACT_MARKER = "[⎗ Summary of earlier conversation (auto-compacted to save 
 
 # Patterns observed in practice (v2.9.14): a model that writes a pseudo tool
 # call as plain text instead of using Ollama's real tool-calling mechanism
-# — never executed, never caught by the "empty response" fallback
+# never executed, never caught by the "empty response" fallback
 # since msg.content is not empty. Confirmed on `brianmatzelle/qwen3-coder-heretic:30b`
 # (`<function=search_in_files> <parameter=...> ... </tool_call>`) et `lfm2:24b-a2b`
-# (`<function=execute_tool> <parameter=command> ...`) — deux familles de modèles
+# (`<function=execute_tool> <parameter=command> ...`), deux familles de modèles
 # different families, same format failure.
 _FAKE_TOOLCALL_RE = re.compile(r"<function=|<tool_call>|<\|tool_call\|>|function_calls>", re.IGNORECASE)
 
@@ -89,7 +89,7 @@ def _looks_like_fake_tool_call(text: str) -> bool:
 # concrete invented values (population figures, dates...), presented as a
 # plausible example rather than clearly flagged as fabricated. Only fires
 # if the text looks like a description of a hypothetical tool result
-# AND contains a data-like structure ({ } or a code block) —
+# AND contains a data-like structure ({ } or a code block) , 
 # avoiding false positives on an ordinary conceptual explanation.
 _HYPOTHETICAL_TOOL_OUTPUT_RE = re.compile(
     r"\b(returns? something like|might (?:be|return|look like)|would (?:return|look like)|"
@@ -111,10 +111,10 @@ _EDIT_TOOLS   = {"write_file", "append_file", "edit_file"}
 # run_command counts as verification just like lint_file/run_tests: observed
 # in practice (v2.9.19, a 4-model comparison on a real bug) that ruff/lint only
 # detects syntax/style, never logic bugs (a missing dict key, an unreachable
-# branch...) — all 4 models declared themselves "verified" after a clean
+# branch...), all 4 models declared themselves "verified" after a clean
 # lint, without ever actually running the script, and each let through
 # at least one guaranteed crash. If the model really runs the script, that is a
-# stronger verification than a lint — the mechanism must recognise it as such,
+# stronger verification than a lint, the mechanism must recognise it as such,
 # otherwise we keep re-prompting it even when it does the right thing.
 _VERIFY_TOOLS = {"lint_file", "run_tests", "run_command"}
 
@@ -156,7 +156,7 @@ def _stuck_search_nudge_suffix() -> str:
 # ── Vérification déterministe post-réponse : jetons durs non étayés (_grounding_check) ──
 # Idea: every documented confabulation incident (invented population
 # figures, invented table fields, an invented date, invented JSON)
-# shares a mechanically checkable property — the answer contains concrete tokens
+# shares a mechanically checkable property, the answer contains concrete tokens
 # (numbers, dates, URLs, quoted proper nouns) that appear in NO tool result
 # from this turn. No LLM, no semantics: plain extraction + substring match.
 _URL_TOKEN_RE   = re.compile(r"https?://[^\s\)\]\}<>\"']+")
@@ -556,12 +556,12 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
         stream = ollama.chat(model=model, messages=messages, tools=tool_list,
                               stream=True, options=models._gen_options(model))
     except TypeError:
-        return _buffered()   # SDK without stream support — fallback
+        return _buffered()   # SDK without stream support: fallback
 
     # Phase 1: spinner + live RAM while waiting/thinking (until the first text token).
     # Phase 2: as soon as text arrives, stop the spinner and stream live.
     # On a tool round (no content, just tool_calls) the spinner stays up the
-    # whole time — so the RAM readout and the "thinking" indicator remain visible during tool
+    # whole time, so the RAM readout and the "thinking" indicator remain visible during tool
     # rounds, as they were before streaming was added (a regression, since fixed).
     stop_spinner = _start_ram_spinner()
     holder: dict = {"live": None}
@@ -635,7 +635,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
         except ollama.ResponseError as e:
             # e.error is a dict ({"code":..., "message":...}) when the Ollama
             # response body is JSON with a nested "error" key (the case for this
-            # bug précis) — voir ollama/_types.py ResponseError.__init__. On extrait
+            # bug précis), voir ollama/_types.py ResponseError.__init__. On extrait
             # the message for clean display rather than the dict's raw repr.
             err_payload = e.error
             err_text = err_payload.get("message", str(err_payload)) if isinstance(err_payload, dict) else str(err_payload or e)
@@ -643,18 +643,18 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 # Confirmed Ollama bug (ollama/ollama#16988): automatically
                 # generating the tool-calling parser for the chat template embedded in an
                 # hf.co GGUF (no native mapping on the Ollama library side) can fail
-                # mid-session, not only on the first call — reproduced twice
+                # mid-session, not only on the first call, reproduced twice
                 # in a row with Ornith-1.0-9B at the same point (~20 tool rounds), not a
                 # problem tied to the conversation's content. Simply retrying the
                 # identical request is the only possible client-side intervention (the
                 # bug is in Ollama's internal parser generation, out of
-                # reach from this code) — see DESIGN.md.
+                # reach from this code), see DESIGN.md.
                 if template_parser_retries < config.MAX_TEMPLATE_PARSER_RETRIES:
                     template_parser_retries += 1
                     ui.console.print(f"[dim]{t('template_parser_retry_note', n=template_parser_retries, max=config.MAX_TEMPLATE_PARSER_RETRIES)}[/dim]")
                     safety._audit("TEMPLATE_PARSER_RETRY", {"round": rounds, "retry": template_parser_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
-                    rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
+                    rounds -= 1  # this attempt never reached the model, don't count it against MAX_TOOL_ROUNDS
                     continue
                 target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
@@ -670,13 +670,13 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 return t("template_parser_fallback", error=err_text[:200])
             if "xml syntax error" in err_text.lower():
                 # Confirmed model bug (ollama/ollama#14834, #16383, #16810): contrary
-                # to case #16988 above, the parser itself exists and works — it is the
+                # to case #16988 above, the parser itself exists and works, it is the
                 # *model* (Qwen3.5/3.6 family, also seen on qwen3.5:4b) that occasionally
                 # drifts from its own documented tool-call format (e.g. emitting
                 # "element <parameter> closed by </function>", or an obsolete <function_invocation>
                 # wrapper), which Ollama does not tolerate and reports as a 500 error instead
                 # of ignoring/repairing the drift. No upstream fix available to date (issues
-                # open) — reproduced in real conditions on qwen3.5:4b on 2026-08-04
+                # open), reproduced in real conditions on qwen3.5:4b on 2026-08-04
                 # (see DESIGN.md): before this fix,
                 # the exception propagated raw to main() and ended the session outright,
                 # sometimes right after a broken file edit that was never corrected. Same
@@ -687,7 +687,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     ui.console.print(f"[dim]{t('xml_parse_retry_note', n=xml_parse_retries, max=config.MAX_XML_PARSE_RETRIES)}[/dim]")
                     safety._audit("XML_PARSE_RETRY", {"round": rounds, "retry": xml_parse_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
-                    rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
+                    rounds -= 1  # this attempt never reached the model, don't count it against MAX_TOOL_ROUNDS
                     continue
                 target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
@@ -702,18 +702,18 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 safety._audit("XML_PARSE_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("xml_parse_fallback", error=err_text[:200])
             if "unexpected end of json input" in err_text.lower():
-                # A third Ollama failure signature, distinct from the two above — see the
+                # A third Ollama failure signature, distinct from the two above, see the
                 # MAX_JSON_TRUNCATION_RETRIES comment. Reproduced in real conditions on
                 # Ornith on 2026-08-04 right after a write_file on a bulky file (~14 KB):
                 # the previous turn had already left the file in a broken state (a syntax
                 # warning never fixed) and this error ended the session before any chance to
-                # réparer — voir agentic_contexte.md, section "7 septdecies".
+                # réparer: voir agentic_contexte.md, section "7 septdecies".
                 if json_truncation_retries < config.MAX_JSON_TRUNCATION_RETRIES:
                     json_truncation_retries += 1
                     ui.console.print(f"[dim]{t('json_truncation_retry_note', n=json_truncation_retries, max=config.MAX_JSON_TRUNCATION_RETRIES)}[/dim]")
                     safety._audit("JSON_TRUNCATION_RETRY", {"round": rounds, "retry": json_truncation_retries, "error_preview": err_text[:200]})
                     time.sleep(1)
-                    rounds -= 1  # this attempt never reached the model — don't count it against MAX_TOOL_ROUNDS
+                    rounds -= 1  # this attempt never reached the model, don't count it against MAX_TOOL_ROUNDS
                     continue
                 target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
@@ -758,7 +758,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 # "thinking" models: they reason (msg.thinking) and then stop
                 # without ever producing final text or a tool call. We log
                 # the start of the reasoning (useful for diagnosis) and re-prompt the
-                # model a few times before giving up — never show an empty panel
+                # model a few times before giving up, never show an empty panel
                 # without explanation, but don't give up after a single miss either.
                 thinking_preview = str(getattr(msg, "thinking", "") or "")[:200]
                 if empty_retries < config.MAX_EMPTY_RETRIES:
@@ -788,7 +788,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 continue
             # Circuit breaker: if the answer has collapsed into repeating itself, stop
             # nudging. Every nudge triggers another full rewrite, and a model already looping
-            # loops harder — this is the same class of guard as the thin-search and
+            # loops harder, this is the same class of guard as the thin-search and
             # deep-search breakers, applied to writing instead of searching.
             if _looks_repetitive(msg.content):
                 safety._audit("REPETITION_STOP", {"round": rounds, "chars": len(msg.content or "")})
@@ -801,7 +801,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             # Never in a read-only phase. The architect (B4) is *forbidden* to write, so
             # had_successful_edit can never become True there: the nudge would demand an action
             # the model is structurally unable to take, and it fires on any plan that merely
-            # uses the word "fix". Seen live — it fired three times before a plan even existed,
+            # uses the word "fix". Seen live, it fired three times before a plan even existed,
             # burning rounds on an impossible instruction.
             if allowed_tools is not None:
                 claim_kind = None
@@ -882,7 +882,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             if name in _EDIT_TOOLS:
                 checkpoints._make_turn_checkpoint(f"turn {state._checkpoint_turn}: before {name}")
 
-            # MCP tools are treated as risky by default in safe mode — an MCP
+            # MCP tools are treated as risky by default in safe mode, an MCP
             # server can do anything a local tool can do, so it must not
             # bypass the existing approval gate.
             is_risky = name in safety._RISKY_TOOLS or name in mcp_client.MCP_TOOL_MAP
@@ -910,7 +910,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             blocked = str(result).startswith("⛔")
             safety._audit(name, args, blocked=blocked, reason=str(result)[:100] if blocked else "")
 
-            # This turn's raw results (for the post-answer _grounding_check) — MCP included;
+            # This turn's raw results (for the post-answer _grounding_check), MCP included;
             # blocked/⛔ results carry no facts, so we keep them as-is
             # (they simply won't contain any hard token to support).
             turn_tool_results.append(str(result))
@@ -941,7 +941,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     consecutive_thin_searches = 0
 
             # Circuit breaker for deep searches that never converge: unlike
-            # the breaker above, this fires even when every result is real —
+            # the breaker above, this fires even when every result is real , 
             # search_web_deep is expensive (a full page fetch), and a long chain
             # of ever-narrower queries on a self-refining sub-topic can
             # burn the whole time budget without ever producing a final answer.
@@ -979,7 +979,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             safety._audit("DEEP_SEARCH_STOP_NUDGE", {"round": rounds, "count": deep_search_count})
             messages.append(_nudge(t("deep_search_stop_nudge")))
 
-        # B4: architect phase — if the model insists on calling write/execute tools
+        # B4: architect phase, if the model insists on calling write/execute tools
         # (all refused in read-only mode), it can burn its entire round budget
         # without ever producing a plan (observed in live testing with a small architect model,
         # qwen3.5:4b). After a few refusals, push it once to write the plan as prose.

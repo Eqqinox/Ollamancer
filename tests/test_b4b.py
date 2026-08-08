@@ -23,7 +23,7 @@ class Msg:
 class Resp:
     def __init__(s,m): s.message=m
 
-# Architect stubbornly tries write_file 3x (all refused), then — after the read-only nudge —
+# Architect stubbornly tries write_file 3x (all refused), then, after the read-only nudge , 
 # finally writes a text plan. Editor then executes it for real.
 scripts = {
     "arch:m": iter([

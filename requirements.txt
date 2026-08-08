@@ -4,17 +4,17 @@ rich>=13.7.0
 trafilatura>=2.0.0
 feedparser>=6.0.10
 
-# Optional — powers fetch_url_rendered (JS-heavy pages). Agent works fine without it;
+# Optional: powers fetch_url_rendered (JS-heavy pages). Agent works fine without it;
 # fetch_url_rendered just reports itself unavailable. After installing, also run:
 #   playwright install chromium
 playwright>=1.62.0
 
-# Optional — MCP (Model Context Protocol) client support. Agent works fine without
+# Optional: MCP (Model Context Protocol) client support. Agent works fine without
 # it; /mcp just reports MCP unavailable. Configure servers in
 # ~/.agentic_1a_mcp.json (same "mcpServers" format as Claude Desktop/Claude Code).
 mcp>=2.0.0
 
-# Optional — fixes paste-triggers-early-submit in the terminal prompt (common on
+# Optional: fixes paste-triggers-early-submit in the terminal prompt (common on
 # macOS where Python links libedit instead of GNU readline, whose bracketed-paste
 # support is weak/inconsistent). Agent works fine without it, just with that bug.
 prompt_toolkit>=3.0.0

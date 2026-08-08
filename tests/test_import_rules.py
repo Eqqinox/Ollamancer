@@ -50,7 +50,7 @@ def _offending_imports(path: pathlib.Path) -> list[str]:
         module = (node.module or "").split(".")[-1]
         if module not in LIVE_MODULES:
             continue
-        # `from . import config` has module=None/parent and names=[config] — that's the good form.
+        # `from . import config` has module=None/parent and names=[config], that's the good form.
         imported = {alias.name for alias in node.names}
         if imported & LIVE_MODULES and module not in LIVE_MODULES:
             continue
@@ -61,7 +61,7 @@ def _offending_imports(path: pathlib.Path) -> list[str]:
 
 def test_no_by_name_imports_from_live_modules():
     if not PACKAGE.is_dir():
-        return  # the package does not exist yet — nothing to enforce
+        return  # the package does not exist yet, nothing to enforce
     problems = []
     for py in sorted(PACKAGE.rglob("*.py")):
         problems.extend(_offending_imports(py))

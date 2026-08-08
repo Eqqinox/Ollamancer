@@ -146,7 +146,7 @@ def main():
             continue
 
         if action == "2":
-            # Standalone self-heal — no enemy encounter, matches Item/Go Deeper.
+            # Standalone self-heal: no enemy encounter, matches Item/Go Deeper.
             amount = heal(player, player)
             player["hp"] += amount
             print(f"\n💊 You rest and heal {amount} HP → {player['hp']}/{player['max_hp']}")

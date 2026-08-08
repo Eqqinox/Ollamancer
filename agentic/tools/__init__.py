@@ -47,7 +47,7 @@ TOOLS = [
 TOOL_MAP = {fn.__name__: fn for fn in TOOLS}
 
 # Read-only tools the architect phase (B4) may use: navigation, search, reading and linting,
-# but nothing that writes or executes code — no write/append/edit/create_directory/
+# but nothing that writes or executes code, no write/append/edit/create_directory/
 # run_command/run_tests/run_background/kill/git_commit/memory_write, and no MCP tools, which
 # are potentially destructive.
 _READ_ONLY_TOOL_NAMES = {

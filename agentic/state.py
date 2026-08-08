@@ -33,15 +33,15 @@ PRIVATE_MODE = False               # via --private at launch: ephemeral session,
 
 # ── Session paths (all initialised in main(), under <project>/.agentic/) ─────
 _AUDIT_LOG: Path | None = None     # audit_YYYYMMDD.log
-_SNAPSHOT_DIR: Path | None = None  # snapshots/ — pre-edit file copies
-_BG_LOG_DIR: Path | None = None    # bg_logs/ — output of run_background processes
-_SESSION_DIR: Path | None = None   # sessions/ — saved transcripts for /resume
+_SNAPSHOT_DIR: Path | None = None  # snapshots/, pre-edit file copies
+_BG_LOG_DIR: Path | None = None    # bg_logs/, output of run_background processes
+_SESSION_DIR: Path | None = None   # sessions/, saved transcripts for /resume
 _SESSION_FILE: Path | None = None  # JSON file for THIS session (one per session, rewritten)
-_SEMANTIC_DB: Path | None = None   # semantic_index.db — the local RAG index
+_SEMANTIC_DB: Path | None = None   # semantic_index.db, the local RAG index
 
 # ── Working state ────────────────────────────────────────────────────────────
-_snapshots: dict = {}       # {str(absolute_path): original_content} — powers the legacy /undo
-_context_files: dict = {}   # {str(absolute_path): file_name} — files injected with /add
+_snapshots: dict = {}       # {str(absolute_path): original_content}, powers the legacy /undo
+_context_files: dict = {}   # {str(absolute_path): file_name}, files injected with /add
 _todo: str = ""             # free-text checklist for the multi-step task in progress
 _memory: str = ""           # free-text persistent memory, loaded from/saved to .agentic/memory.md
 
@@ -52,10 +52,10 @@ _bg_counter = 0
 _repl_state: dict = {"proc": None, "mode": None}   # the persistent python_repl subprocess
 _SANDBOX_CONTAINER = None   # name of this session's active Docker container (created lazily)
 
-# ── Git checkpoints (B1) — replaces the all-or-nothing in-memory /undo ───────
+# ── Git checkpoints (B1), replaces the all-or-nothing in-memory /undo ───────
 # A "shadow" git repository lives in .agentic/checkpoints.git with the project folder as its
 # work tree. It is completely independent of the user's own git, if any (dedicated
-# GIT_DIR/GIT_WORK_TREE) — it never touches their index, refs or commits — and therefore
+# GIT_DIR/GIT_WORK_TREE): it never touches their index, refs or commits, and therefore
 # behaves identically in git AND non-git projects (the aider approach). One checkpoint = a
 # commit of the state BEFORE a turn's first write.
 _CHECKPOINT_GITDIR: Path | None = None
@@ -63,7 +63,7 @@ _CHECKPOINTS: list = []            # [{"sha": str, "ts": str, "turn": int, "labe
 _checkpoint_turn = 0               # incremented on every run_agent call (= one user turn)
 _checkpoint_made_this_turn = False
 
-_last_turn_tool_results: list = []   # raw tool output of the last completed turn — lets a
+_last_turn_tool_results: list = []   # raw tool output of the last completed turn, lets a
                                     # caller check whether URLs in an answer were really seen
 
 # ── Model & context tracking ─────────────────────────────────────────────────

@@ -271,7 +271,7 @@ def _is_moe_model(modelinfo: dict) -> bool:
     return False
 
 
-# Local knowledge base (from earlier research) — avoids a
+# Local knowledge base (from earlier research), avoids a
 # web search for model families already identified.
 _MODEL_CATEGORY_RULES = [
     (r"qwen3-coder",       "Code"),
@@ -417,7 +417,7 @@ def pick_model_interactive(current_model: str) -> str | None:
                 tools_ok[m.model] = "tools" in info.capabilities
                 is_moe[m.model] = _is_moe_model(info.modelinfo or {})
                 # ollama.list() leaves parameter_size empty for MLX builds, so the Params
-                # column was blank for them — and the size-only fallback made the usage tier
+                # column was blank for them, and the size-only fallback made the usage tier
                 # less accurate too. show() has the number; we are already calling it here.
                 param_size[m.model] = _parameter_size(info)
             except Exception:

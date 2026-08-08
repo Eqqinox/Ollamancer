@@ -24,7 +24,7 @@ from agentic.tools.files import _closest_path_hint
 
 # ── Vision : analyze_image (B6) ──────────────────────────────────────────────────
 # Name-based fallback, used ONLY if ollama.show() fails for a given model (an old
-# Ollama version, a corrupted model...) — primary detection is now the real
+# Ollama version, a corrupted model...), primary detection is now the real
 # "vision" capability exposed by ollama.show(model).capabilities. Verified under
 # real conditions (2026-08-05): the name alone is misleading in both directions for the
 # installed here: `igorls/gemma-4-12B-...-heretic` matches "gemma-4" but does NOT have the

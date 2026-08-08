@@ -116,7 +116,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
 
     # Citations in the plan that the architect never actually fetched. The editor treats the
     # plan as approved, so an invented URL becomes a "verified" source in the output file
-    # unless it is called out here. Warn the user and tell the editor — never edit the plan.
+    # unless it is called out here. Warn the user and tell the editor, never edit the plan.
     unseen = _unseen_urls(plan, state._last_turn_tool_results)
     if unseen:
         safety._audit("ARCHITECT_UNSEEN_URLS", {"count": len(unseen), "urls": unseen[:8]})
@@ -128,7 +128,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
     else:
         plan_for_editor = plan
 
-    # ── Phase 2: editor (all tools) — sequential loading ──
+    # ── Phase 2: editor (all tools), sequential loading ──
     if editor_model != architect_model:
         models._unload_model(architect_model)
     if config.LANG == "fr":

@@ -56,7 +56,7 @@ try:
 except ImportError:
     feedparser = None  # the RSS layer silently skips itself
 
-# Keywords indicating a "news" intent — silently switches to the SearXNG
+# Keywords indicating a "news" intent, silently switches to the SearXNG
 # "news" category (real dated articles) instead of "general" (generic
 # category/home pages, even for queries like "today's news").
 # The category choice stays invisible to the model: one tool, the same way
@@ -69,7 +69,7 @@ _NEWS_INTENT_RE = re.compile(
 
 
 # Forced-search trigger: "search ..." at the start of a message. This is
-# a code-side guarantee, not just a system-prompt rule — a model was observed
+# a code-side guarantee, not just a system-prompt rule, a model was observed
 # ignoring an explicit "make a search" instruction entirely and answering
 # from invented knowledge instead (see DESIGN.md). A prompt
 # rule remains a suggestion the model can ignore; this one cannot
@@ -113,7 +113,7 @@ def _maybe_force_search(user_input: str, messages: list) -> None:
 
 
 def _searxng_fetch(query: str, category: str = "general", cap: int | None = None) -> list:
-    # explicit language: the SearXNG instance has a French default_lang — without this
+    # explicit language: the SearXNG instance has a French default_lang, without this
     # parameter every search (even "top international news" in English)
     # inherits the instance's French bias and gets polluted by
     # sources francophones hors-sujet. "auto" (réglable via /parameters) laisse
@@ -285,7 +285,7 @@ def search_web(query: str) -> str:
         query: The search query (short, natural language)
     """
     # Defensive: a model can sometimes send a list instead of a string
-    # (e.g. {"query": ["..."]}) — never crash or send a malformed object to SearXNG.
+    # (e.g. {"query": ["..."]}), never crash or send a malformed object to SearXNG.
     if isinstance(query, list):
         query = " ".join(str(q) for q in query)
     elif not isinstance(query, str):
@@ -337,7 +337,7 @@ def search_web(query: str) -> str:
         return header + body
     except Exception as e:
         # SearXNG a levé (connexion refusée, JSON invalide = page CAPTCHA/HTML au
-        # instead of JSON, timeout...) — the same "CAPTCHA-shaped" conditions as above,
+        # instead of JSON, timeout...), the same "CAPTCHA-shaped" conditions as above,
         # on the transport side this time. Try the failover before returning the error.
         ddg = _duckduckgo_failover(query)
         if ddg:
@@ -371,7 +371,7 @@ def _diversify_by_domain(results: list, limit: int, per_domain: int = 1) -> list
                 return picked
         else:
             leftover.append(res)
-    for res in leftover:                      # not enough distinct domains — top up
+    for res in leftover:                      # not enough distinct domains, top up
         picked.append(res)
         if len(picked) >= limit:
             break
@@ -405,7 +405,7 @@ def search_web_deep(query: str) -> str:
         results = _diversify_by_domain(results, config.DEEP_SEARCH_FETCH_COUNT)
 
         # RSS: for news queries this bypasses the JS-rendering/anti-bot problem
-        # entirely for major press outlets — pure XML, no JavaScript to
+        # entirely for major press outlets, pure XML, no JavaScript to
         # execute, and a real structured publication date supplied by the publisher
         # itself rather than guessed from the page text.
         rss_items = _fetch_rss_headlines(query, max_items=3) if category == "news" else []
@@ -425,7 +425,7 @@ def search_web_deep(query: str) -> str:
                 r = requests.get(url, headers={"User-Agent": config.USER_AGENT}, timeout=config.DEEP_SEARCH_TIMEOUT)
                 text, date = _extract_with_meta(r.content, url, r.apparent_encoding)
                 # Texte trop mince = probable coquille JS (single-page app) plutôt
-                # than a genuinely thin page — retry through a real browser before
+                # than a genuinely thin page, retry through a real browser before
                 # giving up, instead of relying on the model to think of it.
                 if len(text.strip()) < config.DEEP_SEARCH_THIN_THRESHOLD:
                     rendered = _fetch_rendered_text(url, timeout_ms=10000)
@@ -538,7 +538,7 @@ def fetch_url_rendered(url: str) -> str:
     if not allowed:
         return f"⛔ Blocked: {robots_reason}"
     try:
-        import playwright  # noqa: F401 — only to tell "not installed" apart from another failure
+        import playwright  # noqa: F401, only to tell "not installed" apart from another failure
     except ImportError:
         return ("Browser rendering unavailable: playwright not installed. "
                 "Run: pip install playwright && playwright install chromium")

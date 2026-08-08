@@ -238,7 +238,7 @@ def main() -> int:
     swap_after = _swap_mb()
 
     # `state` is still live in this process, so the grounding evidence the agent
-    # already collects can be read straight off it — no reparsing of the transcript.
+    # already collects can be read straight off it, no reparsing of the transcript.
     try:
         tool_results = [str(r)[:20000] for r in state._last_turn_tool_results]
     except Exception:                                          # noqa: BLE001

@@ -79,7 +79,7 @@ def test_tool_registry():
         f"\n  unexpected: {sorted(names - EXPECTED_TOOLS)}")
     assert len(tools.TOOLS) == 34, f"expected 34 tools, got {len(tools.TOOLS)}"
     assert set(tools.TOOL_MAP) == names, "TOOL_MAP is out of sync with TOOLS"
-    # Every entry must be callable — catches a name that survived as a stale string/None.
+    # Every entry must be callable: catches a name that survived as a stale string/None.
     for name, fn in tools.TOOL_MAP.items():
         assert callable(fn), f"TOOL_MAP[{name!r}] is not callable"
 
@@ -150,7 +150,7 @@ def test_params_are_live():
     with them, the menu keeps working and keeps saving while the running agent never sees the
     new value. Reading and writing through the schema is the only way to prove the link.
     """
-    # _param_adjust persists through _save_params(), which writes config.PARAMS_FILE — the
+    # _param_adjust persists through _save_params(), which writes config.PARAMS_FILE, the
     # REAL ~/.agentic_1a_params.json. Redirect it first: an earlier version of this test
     # rewrote the user's live settings (every value bumped one step, including
     # GEN_NUM_PREDICT -1 -> 127, which silently truncates every answer).

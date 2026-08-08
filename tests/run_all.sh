@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run every deterministic test, each in its OWN process (required — see README.md).
+# Run every deterministic test, each in its OWN process (required, see README.md).
 # From the project root:  bash tests/run_all.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,7 +25,7 @@ done
 # test because each test runs in its own process and cannot police the others. It is not
 # hypothetical: test_structure's /parameters round-trip once rewrote the live
 # ~/.agentic_1a_params.json, bumping every setting one step (GEN_NUM_PREDICT -1 -> 127,
-# which silently truncates every answer) — green suite, corrupted settings.
+# which silently truncates every answer), green suite, corrupted settings.
 home_snapshot() { for f in "$HOME"/.agentic_1a_params.json "$HOME"/.agentic_1a_history \
                         "$HOME"/.agentic_1a_models.json "$HOME"/.agentic_1a_default_model.txt \
                         "$HOME"/.agentic_1a_mcp.json; do

@@ -13,7 +13,7 @@ def chunk(content="", tool_calls=None):
     return types.SimpleNamespace(message=types.SimpleNamespace(content=content, tool_calls=tool_calls, thinking=None),
                                  prompt_eval_count=10)
 
-# 1. _EscapeWatcher is a safe NO-OP when stdin isn't a TTY (tests, pipes, headless) —
+# 1. _EscapeWatcher is a safe NO-OP when stdin isn't a TTY (tests, pipes, headless) , 
 #    it must NEVER abort in non-interactive contexts.
 w = loop._EscapeWatcher()
 w.__enter__()

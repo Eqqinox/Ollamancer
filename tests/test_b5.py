@@ -4,7 +4,7 @@ from agentic import tools
 from agentic import config, state
 from agentic.tools import rag
 
-# Deterministic hashing embedder (bag-of-words over 64 buckets) — same process, so query
+# Deterministic hashing embedder (bag-of-words over 64 buckets), same process, so query
 # and chunks share the same mapping; word overlap → high cosine. No real model needed.
 DIM = 64
 def fake_embed(texts):

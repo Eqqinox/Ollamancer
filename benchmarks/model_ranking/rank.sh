@@ -12,12 +12,12 @@
 #      every run and the model is stopped after it).
 #   2. Swap usage is sampled either side of every run. The two >20 GB models are on
 #      this machine's edge (24 GB unified memory) but their vendors advertise a real
-#      working set below the on-disk size — the A3B one is a mixture-of-experts that
+#      working set below the on-disk size, the A3B one is a mixture-of-experts that
 #      activates ~3B parameters per token. So they are TESTED by default, and whether
 #      they actually fit is answered by the measured swap delta and by whether they
 #      crash. --skip-heavy leaves them out.
 #   3. The real ~/.agentic_1a_* files are byte-identical at the end. If they are not,
-#      the campaign aborts loudly — a benchmark must never mutate the user's setup.
+#      the campaign aborts loudly, a benchmark must never mutate the user's setup.
 
 set -uo pipefail
 
@@ -26,7 +26,7 @@ REPO="$(cd "$HERE/../.." && pwd)"
 PY="$REPO/.venv/bin/python"
 RESULTS="$HERE/results"
 
-TIMEOUT=300        # 5 min hard cap per run (was 9) — a slow model is a finding, not a wait
+TIMEOUT=300        # 5 min hard cap per run (was 9): a slow model is a finding, not a wait
 COOLDOWN=8         # seconds between runs, so the GPU memory is really released and the
                    # machine gets a moment to shed heat before the next load
 HEAVY_GB=20        # models above this are flagged and reported on, but still run
@@ -54,7 +54,7 @@ ALL_MODELS=(
 # Above HEAVY_GB. Included by default (--skip-heavy to drop them): both advertise a
 # real working set below their on-disk size, and the only honest way to settle that is
 # to run them and read the swap delta. A crash or a timeout here is a result, not an
-# error — it gets written into meta.json like any other outcome.
+# error: it gets written into meta.json like any other outcome.
 HEAVY_MODELS=(
   "rafw007/Qwen3.6-35B-A3B-mlx-claude-coder-abliterated:latest"   # 23.9 GB on disk, A3B MoE
   "charaf/Qwen3.6-27B-OBLITERATED-mlx-q8:latest"                  # 28.6 GB on disk, > total RAM

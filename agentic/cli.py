@@ -41,7 +41,7 @@ from agentic.tools import exec as toolexec
 from agentic.tools.exec import kill_process, list_processes
 from agentic.tools import notes, web
 
-# Cleanup that must happen however the process ends — /exit, Ctrl+C, or a crash.
+# Cleanup that must happen however the process ends, /exit, Ctrl+C, or a crash.
 # Registered at import so an early failure still tears down the sandbox container,
 # the REPL subprocess, background processes and the MCP servers.
 atexit.register(safety._cleanup_sandbox)
@@ -142,7 +142,7 @@ def main():
         sys.exit(1)
 
     if ui._prompt_session is None and not state.PRIVATE_MODE:
-        # input()/readline fallback only — prompt_toolkit handles its own
+        # input()/readline fallback only, prompt_toolkit handles its own
         # history persistence via FileHistory, so the two must not
         # write to the same file in different formats.
         readline.set_history_length(500)

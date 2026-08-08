@@ -9,7 +9,7 @@ assert loop._looks_like_failure("⚠️ Stopped after 25 rounds")
 assert loop._looks_like_failure("⛔ Blocked: nope")
 assert not loop._looks_like_failure("Here is your answer, all good.")
 
-# 2. recipe parsing — Constraints + Steps headings
+# 2. recipe parsing, Constraints + Steps headings
 d = pathlib.Path(tempfile.mkdtemp())
 rp = d / "recipe.md"
 rp.write_text("""# My recipe
@@ -81,7 +81,7 @@ assert code3 == 0, code3
 assert "step one done" in out3 and "step two done" in out3, repr(out3)
 
 # 4. stdout purity: in headless mode stdout must carry ONLY the final answer.
-# Regression guard — _init_mcp() prints one line per connected server, and it used to run
+# Regression guard: _init_mcp() prints one line per connected server, and it used to run
 # *before* the console was switched to stderr, so every MCP user's `--run` output was
 # polluted with "MCP: connected ..." lines. The stub above hid it from this test; here we
 # make the stub print the way the real thing does.

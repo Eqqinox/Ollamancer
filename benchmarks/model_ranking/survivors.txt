@@ -1,4 +1,4 @@
-# Round 1 survivors — confirmed by the user 2026-08-08.
+# Round 1 survivors: confirmed by the user 2026-08-08.
 qwen3.5:4b
 gamy316/aileen1.0:latest
 lfm2.5:8b

@@ -74,7 +74,7 @@ def lint_file(path: str) -> str:
         except Exception as e:
             return f"Error running {name}: {e}"
         output = (result.stdout + result.stderr).strip()
-        # npx with --no-install fails this way when the linter isn't a local devDependency —
+        # npx with --no-install fails this way when the linter isn't a local devDependency , 
         # that's "not available", not a real lint finding. Try the next candidate instead.
         if cmd[0] == "npx" and "canceled due to missing packages" in output:
             continue

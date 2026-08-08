@@ -33,7 +33,7 @@ def run_main_with_inputs(items):
         sys.argv = old_argv
     return consumed, buf.getvalue()
 
-# 1. Ctrl+C at the prompt does NOT quit — it cancels the line and re-prompts.
+# 1. Ctrl+C at the prompt does NOT quit, it cancels the line and re-prompts.
 #    If it wrongly quit on Ctrl+C, the second input ("/exit") would never be consumed.
 consumed, out = run_main_with_inputs([KeyboardInterrupt, "/exit"])
 assert consumed == [KeyboardInterrupt, "/exit"], consumed  # both consumed → Ctrl+C continued

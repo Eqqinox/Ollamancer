@@ -32,7 +32,7 @@ from agentic.tools.codenav import _iter_source_files
 # find_references (symboles) : la recherche *conceptuelle*. Embeddings locaux via
 # the already-installed bge-m3 model (ollama.embed), stored in a stdlib SQLite
 # (.agentic/semantic_index.db) ; similarité cosinus en pur Python (aucune dépendance
-# added — no numpy, no chromadb, no sqlite-vec, none of which are in this venv). Re-indexing
+# added: no numpy, no chromadb, no sqlite-vec, none of which are in this venv). Re-indexing
 # is incremental on mtime: only new/modified files are re-embedded.
 _SEMANTIC_EXTS = config._REF_SOURCE_EXTS | {".md", ".txt", ".rst", ".toml", ".yaml", ".yml", ".json", ".sh", ".cfg", ".ini"}
 

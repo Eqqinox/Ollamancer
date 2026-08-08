@@ -27,7 +27,7 @@ CONFIG_FILE = Path.home() / ".agentic_imessage.json"
 MESSAGES_DB = Path.home() / "Library" / "Messages" / "chat.db"
 
 # ── Settings ──────────────────────────────────────────────────────────────────
-TRIGGER      = "!"    # Trigger prefix — send "! your question"
+TRIGGER      = "!"    # Trigger prefix: send "! your question"
 POLL_SECS    = 3      # Polling interval in seconds
 MAX_MSG_LEN  = 1800   # Max length per iMessage fragment
 

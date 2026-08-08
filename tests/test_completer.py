@@ -13,11 +13,11 @@ allc = completions_for("/")
 assert len(allc) == len(ui._SLASH_COMMANDS), (len(allc), len(ui._SLASH_COMMANDS))
 assert "/compact" in allc and "/architect" in allc and "/help" in allc
 
-# 2. refining narrows the list — "/c" → only /clear, /context, /compact
+# 2. refining narrows the list, "/c" → only /clear, /context, /compact
 c = set(completions_for("/c"))
 assert c == {"/clear", "/context", "/compact"}, c
 
-# 3. more characters refine further — "/co" → /context, /compact
+# 3. more characters refine further, "/co" → /context, /compact
 assert set(completions_for("/co")) == {"/context", "/compact"}, completions_for("/co")
 assert set(completions_for("/com")) == {"/compact"}, completions_for("/com")
 

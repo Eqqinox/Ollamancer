@@ -26,7 +26,7 @@ stdout, or kept writing a private session's input to disk.
 `_SLASH_COMMANDS` is a plain data table, never rebound, so it is safe to import by name.
 """
 
-# Escape-key detection during generation (Unix only) — lets you stop the model and return
+# Escape-key detection during generation (Unix only), lets you stop the model and return
 # to the prompt without killing the session. Silent no-op where unavailable.
 try:
     import select as _select
@@ -56,13 +56,13 @@ try:
     from prompt_toolkit.completion import Completer, Completion
     _PROMPT_TOOLKIT_AVAILABLE = True
 except ImportError:
-    _PROMPT_TOOLKIT_AVAILABLE = False  # falls back to input()/readline — see _prompt()
+    _PROMPT_TOOLKIT_AVAILABLE = False  # falls back to input()/readline, see _prompt()
 
 console = Console()
 
 # Slash-command autocomplete: (command, EN description, FR description). Typing "/"
 # lists every command; each extra character filters the list. Source of
-# truth for the completion menu — keep in sync with main()'s dispatch and HELP_TEXT.
+# truth for the completion menu, keep in sync with main()'s dispatch and HELP_TEXT.
 _SLASH_COMMANDS = [
     ("/help", "Show all commands", "Afficher toutes les commandes"),
     ("/exit", "Quit", "Quitter"),
@@ -120,12 +120,12 @@ if _PROMPT_TOOLKIT_AVAILABLE:
 
 
 # Interactive input: prompt_toolkit handles bracketed paste itself
-# instead of depending on the system readline library — on
+# instead of depending on the system readline library, on
 # macOS the system/Homebrew Python is very often linked against libedit rather than
 # GNU readline, whose paste support is weak/inconsistent (pasted text
 # containing newlines submits prematurely at every
 # `\n`, before the user presses Enter). Silent fallback to
-# input()/readline if prompt_toolkit is not installed — behaviour
+# input()/readline if prompt_toolkit is not installed, behaviour
 # identical to before, just without the fix.
 _prompt_session = None
 if _PROMPT_TOOLKIT_AVAILABLE:
@@ -136,7 +136,7 @@ if _PROMPT_TOOLKIT_AVAILABLE:
             complete_while_typing=True,   # the menu appears/filters as you type
         )
     except Exception:
-        _prompt_session = None  # e.g. HISTORY_FILE unreadable — fall back to input()
+        _prompt_session = None  # e.g. HISTORY_FILE unreadable, fall back to input()
 
 
 def _prompt(label: str) -> str:
@@ -173,13 +173,13 @@ def use_ephemeral_history() -> None:
 
 # ── Escape-to-stop, the live RAM spinner, and streamed rendering ─────────────
 # Historically every call was stream=False because of the Ollama streaming+tools bug
-# (#12557). Streaming only the FINAL answer — buffering any round that produces
-# tool_calls — restores a real-time feel on the long final generation without touching
+# (#12557). Streaming only the FINAL answer, buffering any round that produces
+# tool_calls: restores a real-time feel on the long final generation without touching
 # tool-calling reliability. Any streaming failure degrades to the buffered path.
 #
 # The spinner and the live render are two phases of one display: spinner (with the
 # live RAM readout) until the first text token arrives, then live markdown. On a tool
-# round no text ever arrives, so the spinner stays up the whole time — which is what
+# round no text ever arrives, so the spinner stays up the whole time, which is what
 # keeps "thinking" visible during tool use.
 
 
@@ -242,7 +242,7 @@ class _EscapeWatcher:
             follow, _, _ = _select.select([sys.stdin], [], [], 0.02)
             if follow:
                 try:
-                    sys.stdin.read(2)   # drains the sequence (arrow key, etc.) — not an abort
+                    sys.stdin.read(2)   # drains the sequence (arrow key, etc.), not an abort
                 except Exception:
                     pass
                 return False
@@ -303,7 +303,7 @@ def _consume_stream(stream, on_text=None, abort_check=None) -> _StreamedResp:
 # ── /parameters: the live settings menu ──────────────────────────────────────
 # A full-screen curses menu over the 30 tunables in agentic/config.py. Each row names
 # its variable as a string and reads/writes it with getattr/setattr on the config
-# module — so the menu, the persisted JSON, and the value the agent actually reads are
+# module: so the menu, the persisted JSON, and the value the agent actually reads are
 # guaranteed to be the same object. (While the schema and the variables shared a module
 # this used globals(); that stopped working the moment config moved out, silently, which
 # is what tests/test_structure.py::test_params_are_live now guards.)
