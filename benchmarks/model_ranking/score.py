@@ -276,6 +276,19 @@ SCORERS = {"t1": score_t1, "t2": score_t2, "t3": score_t3, "t4": score_t4}
 MAX = {"t1": 25, "t2": 25, "t3": 25, "t4": 25}
 
 
+def _rel(run: Path) -> str:
+    """Path relative to this directory, so scores.json is portable.
+
+    It used to store the absolute path, which baked the author's home directory into a
+    file that gets committed and published — meaningless on anyone else's machine, and
+    not something a published artefact should carry.
+    """
+    try:
+        return str(run.resolve().relative_to(HERE))
+    except ValueError:
+        return run.name
+
+
 def score_run(run: Path) -> dict:
     answer, meta, trace, results = _load(run)
     task = meta.get("task", run.name.split("_")[0])
@@ -287,7 +300,7 @@ def score_run(run: Path) -> dict:
         return None
 
     if meta.get("status") != "ok":
-        return {"run": str(run), "model": meta.get("model"), "task": task,
+        return {"run": _rel(run), "model": meta.get("model"), "task": task,
                 "total": 0, "max": MAX.get(task, 25), "parts": {},
                 "notes": [f"run did not complete: {meta.get('status')}"],
                 "judged_pending": [], "seconds": meta.get("seconds"),
@@ -307,7 +320,7 @@ def score_run(run: Path) -> dict:
                 pending.remove(key)
                 notes.append(f"{key} = {val} (manual, see judged.json)")
     total = max(0, min(MAX[task], round(sum(parts.values()), 1)))
-    return {"run": str(run), "model": meta.get("model"), "task": task,
+    return {"run": _rel(run), "model": meta.get("model"), "task": task,
             "total": total, "max": MAX[task], "parts": parts, "notes": notes,
             "judged_pending": pending, "seconds": meta.get("seconds"),
             "n_tool_calls": meta.get("n_tool_calls")}

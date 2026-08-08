@@ -29,17 +29,43 @@ htmlcov/
 # ── Project-local working files (not part of the public repo) ─────────────────
 backups/
 
+# ── Secrets ───────────────────────────────────────────────────────────────────
+# Nothing here needs an API key — the project is Ollama-only by design — but a
+# stray credential file is the one mistake a public repo cannot take back, so the
+# net is cast wider than this project strictly needs.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+
+# ── Agent config, if it ever lands inside the repo ─────────────────────────────
+# These normally live in $HOME (see the note at the bottom). This rule only matters
+# if HOME is redirected here — which is exactly what a test harness does.
+.agentic_1a_*
+
 # ── Editor / tooling ──────────────────────────────────────────────────────────
 .claude/
 .serena/
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 
-# ── macOS ─────────────────────────────────────────────────────────────────────
+# ── Merge / patch artefacts ───────────────────────────────────────────────────
+*.orig
+*.rej
+
+# ── OS cruft ──────────────────────────────────────────────────────────────────
 .DS_Store
 .AppleDouble
 .LSOverride
+Thumbs.db
+desktop.ini
 
 # ── Note ──────────────────────────────────────────────────────────────────────
 # The agent also writes to your HOME directory, outside this repo:
@@ -52,7 +78,12 @@ backups/
 #   ~/.agentic_imessage.json         iMessage bridge configuration
 # Nothing there is ever committed. See the Privacy section of the manual.
 
-# Model ranking campaign: keep the scores (the evidence behind RESULTS.md), drop the
-# raw run directories (~3 MB of captured web pages and transcripts, not worth versioning).
+# ── Model ranking campaign ────────────────────────────────────────────────────
+# scores.json is kept: it is the evidence behind every number in RESULTS.md, and it
+# holds only structured metadata (21 KB, no page text).
+# The raw run directories are excluded for a reason beyond size: they contain the full
+# text of third-party news articles and vendor blog posts fetched during the search and
+# report tasks. Republishing someone else's article body in a public repo is not ours
+# to do, and it would be the bulk of the ~3 MB.
 benchmarks/model_ranking/results/*
 !benchmarks/model_ranking/results/scores.json

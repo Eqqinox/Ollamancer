@@ -1,6 +1,6 @@
 [
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t1_rep1",
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t1_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t1",
     "total": 25,
@@ -24,7 +24,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t2_rep1",
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t2_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t2",
     "total": 25,
@@ -47,7 +47,7 @@
     "n_tool_calls": 4
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t3_rep1",
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t3_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t3",
     "total": 9,
@@ -67,7 +67,7 @@
     "n_tool_calls": 3
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t4_rep1",
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t4_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t4",
     "total": 0,
@@ -89,7 +89,7 @@
     "n_tool_calls": 3
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gamy316_aileen1.0_latest/t1_rep1",
+    "run": "results/gamy316_aileen1.0_latest/t1_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t1",
     "total": 13.8,
@@ -113,7 +113,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gamy316_aileen1.0_latest/t2_rep1",
+    "run": "results/gamy316_aileen1.0_latest/t2_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t2",
     "total": 14.3,
@@ -137,7 +137,7 @@
     "n_tool_calls": 1
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gamy316_aileen1.0_latest/t3_rep1",
+    "run": "results/gamy316_aileen1.0_latest/t3_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t3",
     "total": 6,
@@ -158,7 +158,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gamy316_aileen1.0_latest/t4_rep1",
+    "run": "results/gamy316_aileen1.0_latest/t4_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t4",
     "total": 0,
@@ -180,7 +180,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_12b-mlx/t1_rep1",
+    "run": "results/gemma4_12b-mlx/t1_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t1",
     "total": 25,
@@ -204,7 +204,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_12b-mlx/t2_rep1",
+    "run": "results/gemma4_12b-mlx/t2_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t2",
     "total": 20.7,
@@ -227,7 +227,7 @@
     "n_tool_calls": 3
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_12b-mlx/t3_rep1",
+    "run": "results/gemma4_12b-mlx/t3_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t3",
     "total": 25,
@@ -246,7 +246,7 @@
     "n_tool_calls": 13
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_12b-mlx/t4_rep1",
+    "run": "results/gemma4_12b-mlx/t4_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t4",
     "total": 24.5,
@@ -270,7 +270,7 @@
     "n_tool_calls": 4
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_26b-mlx/t1_rep1",
+    "run": "results/gemma4_26b-mlx/t1_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t1",
     "total": 25,
@@ -294,7 +294,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_26b-mlx/t2_rep1",
+    "run": "results/gemma4_26b-mlx/t2_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t2",
     "total": 22.0,
@@ -317,7 +317,7 @@
     "n_tool_calls": 4
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_26b-mlx/t3_rep1",
+    "run": "results/gemma4_26b-mlx/t3_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t3",
     "total": 9,
@@ -337,7 +337,7 @@
     "n_tool_calls": 4
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gemma4_26b-mlx/t4_rep1",
+    "run": "results/gemma4_26b-mlx/t4_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t4",
     "total": 0,
@@ -359,7 +359,7 @@
     "n_tool_calls": 7
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gpt-oss_20b/t1_rep1",
+    "run": "results/gpt-oss_20b/t1_rep1",
     "model": "gpt-oss:20b",
     "task": "t1",
     "total": 19.0,
@@ -383,7 +383,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gpt-oss_20b/t2_rep1",
+    "run": "results/gpt-oss_20b/t2_rep1",
     "model": "gpt-oss:20b",
     "task": "t2",
     "total": 19.0,
@@ -406,7 +406,7 @@
     "n_tool_calls": 4
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gpt-oss_20b/t3_rep1",
+    "run": "results/gpt-oss_20b/t3_rep1",
     "model": "gpt-oss:20b",
     "task": "t3",
     "total": 12,
@@ -426,7 +426,7 @@
     "n_tool_calls": 25
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/gpt-oss_20b/t4_rep1",
+    "run": "results/gpt-oss_20b/t4_rep1",
     "model": "gpt-oss:20b",
     "task": "t4",
     "total": 25,
@@ -450,7 +450,7 @@
     "n_tool_calls": 3
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t1_rep1",
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t1_rep1",
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t1",
     "total": 25,
@@ -474,7 +474,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t2_rep1",
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t2_rep1",
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t2",
     "total": 17.0,
@@ -498,7 +498,7 @@
     "n_tool_calls": 11
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t3_rep1",
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t3_rep1",
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t3",
     "total": 6,
@@ -519,7 +519,7 @@
     "n_tool_calls": 1
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t4_rep1",
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t4_rep1",
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t4",
     "total": 22.8,
@@ -544,7 +544,7 @@
     "n_tool_calls": 7
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t1_rep1",
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t1_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t1",
     "total": 0,
@@ -568,7 +568,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t2_rep1",
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t2_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t2",
     "total": 25,
@@ -591,7 +591,7 @@
     "n_tool_calls": 4
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t3_rep1",
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t3_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t3",
     "total": 15,
@@ -610,7 +610,7 @@
     "n_tool_calls": 10
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t4_rep1",
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t4_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t4",
     "total": 23.9,
@@ -634,7 +634,7 @@
     "n_tool_calls": 4
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/lfm2.5_8b/t1_rep1",
+    "run": "results/lfm2.5_8b/t1_rep1",
     "model": "lfm2.5:8b",
     "task": "t1",
     "total": 0,
@@ -658,7 +658,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/lfm2.5_8b/t2_rep1",
+    "run": "results/lfm2.5_8b/t2_rep1",
     "model": "lfm2.5:8b",
     "task": "t2",
     "total": 17.0,
@@ -682,7 +682,7 @@
     "n_tool_calls": 2
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/lfm2.5_8b/t3_rep1",
+    "run": "results/lfm2.5_8b/t3_rep1",
     "model": "lfm2.5:8b",
     "task": "t3",
     "total": 9,
@@ -702,7 +702,7 @@
     "n_tool_calls": 11
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/lfm2.5_8b/t4_rep1",
+    "run": "results/lfm2.5_8b/t4_rep1",
     "model": "lfm2.5:8b",
     "task": "t4",
     "total": 0,
@@ -724,7 +724,7 @@
     "n_tool_calls": 1
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/ornith_9b/t1_rep1",
+    "run": "results/ornith_9b/t1_rep1",
     "model": "ornith:9b",
     "task": "t1",
     "total": 0,
@@ -748,7 +748,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/ornith_9b/t2_rep1",
+    "run": "results/ornith_9b/t2_rep1",
     "model": "ornith:9b",
     "task": "t2",
     "total": 19.0,
@@ -772,7 +772,7 @@
     "n_tool_calls": 5
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/ornith_9b/t3_rep1",
+    "run": "results/ornith_9b/t3_rep1",
     "model": "ornith:9b",
     "task": "t3",
     "total": 6,
@@ -793,7 +793,7 @@
     "n_tool_calls": 1
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/ornith_9b/t4_rep1",
+    "run": "results/ornith_9b/t4_rep1",
     "model": "ornith:9b",
     "task": "t4",
     "total": 25,
@@ -817,7 +817,7 @@
     "n_tool_calls": 8
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/qwen3.5_4b/t1_rep1",
+    "run": "results/qwen3.5_4b/t1_rep1",
     "model": "qwen3.5:4b",
     "task": "t1",
     "total": 12.0,
@@ -841,7 +841,7 @@
     "n_tool_calls": 0
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/qwen3.5_4b/t2_rep1",
+    "run": "results/qwen3.5_4b/t2_rep1",
     "model": "qwen3.5:4b",
     "task": "t2",
     "total": 25,
@@ -864,7 +864,7 @@
     "n_tool_calls": 6
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/qwen3.5_4b/t3_rep1",
+    "run": "results/qwen3.5_4b/t3_rep1",
     "model": "qwen3.5:4b",
     "task": "t3",
     "total": 9,
@@ -884,7 +884,7 @@
     "n_tool_calls": 13
   },
   {
-    "run": "/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/results/qwen3.5_4b/t4_rep1",
+    "run": "results/qwen3.5_4b/t4_rep1",
     "model": "qwen3.5:4b",
     "task": "t4",
     "total": 23.9,
