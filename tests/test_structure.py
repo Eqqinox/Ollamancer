@@ -34,7 +34,8 @@ EXPECTED_TOOLS = {
     "read_file", "read_file_lines", "write_file", "append_file", "edit_file",
     "create_directory", "list_directory",
     # code navigation
-    "search_in_files", "find_files", "find_references", "search_semantic", "load_skill",
+    "search_in_files", "find_files", "find_references", "search_semantic", "repo_map",
+    "load_skill",
     # git
     "git_status", "git_diff", "git_log", "git_commit",
     # verification / execution
@@ -72,12 +73,12 @@ EXPECTED_PARAM_VARS = {
 
 
 def test_tool_registry():
-    """TOOLS and TOOL_MAP agree with each other and with the documented 34."""
+    """TOOLS and TOOL_MAP agree with each other and with the documented 35."""
     names = {fn.__name__ for fn in tools.TOOLS}
     assert names == EXPECTED_TOOLS, (
         f"tool set changed\n  missing: {sorted(EXPECTED_TOOLS - names)}"
         f"\n  unexpected: {sorted(names - EXPECTED_TOOLS)}")
-    assert len(tools.TOOLS) == 34, f"expected 34 tools, got {len(tools.TOOLS)}"
+    assert len(tools.TOOLS) == 35, f"expected 35 tools, got {len(tools.TOOLS)}"
     assert set(tools.TOOL_MAP) == names, "TOOL_MAP is out of sync with TOOLS"
     # Every entry must be callable: catches a name that survived as a stale string/None.
     for name, fn in tools.TOOL_MAP.items():

@@ -13,7 +13,7 @@
 
 Agentic_1A is a terminal AI agent that runs **entirely on your machine** through
 [Ollama](https://ollama.com): no cloud, no API keys, no data leaving your computer. You
-point it at a project folder and talk to it; it reasons and acts using **34 native tools**
+point it at a project folder and talk to it; it reasons and acts using **35 native tools**
 (files, git, web search, code execution, RAG, vision…), plus any [MCP](https://modelcontextprotocol.io)
 servers you configure, plus the full macOS shell. It was written **from scratch** (no
 LangChain/Smolagents) for total control and transparency, and its design obsesses over three
@@ -58,14 +58,15 @@ Model reasons → calls tool(s) → gets results → reasons again … → final
 
 ---
 
-## 4. The tool belt (34 native tools)
+## 4. The tool belt (35 native tools)
 
 - **Web:** `search_web`, `search_web_deep` (reads the top pages), `fetch_url`,
   `fetch_url_rendered` (headless browser). SearXNG with automatic **DuckDuckGo-MCP failover**.
 - **Files:** `read_file`, `read_file_lines`, `write_file`, `append_file` (chunked writes),
   `edit_file` (surgical), `create_directory`, `list_directory`.
 - **Code navigation:** `search_in_files` (grep), `find_files`, `find_references` (AST-precise for
-  Python), `search_semantic` (**local RAG** via the bge-m3 embedding model), `load_skill`.
+  Python), `repo_map` (**ranked outline** of the whole project, PageRank over a name-usage
+  graph), `search_semantic` (**local RAG** via the bge-m3 embedding model), `load_skill`.
 - **Git:** `git_status`, `git_diff`, `git_log`, `git_commit`.
 - **Verification / execution:** `lint_file`, `run_tests`, `run_command`, `python_repl`
   (persistent interpreter).

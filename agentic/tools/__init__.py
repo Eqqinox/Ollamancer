@@ -31,6 +31,7 @@ from agentic.tools.files import (
 from agentic.tools.notes import (
     get_datetime, memory_read, memory_write, todo_read, todo_write)
 from agentic.tools.rag import search_semantic
+from agentic.tools.repomap import repo_map
 from agentic.tools.vcs import git_commit, git_diff, git_log, git_status
 from agentic.tools.vision import analyze_image
 from agentic.tools.web import fetch_url, fetch_url_rendered, search_web, search_web_deep
@@ -38,7 +39,7 @@ from agentic.tools.web import fetch_url, fetch_url_rendered, search_web, search_
 TOOLS = [
     search_web, search_web_deep, fetch_url, fetch_url_rendered,
     read_file, read_file_lines, write_file, append_file, edit_file, create_directory, list_directory,
-    search_in_files, find_files, find_references, search_semantic, load_skill,
+    search_in_files, find_files, find_references, search_semantic, repo_map, load_skill,
     git_status, git_diff, git_log, git_commit,
     lint_file, run_tests, run_command, python_repl, get_datetime, analyze_image,
     todo_write, todo_read, memory_write, memory_read,

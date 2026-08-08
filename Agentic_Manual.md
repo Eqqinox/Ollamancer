@@ -224,7 +224,7 @@ Only the final answer(s) go to stdout; progress goes to stderr.
 
 ## What the agent can do
 
-The agent has **34 tools** it uses **automatically**. You never need to name a tool, the
+The agent has **35 tools** it uses **automatically**. You never need to name a tool, the
 model decides on its own. For the exhaustive list, see [`capabilities.md`](./capabilities.md).
 
 ### Highlighted tools
@@ -235,6 +235,19 @@ guides the model: beyond ~80 lines, write the first chunk with `write_file` and 
 ```
 You → create a 300-line utils.py module with these functions: ...
   → the model writes the file in ≤80-line blocks (write_file, then append_file ×N)
+```
+
+**`repo_map(focus, max_chars)`**: an outline of the whole project, every file's classes
+and functions with no bodies, ranked so the widely used modules come first. Use it before
+reading or grepping on an unfamiliar codebase. Ranking is PageRank over a graph whose
+edges mean "this file uses a name that file defines", so a module twenty others depend on
+outranks a leaf script. Python is read with the standard library and needs nothing
+installed; other languages need the `treesitter` extra and are otherwise listed without
+their definitions rather than dropped.
+```
+You → what is this project?
+  → repo_map returns a ranked outline, then you read only what matters
+You → repo_map(focus="retry") to rank the retry machinery first
 ```
 
 **`search_semantic(query)`**: conceptual search across the project (local RAG). Embeddings

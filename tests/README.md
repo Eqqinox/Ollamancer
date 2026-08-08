@@ -84,7 +84,7 @@ Two of the tests are not behavioural. They exist to make the ongoing modularizat
 
 | File | Enforces |
 |---|---|
-| `test_structure.py` | Golden master over the agent's *shape*: the 34-tool registry, the slash-command set, EN/FR parity across `STR`/`SYSTEM_PROMPT`/`HELP_TEXT`, and the 30-entry `/parameters` schema, including a live write/read round-trip proving the menu is still wired to the variables the agent reads. |
+| `test_structure.py` | Golden master over the agent's *shape*: the 35-tool registry, the slash-command set, EN/FR parity across `STR`/`SYSTEM_PROMPT`/`HELP_TEXT`, and the 30-entry `/parameters` schema, including a live write/read round-trip proving the menu is still wired to the variables the agent reads. |
 | `test_import_rules.py` | `config` and `state` must always be reached through the module object (`config.X`), never `from config import X`, which copies a value that never sees a later rebinding. Also bans `globals()[...]` across module boundaries and any local shadowing those module names. |
 
 Both were verified *negatively*, each fails on the bug it exists to catch.

@@ -373,7 +373,11 @@ Cursor and Codex.
 - **Ollama-only, by design, permanently.** This is the one entry here that is not a gap. The
   project exists so that everything stays on your machine: no API keys, no data leaving the
   computer. A remote endpoint would break that guarantee rather than extend the tool.
-- **No tree-sitter repo-map**, which remains Aider's clearest advantage for code editing.
+- **The repo map is shallower than Aider's.** `repo_map` ranks files with PageRank over a
+  name-usage graph, but it derives definitions from a keyword-and-suffix match on
+  tree-sitter node types rather than per-language query files, so it extracts names and
+  parameter lists rather than full typed signatures. Verified on JavaScript, Go, Rust,
+  Java, C and Ruby; other grammars are untested and may yield nothing.
 - **No packaging yet**: `launch.sh` and a venv rather than `pip install`.
 
 The last four are the active roadmap.

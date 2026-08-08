@@ -38,7 +38,10 @@ dependencies = [
 browser = ["playwright>=1.62.0"]   # fetch_url_rendered; also needs: playwright install chromium
 mcp = ["mcp>=2.0.0"]               # third-party MCP servers
 prompt = ["prompt_toolkit>=3.0.0"] # fixes paste-submits-early on macOS libedit builds
-all = ["playwright>=1.62.0", "mcp>=2.0.0", "prompt_toolkit>=3.0.0"]
+# repo_map reads Python with the standard library and needs nothing; this adds the other
+# languages. tree-sitter-languages, which Aider originally used, is unmaintained.
+treesitter = ["tree-sitter-language-pack>=0.9"]
+all = ["playwright>=1.62.0", "mcp>=2.0.0", "prompt_toolkit>=3.0.0", "tree-sitter-language-pack>=0.9"]
 dev = ["pytest>=8.0"]
 
 [project.urls]

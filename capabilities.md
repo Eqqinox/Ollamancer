@@ -80,6 +80,7 @@ So there are two levels of capability:
 
 ### Codebase navigation
 - Explore the structure of an unfamiliar project **[native]**
+- **Ranked map of the whole repository**, every file's classes and functions ordered by PageRank over a "who uses whose names" graph, truncated to a character budget; Python with no dependencies, other languages via the optional `treesitter` extra **[native, `repo_map`]**
 - Find where a function, class or variable is defined **[native]**
 - **Conceptual/semantic search by meaning** ("where is the retry logic handled?"), local RAG over the project via bge-m3 embeddings, incremental SQLite index **[native, `search_semantic`, v3.0]**
 - Find every use of a function in the project **[native]**
@@ -266,7 +267,7 @@ for the full parameter reference. **Since v2.9.14 the settings persist between s
 
 ## 9 ter. MCP (Model Context Protocol): third-party tools
 
-Since v2.9.14 the agent can connect to external MCP servers in addition to its 34 native
+Since v2.9.14 the agent can connect to external MCP servers in addition to its 35 native
 tools, the same mechanism as Claude Desktop/Claude Code.
 
 **Configuration (one-time):**

@@ -4,7 +4,7 @@
 
 [![tests](https://github.com/Eqqinox/Ollamancer/actions/workflows/tests.yml/badge.svg)](https://github.com/Eqqinox/Ollamancer/actions/workflows/tests.yml)
 
-No cloud. No API keys. No data leaves your machine. Point it at a project folder and talk to it. It reasons and acts with 34 native tools, MCP servers, and your shell.
+No cloud. No API keys. No data leaves your machine. Point it at a project folder and talk to it. It reasons and acts with 35 native tools, MCP servers, and your shell.
 
 > Status: **v3.0** · developed on macOS (Apple Silicon, 24 GB) · Python 3.12+ · documentation in English, **bilingual EN/FR interface** · MIT.
 
@@ -44,8 +44,9 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 
 ## Features
 
-- **34 native tools** + [MCP](https://modelcontextprotocol.io) + full shell.
+- **35 native tools** + [MCP](https://modelcontextprotocol.io) + full shell.
 - **Web search**: private SearXNG with automatic **DuckDuckGo failover**, plus deep-read and a headless-browser fetch.
+- **Repo map**: `repo_map` outlines every file's classes and functions, ranked by PageRank over a "who uses whose names" graph so the widely used modules survive the budget. Python needs no dependencies; other languages use tree-sitter via the `treesitter` extra.
 - **Local RAG**: conceptual code search over your project with the `bge-m3` embedding model (`search_semantic`), zero extra dependencies.
 - **Vision**: describe screenshots / read charts via an installed multimodal model.
 - **Persistent Python REPL**: state survives across calls, for real data work.
@@ -170,7 +171,7 @@ See [`tests/README.md`](./tests/README.md) for what each one covers.
 
 ## How it compares (honest)
 
-- **Aider**: better at disciplined git-native multi-file editing (tree-sitter repo-map). Agentic_1A doesn't have a repo-map (yet).
+- **Aider**: better at disciplined git-native multi-file editing. Both now have a ranked repo map; Aider's covers more languages out of the box, while `repo_map` here needs no dependencies for Python and an optional extra for the rest.
 - **OpenCode**: far more popular, and provider-neutral across many cloud and local backends. Agentic_1A declines that neutrality on purpose: Ollama-only means no API keys and nothing leaving your machine.
 - **Agentic_1A's niche**: the deterministic honesty layers, small-model reliability work, privacy mode, local RAG, and skills-beyond-MCP, in one transparent, from-scratch tool.
 
@@ -204,7 +205,7 @@ agentic/              # the implementation
   models.py           #   model discovery, context negotiation, /model picker
   mcp_client.py       #   MCP servers + the sync-to-async bridge
   skills.py           #   SKILL.md discovery, progressive disclosure
-  tools/              #   the 34 tools, one module per domain
+  tools/              #   the 35 tools, one module per domain
   loop.py             #   the ReAct loop, retries, honesty nudges, compaction
   commands.py         #   slash commands, architect/review, sessions
   cli.py              #   flags and the interactive/headless entry point
@@ -223,7 +224,7 @@ A mature **personal project**, open-sourced primarily as a transparent, local-fi
 honesty-focused alternative, not a bid to out-feature the incumbents.
 
 **Scope, stated up front:** packaging (`pip install`), a CI test suite, cross-platform
-support (Linux first), and a tree-sitter repo-map are the roadmap, in that order.
+support (Linux first) and a skills registry are the roadmap, in that order.
 
 **Ollama-only is permanent.** It is not a missing integration. It is the guarantee the
 project exists for. Adding a remote endpoint would mean API keys and data leaving your
