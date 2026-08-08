@@ -18,8 +18,8 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 
 ```
 ┌─ demo placeholder ──────────────────────────────────────────────┐
-│ A short asciinema recording goes here. │
-│ See the HTML comment above for the capture recipe. │
+│ A short asciinema recording goes here.                          │
+│ See the HTML comment above for the capture recipe.              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
