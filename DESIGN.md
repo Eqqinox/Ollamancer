@@ -41,24 +41,24 @@ already implicit, settings, session state, interface strings, safety rails, tool
 ### The ReAct loop
 
 ```
-User message
-
-Model reasons calls tool(s) gets results reasons again … final answer User
+User → message
+  ↓
+Model reasons → calls tool(s) → gets results → reasons again … → final answer → User
 ```
 
 ```python
 while True:
- response = ollama.chat(model, messages, tools=TOOLS)
- msg = response.message
+    response = ollama.chat(model, messages, tools=TOOLS)
+    msg = response.message
 
- if not msg.tool_calls:
- return msg.content # final answer
+    if not msg.tool_calls:
+        return msg.content              # ← final answer
 
- messages.append({assistant + tool_calls})
- for tc in msg.tool_calls:
- result = execute(tc.function.name, tc.function.arguments)
- messages.append({role: "tool", content: result})
- # the model sees the results and goes round again
+    messages.append({assistant + tool_calls})
+    for tc in msg.tool_calls:
+        result = execute(tc.function.name, tc.function.arguments)
+        messages.append({role: "tool", content: result})
+    # the model sees the results and goes round again
 ```
 
 The whole conversation lives in memory as a `messages` list and is re-sent every turn.
@@ -83,7 +83,7 @@ v2.9.16, **confined** to it (§4.5).
 |---|---|
 | No framework (LangChain, Smolagents) | Total control, zero hidden magic, readable code, fewer dependencies |
 | Messages as plain dicts, not SDK objects | Guaranteed compatibility across SDK versions |
-| Docstrings as tool descriptions | The SDK extracts them automatically better reliability |
+| Docstrings as tool descriptions | The SDK extracts them automatically → better reliability |
 | Bilingual system prompt (EN default, `/lang`) | The interface and the model's instructions switch together |
 | A timeout on every tool | Prevents hangs on long commands or unreachable URLs |
 | An isolated venv | PEP 668 forbids system pip installs on Homebrew Python |
@@ -141,7 +141,7 @@ with the most negative results worth reporting.
 Fabrication was not one bug. It appeared as a sequence of increasingly narrow cases, each
 found by a real task, each patched, each partially working:
 
-1. **Search returned nothing usable the model invented plausible headlines.** Real cause found by digging: `search_web` passed no `categories` to SearXNG, so it fell back to `general`, which legitimately ranks hub/category pages ("BBC News World") first for a broad query like "top news today". Not a SearXNG bug, normal general-search behaviour. Fixed by routing news-intent queries to `categories=news` **internally and invisibly**, mirroring how Anthropic's own server-side `web_search` exposes one tool with no category parameter. Verified against the exact query that had made four models fabricate.
+1. **Search returned nothing usable → the model invented plausible headlines.** Real cause found by digging: `search_web` passed no `categories` to SearXNG, so it fell back to `general`, which legitimately ranks hub/category pages ("BBC News World") first for a broad query like "top news today". Not a SearXNG bug, normal general-search behaviour. Fixed by routing news-intent queries to `categories=news` **internally and invisibly**, mirroring how Anthropic's own server-side `web_search` exposes one tool with no category parameter. Verified against the exact query that had made four models fabricate.
 2. **The user asked for more items than the search found.** ("That's a top 5, not a top 10.") The model added five invented items with **no additional tool call**, presented identically to the five real ones. Countered with a system-prompt rule: search again for real items, or state honestly how many you actually verified.
 3. **A single generic search used to justify three categories.** An "uncensored" model ran one `search_web` scoped to mainstream media, then produced three lists of ten. Countered with a rule requiring a separate search per requested category/source/viewpoint.
 4. **Structure fabricated around a thin result**, a bare URI dressed up as an invented table or JSON.
@@ -298,8 +298,8 @@ game**, never by linting, and never by the two most careful models.
 
 ### The result
 
-Five full attempts, with explicit scaffolding (activate the project run Pyright diagnostics
- fix actually execute don't declare done until both are clean):
+Five full attempts, with explicit scaffolding (activate the project → run Pyright diagnostics
+→ fix → actually execute → don't declare done until both are clean):
 
 | Model | Outcome |
 |---|---|
@@ -371,8 +371,8 @@ Cursor and Codex.
 - **MCP `taskSupport` capability negotiation is not implemented.** Tools requiring it fail cleanly rather than crashing.
 - **macOS-centric.** `termios`, `ollama stop`, and several paths assume Unix/macOS.
 - **Ollama-only, by design, permanently.** This is the one entry here that is not a gap. The
- project exists so that everything stays on your machine: no API keys, no data leaving the
- computer. A remote endpoint would break that guarantee rather than extend the tool.
+  project exists so that everything stays on your machine: no API keys, no data leaving the
+  computer. A remote endpoint would break that guarantee rather than extend the tool.
 - **No tree-sitter repo-map**, which remains Aider's clearest advantage for code editing.
 - **No packaging yet**: `launch.sh` and a venv rather than `pip install`.
 

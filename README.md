@@ -10,11 +10,11 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 > the name in the code, the docs and the `~/.agentic_1a_*` config paths. Same project.
 
 <!-- TODO: demo recording.
- asciinema rec demo.cast --cols 100 --rows 30
- agg demo.cast demo.gif # https://github.com/asciinema/agg
- Then replace this comment with:![Agentic_1A demo](./docs/demo.gif)
- Suggested 45s script: launch "where is the retry logic handled?" (RAG)
- "fix the failing test and verify it" (edit + run_tests) /diff /undo last -->
+     asciinema rec demo.cast --cols 100 --rows 30
+     agg demo.cast demo.gif      # https://github.com/asciinema/agg
+     Then replace this comment with:![Agentic_1A demo](./docs/demo.gif)
+     Suggested 45s script: launch → "where is the retry logic handled?" (RAG)
+     → "fix the failing test and verify it" (edit + run_tests) → /diff → /undo last -->
 
 ```
 ┌─ demo placeholder ──────────────────────────────────────────────┐
@@ -29,9 +29,9 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 
 The local-agent space is crowded (Aider, OpenCode, Goose…). Agentic_1A is different where it counts: it takes seriously the three things the [2026 local-first market analysis](https://nimbalyst.com/blog/best-local-first-ai-coding-tools-2026/) says the field is *missing*:
 
-- **Deterministic honesty controls**: it flags numbers/dates/URLs/names in an answer that appear in *no* tool result this turn, and nudges when the model claims "fixed/verified" without a real edit or verification. Hallucination is treated as a first-class, *deterministic* problem, not left to the model.
-- **Small-model reliability engineering**: retries + fallback for four confirmed Ollama tool-call failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across ~15 models.
-- **Privacy by design**: fully offline, plus a `--private` ephemeral mode that writes *nothing* to disk.
+-  **Deterministic honesty controls**: it flags numbers/dates/URLs/names in an answer that appear in *no* tool result this turn, and nudges when the model claims "fixed/verified" without a real edit or verification. Hallucination is treated as a first-class, *deterministic* problem, not left to the model.
+-  **Small-model reliability engineering**: retries + fallback for four confirmed Ollama tool-call failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across ~15 models.
+-  **Privacy by design**: fully offline, plus a `--private` ephemeral mode that writes *nothing* to disk.
 
 Plus local RAG, vision, dual-model planning, skills, and a genuinely nice terminal UX.
 
@@ -65,8 +65,8 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 
 ```bash
 # 1. Pull a tool-capable model (any small Qwen/Gemma build works), and the RAG embedder:
-ollama pull gemma4:12b-mlx # best all-round in our benchmark; any tool-capable model works
-ollama pull bge-m3 # embedding model, needed for local RAG
+ollama pull gemma4:12b-mlx    # best all-round in our benchmark; any tool-capable model works
+ollama pull bge-m3            # embedding model, needed for local RAG
 
 # 2. Launch in your project folder (sets up the venv on first run):
 git clone https://github.com/Eqqinox/Ollamancer.git
@@ -76,7 +76,7 @@ bash Ollamancer/launch.sh ~/path/to/your/project
 Or run directly:
 
 ```bash
-cd Ollamancer &&.venv/bin/python agent.py ~/path/to/your/project
+cd Ollamancer && .venv/bin/python agent.py ~/path/to/your/project
 ```
 
 **Optional flags:** `--safe` (approve risky tool calls), `--sandbox` (Docker isolation), `--private` (ephemeral, unlogged session).
@@ -88,10 +88,10 @@ cd Ollamancer &&.venv/bin/python agent.py ~/path/to/your/project
 Just talk to it:
 
 ```
-You fix the failing tests in this project and verify by running them
-You where is the retry logic handled? # uses local RAG
-You do a security review of my changes
-You research the latest on <topic> and write a cited report
+You → fix the failing tests in this project and verify by running them
+You → where is the retry logic handled?          # uses local RAG
+You → do a security review of my changes
+You → research the latest on <topic> and write a cited report
 ```
 
 Type **`/`** to autocomplete commands, `/help` lists them all. A few highlights:
@@ -99,7 +99,7 @@ Type **`/`** to autocomplete commands, `/help` lists them all. A few highlights:
 | Command | Does |
 |---|---|
 | `/model`, `/default-model` | Switch / persist the model |
-| `/architect <task>` | Dual-model plan execute |
+| `/architect <task>` | Dual-model plan → execute |
 | `/review-by <model>` | Second model reviews the diff |
 | `/skills`, `/skill <name>` | List / load a skill |
 | `/undo`, `/diff` | Revert a turn / see changes |
@@ -119,7 +119,7 @@ Skills are reusable `SKILL.md` workflows the agent loads on demand. 14 ship bund
 `dependency-audit`, `explain-codebase`, `dockerize-project`, `changelog-from-git`,
 `web-research-report`, `new-python-project`, `commit-message`, plus `skill-creator` and
 `mcp-builder` (adapted from Anthropic's Apache-2.0 [anthropics/skills](https://github.com/anthropics/skills)
-, see [`skills/LICENSES.md`](./skills/LICENSES.md)).
+,  see [`skills/LICENSES.md`](./skills/LICENSES.md)).
 
 Add your own: drop a folder with a `SKILL.md` into `~/.agentic_1a_skills/` (global) or
 `<project>/.agentic/skills/` (per-project). The format is the open standard, so skills are
@@ -142,7 +142,7 @@ The agent ships with 29 deterministic tests that run **fully offline**, no Ollam
 network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
-bash tests/run_all.sh # "tests: 29 passed, 0 failed"
+bash tests/run_all.sh          # → "tests: 29 passed, 0 failed"
 ```
 
 See [`tests/README.md`](./tests/README.md) for what each one covers.
@@ -173,26 +173,26 @@ All documentation is in English. The **agent's interface is bilingual EN/FR** (`
 ## Project layout
 
 ```
-agent.py # entry point + compatibility facade (44 lines)
-agentic/ # the implementation
- config.py # persisted settings (the 30 /parameters values)
- state.py # per-session runtime state + reset()
- i18n.py # bilingual EN/FR strings and the system prompt
- ui.py # console, prompt, autocomplete, /parameters menu
- safety.py # blocklists, path confinement, safe mode, sandbox, audit
- checkpoints.py # the shadow-git repo behind /undo
- models.py # model discovery, context negotiation, /model picker
- mcp_client.py # MCP servers + the sync-to-async bridge
- skills.py # SKILL.md discovery, progressive disclosure
- tools/ # the 34 tools, one module per domain
- loop.py # the ReAct loop, retries, honesty nudges, compaction
- commands.py # slash commands, architect/review, sessions
- cli.py # flags and the interactive/headless entry point
-launch.sh # venv setup + launcher
-skills/ # bundled SKILL.md workflows (14)
-benchmarks/ # model-reliability fixtures + playthrough harness
-tests/ # deterministic offline test suite (29 tests)
-imessage_bridge.py # optional: drive it from iPhone via iMessage (macOS)
+agent.py              # entry point + compatibility facade (44 lines)
+agentic/              # the implementation
+  config.py           #   persisted settings (the 30 /parameters values)
+  state.py            #   per-session runtime state + reset()
+  i18n.py             #   bilingual EN/FR strings and the system prompt
+  ui.py               #   console, prompt, autocomplete, /parameters menu
+  safety.py           #   blocklists, path confinement, safe mode, sandbox, audit
+  checkpoints.py      #   the shadow-git repo behind /undo
+  models.py           #   model discovery, context negotiation, /model picker
+  mcp_client.py       #   MCP servers + the sync-to-async bridge
+  skills.py           #   SKILL.md discovery, progressive disclosure
+  tools/              #   the 34 tools, one module per domain
+  loop.py             #   the ReAct loop, retries, honesty nudges, compaction
+  commands.py         #   slash commands, architect/review, sessions
+  cli.py              #   flags and the interactive/headless entry point
+launch.sh             # venv setup + launcher
+skills/               # bundled SKILL.md workflows (14)
+benchmarks/           # model-reliability fixtures + playthrough harness
+tests/                # deterministic offline test suite (29 tests)
+imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)
 ```
 
 ---

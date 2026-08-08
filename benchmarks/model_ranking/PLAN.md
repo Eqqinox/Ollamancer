@@ -16,20 +16,20 @@ localaimaster, webscraft and the r/LocalLLaMA consensus). Four findings shaped t
 design:
 
 1. **Shortlist from public benchmarks, then test on your own tasks.** Every serious
- source says the same thing: leaderboard position does not predict behaviour
- inside a specific harness. So this campaign uses *this agent's real tools and
- real prompts*, not a synthetic function-calling suite.
+   source says the same thing: leaderboard position does not predict behaviour
+   inside a specific harness. So this campaign uses *this agent's real tools and
+   real prompts*, not a synthetic function-calling suite.
 2. **Hold the harness constant so failures attribute to the model.** promptquorum's
- methodology note, "same MCP client, same servers, same prompts", is the reason
- §3 pins every generation parameter and the context size. An unpinned `num_ctx`
- alone would have made a 262K-context model incomparable to a 128K one.
+   methodology note, "same MCP client, same servers, same prompts", is the reason
+   §3 pins every generation parameter and the context size. An unpinned `num_ctx`
+   alone would have made a 262K-context model incomparable to a 128K one.
 3. **`pass^k`, not best-of-k.** τ-bench's reliability metric *decays* with repeats:
- a model scores only if it passes *every* run. A model that succeeds once in three
- is not a model you can build on. Where repeats are affordable, that is the rule.
+   a model scores only if it passes *every* run. A model that succeeds once in three
+   is not a model you can build on. Where repeats are affordable, that is the rule.
 4. **The function-calling configuration is part of the score, not a separable
- variable.** So §3 is reported alongside the results, and no per-model tuning is
- allowed, a model that needs a different temperature to work is a model that
- scores worse here.
+   variable.** So §3 is reported alongside the results, and no per-model tuning is
+   allowed, a model that needs a different temperature to work is a model that
+   scores worse here.
 
 Sources are listed at the bottom.
 
@@ -67,20 +67,20 @@ be scored on three of the four categories, so this is the entry gate.
 Three notes for the delete decision, independent of any score:
 
 - **The two >20 GB models are measured, not assumed.** On-disk size says
- `charaf/Qwen3.6-27B-OBLITERATED-mlx-q8` (28.6 GB) exceeds this machine's total 24 GB
- of unified memory, and `rafw007/…-35B-A3B` (23.9 GB) leaves nothing for the OS. But
- their model cards claim a real working set below the on-disk figure, and for the A3B
- that is plausible: it is a **mixture-of-experts activating ~3B parameters per token**,
- so most of those weights are cold and can stay paged out without much cost. Guessing
- is pointless, so both run by default and the harness samples `vm.swapusage` either
- side of every run. A large swap delta, a timeout or a crash is then a **recorded
- result** that goes into the analysis, not a harness error. `--skip-heavy` drops them.
+  `charaf/Qwen3.6-27B-OBLITERATED-mlx-q8` (28.6 GB) exceeds this machine's total 24 GB
+  of unified memory, and `rafw007/…-35B-A3B` (23.9 GB) leaves nothing for the OS. But
+  their model cards claim a real working set below the on-disk figure, and for the A3B
+  that is plausible: it is a **mixture-of-experts activating ~3B parameters per token**,
+  so most of those weights are cold and can stay paged out without much cost. Guessing
+  is pointless, so both run by default and the harness samples `vm.swapusage` either
+  side of every run. A large swap delta, a timeout or a crash is then a **recorded
+  result** that goes into the analysis, not a harness error. `--skip-heavy` drops them.
 - `ornith:9b` and `hf.co/…/Ornith-1.0-9B-GGUF:Q4_K_M` are the same base model at the
- same size, different builds (different blob IDs). Both are tested; unless they
- diverge, one is 5.6 GB of redundancy.
+  same size, different builds (different blob IDs). Both are tested; unless they
+  diverge, one is 5.6 GB of redundancy.
 - `translategemma:27b` cannot call tools at all, so it can never work as an agent
- model. It is only worth keeping if translation is a use case in its own right,
- that is a judgement call, not something this campaign can score.
+  model. It is only worth keeping if translation is a use case in its own right,
+  that is a judgement call, not something this campaign can score.
 
 ---
 
@@ -122,7 +122,7 @@ Four items with exactly checkable answers, none of them a memorized classic:
 - **(a)** a four-variable scheduling constraint puzzle with a unique solution
 - **(b)** an exponential-backoff sum, an off-by-one trap (255 s, not 256 or 511)
 - **(c)** a character count across a compound word (deterministic, and a known
- weak spot for tokenizer-bound models)
+  weak spot for tokenizer-bound models)
 - **(d)** one open item: name the flaw in a p50-latency claim, judged, weighted low
 
 Scored automatically on (a), (c). **Calling any tool is a penalty**, reaching for
@@ -196,7 +196,7 @@ from. *≈25-35 min.*
 
 **Round 2, Battery.** Survivors only, all four tasks, **1 rep by default**.
 - `--reps 1`: **≈1.5-2 h, the default now.** The shorter tasks and the 5-minute cap
- make a single pass affordable enough to be the normal choice.
+  make a single pass affordable enough to be the normal choice.
 - `--reps 2`: ≈3-4 h. Worth it only for the models still in contention at the end.
 
 **Round 3, Tiebreak.** Rather than paying for a second rep across the board, re-run
@@ -238,24 +238,24 @@ slower is a different recommendation, and the table should show that.
 Stated up front, in the spirit of the rest of this repo's benchmark write-ups:
 
 - **One machine, one quantization tier.** Results are about *these builds on this
- M-series 24 GB Mac*, not about the underlying models in general. This cuts hardest
- for the two >20 GB models: a poor score from them is evidence about *this machine*,
- not about the model.
+  M-series 24 GB Mac*, not about the underlying models in general. This cuts hardest
+  for the two >20 GB models: a poor score from them is evidence about *this machine*,
+  not about the model.
 - **One rep is not a reliability measurement.** A single run tells you what a model
- did once. During harness validation `qwen3.5:4b` answered the same arithmetic item
- correctly on one run and gave nonsense on the next, with an identical seed, a
- 6-point swing from nothing but sampling. Treat any two models within ~6 points as
- tied until Round 3 separates them.
+  did once. During harness validation `qwen3.5:4b` answered the same arithmetic item
+  correctly on one run and gave nonsense on the next, with an identical seed, a
+  6-point swing from nothing but sampling. Treat any two models within ~6 points as
+  tied until Round 3 separates them.
 - **The tasks were shortened to fit the hardware.** Three stories instead of five, a
- 350-word report instead of 600. This tests the same behaviours (grounding, source
- diversity, structure compliance) but says less about stamina on long outputs.
+  350-word report instead of 600. This tests the same behaviours (grounding, source
+  diversity, structure compliance) but says less about stamina on long outputs.
 - **T2 and T4 hit the live web,** so the difficulty is not identical across runs.
- This is unavoidable for a web-search benchmark and is why grounding is scored
- rather than factual correctness.
+  This is unavoidable for a web-search benchmark and is why grounding is scored
+  rather than factual correctness.
 - **Pinning `num_ctx` to 32K disadvantages nothing measured here** (no task needs a
- long context) but does mean this says nothing about long-context ability.
+  long context) but does mean this says nothing about long-context ability.
 - **Four tasks is a narrow slice.** It covers what this agent is used for, which is
- the point, but it is not a general capability ranking.
+  the point, but it is not a general capability ranking.
 
 ---
 

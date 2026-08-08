@@ -87,9 +87,9 @@ bash launch.sh
 ### Checking prerequisites
 
 ```bash
-ollama list # models installed
-ollama serve # start Ollama if it isn't running
-curl "http://localhost:8080/search?q=test&format=json" # is SearXNG up?
+ollama list          # models installed
+ollama serve         # start Ollama if it isn't running
+curl "http://localhost:8080/search?q=test&format=json"   # is SearXNG up?
 ```
 
 ---
@@ -97,36 +97,36 @@ curl "http://localhost:8080/search?q=test&format=json" # is SearXNG up?
 ## The startup interface
 
 ```
-──────────────────────────── Agentic_1A ────────────────────────────
- Project: /Users/you/projects/my-project the project root
- Model: gemma4:12b-mlx
- Tools: search_web, fetch_url, read_file, write_file, edit_file,
- create_directory, list_directory, run_command, get_datetime
- Help: type /help
+────────────────────────────   Agentic_1A   ────────────────────────────
+  Project : /Users/you/projects/my-project      ← the project root
+  Model   : gemma4:12b-mlx
+  Tools   : search_web, fetch_url, read_file, write_file, edit_file,
+            create_directory, list_directory, run_command, get_datetime
+  Help    : type /help
 ────────────────────────────────────────────────────────────────────────
 
-You
+You →
 ```
 
-Type your message after `You ` and press Enter.
+Type your message after `You →` and press Enter.
 
 ---
 
 ## Slash commands
 
 > Note: **Autocomplete.** Type **`/`** and a dropdown lists **every** command with its
-> description; each extra character **filters** the list (e.g. `/c` `/clear`, `/context`,
-> `/compact`; `/co` `/context`, `/compact`). Navigate with /, accept with Tab or Enter.
+> description; each extra character **filters** the list (e.g. `/c` → `/clear`, `/context`,
+> `/compact`; `/co` → `/context`, `/compact`). Navigate with ↑/↓, accept with Tab or Enter.
 > Descriptions follow the interface language (`/lang`). Requires `prompt_toolkit`; falls back
 > silently to plain input if it is absent.
 
-> ⏹ **Stopping the model.** Press **Esc** (or **Ctrl+C**) while the model is working to
+> **Stopping the model.** Press **Esc** (or **Ctrl+C**) while the model is working to
 > **stop it and return to the prompt** without leaving the session. It works during streaming
 > (on by default); the stream to Ollama is genuinely cut. The partial conversation stays in
 > context, type a new request, or `/clear` to start over. Esc detection only activates in an
 > interactive terminal. It has no effect in headless mode.
 
-> **Quitting.** At the prompt, **Ctrl+C cancels the current line and does NOT quit**
+>  **Quitting.** At the prompt, **Ctrl+C cancels the current line and does NOT quit**
 > (consistent with "Ctrl+C = stop" during generation, and it avoids accidental exits). To
 > quit, use **`/exit`** or **Ctrl+D**.
 
@@ -196,14 +196,14 @@ Type your message after `You ` and press Enter.
 ### Examples
 
 ```
-You /model
-You /model qwen3.5:4b
-You /architect fix every bug in game.py
-You /review-by gpt-oss:20b
-You /resume last
-You /undo last
-You /clear
-You /exit
+You → /model
+You → /model qwen3.5:4b
+You → /architect fix every bug in game.py
+You → /review-by gpt-oss:20b
+You → /resume last
+You → /undo last
+You → /clear
+You → /exit
 ```
 
 ---
@@ -229,41 +229,41 @@ model decides on its own. For the exhaustive list, see [`capabilities.md`](./cap
 
 ### Highlighted tools
 
-**`append_file(path, content)`**, write a long file in reliable chunks. The system prompt
+**`append_file(path, content)`**: write a long file in reliable chunks. The system prompt
 guides the model: beyond ~80 lines, write the first chunk with `write_file` and continue with
 `append_file` (each small call avoids Ollama's JSON-truncation bug on large arguments).
 ```
-You create a 300-line utils.py module with these functions:...
- the model writes the file in ≤80-line blocks (write_file, then append_file ×N)
+You → create a 300-line utils.py module with these functions: ...
+  → the model writes the file in ≤80-line blocks (write_file, then append_file ×N)
 ```
 
-**`search_semantic(query)`**, conceptual search across the project (local RAG). Embeddings
+**`search_semantic(query)`**: conceptual search across the project (local RAG). Embeddings
 via `bge-m3`, SQLite index in `.agentic/`, re-indexed automatically when files change.
 Complements `search_in_files` (exact) and `find_references` (symbols).
 ```
-You where is the retry logic for plumbing bugs handled?
- search_semantic returns the closest chunks by meaning, with file:line
+You → where is the retry logic for plumbing bugs handled?
+  → search_semantic returns the closest chunks by meaning, with file:line
 ```
 
-**`analyze_image(path, question)`**, understand an image.
+**`analyze_image(path, question)`**: understand an image.
 ```
-You take a screenshot and tell me why the button is misaligned
- run_command("screencapture /tmp/s.png") then analyze_image("/tmp/s.png", "...")
+You → take a screenshot and tell me why the button is misaligned
+  → run_command("screencapture /tmp/s.png") then analyze_image("/tmp/s.png", "...")
 ```
 Configure the model with `/vision-model` (otherwise an installed multimodal model is
 auto-detected). Loading is sequential: the main model is unloaded for the duration of the
 vision call, then reloaded.
 
-**`python_repl(code)`**, persistent Python interpreter (state survives between calls).
+**`python_repl(code)`**: persistent Python interpreter (state survives between calls).
 ```
-You load data.csv, show the columns then the mean of the price column
- python_repl("import pandas as pd; df = pd.read_csv('data.csv'); df.columns")
- python_repl("df['price'].mean()") # df is still there
+You → load data.csv, show the columns then the mean of the price column
+  → python_repl("import pandas as pd; df = pd.read_csv('data.csv'); df.columns")
+  → python_repl("df['price'].mean()")   # df is still there
 ```
 Same safety as `run_command`: dangerous-command filter, Docker sandbox under `/sandbox`,
 approval under `/safe`.
 
-### Self-correction
+###  Self-correction
 
 If the model modifies a file and ends its reply **without** calling `lint_file` or
 `run_tests` afterwards, the agent automatically re-prompts it (up to twice per turn) with a
@@ -281,7 +281,7 @@ For any task with more than 3 steps, the model is instructed to create a markdow
 re-deciding the plan every turn. It is plain in-memory text for the session, no imposed
 format. `/todo` shows the current checklist. Empty at startup and after `/clear`.
 
-### Background processes
+###  Background processes
 
 `run_command` has a 30s timeout, useless for starting a dev server or a watcher that never
 terminates. `run_background` starts the command without blocking and returns an id; the model
@@ -289,7 +289,7 @@ polls its output with `check_process(id)` and stops it with `kill_process(id)`. 
 simultaneous processes per session.
 
 ```
-You start npm run dev in the background, check it responds on port 3000, then stop it
+You → start npm run dev in the background, check it responds on port 3000, then stop it
 ```
 
 **Safety/hygiene:**
@@ -298,7 +298,7 @@ You start npm run dev in the background, check it responds on port 3000, then st
 - **Every process still alive at the end of the session is stopped automatically** (`/exit`, Ctrl+C, or crash), no orphan server left running after you close the agent.
 - `/ps` and `/kill <id>` give you direct control, without depending on the model.
 
-### Persistent memory (`memory_write` / `memory_read`)
+###  Persistent memory (`memory_write` / `memory_read`)
 
 Difference from `/todo`: the task checklist is **lost** at the end of the session (or on
 `/clear`). That is intended: it only concerns the current task. Memory is designed to
@@ -307,22 +307,22 @@ every time the agent starts.
 
 **When it is written (important):**
 - **Only when the model calls the `memory_write` tool**: in practice, when **you ask it to
- remember something** ("remember that…", "keep this convention in mind"), or when it judges
- on its own that a durable fact is worth keeping. Nothing else writes it.
+  remember something** ("remember that…", "keep this convention in mind"), or when it judges
+  on its own that a durable fact is worth keeping. Nothing else writes it.
 - **No automatic saving:** nothing is written on exit, nor each turn, nor when the agent edits
- files. The current conversation never goes there by itself.
+  files. The current conversation never goes there by itself.
 - **Writing = full replacement:** every `memory_write` **overwrites** the previous content
- entirely (it is not an append). To modify or remove an item, ask the model to update the
- memory, it rewrites the whole text without that item.
+  entirely (it is not an append). To modify or remove an item, ask the model to update the
+  memory, it rewrites the whole text without that item.
 - In a **`--private`** session, `memory_write` is a **no-op** (nothing is written to disk).
 
 ```
-You Remember that I prefer commit messages in English, under 50 characters
+You → Remember that I prefer commit messages in English, under 50 characters
 ```
 Then, in a **brand-new session** (agent restarted):
 ```
-You How do I want my commits again?
- the agent answers correctly without you having to repeat it
+You → How do I want my commits again?
+→ the agent answers correctly without you having to repeat it
 ```
 
 **Caveats:**
@@ -336,33 +336,33 @@ You How do I want my commits again?
 ## Live settings (`/parameters`)
 
 A full-screen menu (in the style of `htop`/`raspi-config`) for adjusting live everything that
-used to be hard-coded. Navigate with **/** between rows, **/** to adjust the value,
+used to be hard-coded. Navigate with **↑/↓** between rows, **←/→** to adjust the value,
 **`r`** to reset the selected one to its default, **`q`**/Enter to exit. A help line at the
 bottom explains the currently selected parameter.
 
 **30 parameters, 3 sections:**
 
 - **Model Generation (7)**: Temperature, Top P, Top K, Repeat Penalty, Max Output Tokens,
- Seed, and **Stream Final Answer** (stream the final answer live; can be disabled if a model
- regresses on tool-calling while streaming).
+  Seed, and **Stream Final Answer** (stream the final answer live; can be disabled if a model
+  regresses on tool-calling while streaming).
 - **Context & Safety Limits (15)**: context cap (**64K**), max tool rounds, max background
- processes, max self-check re-prompts, max fake-tool-call retries, max citation reminders,
- max anti-hypothetical-fabrication nudges, max unsupported-values nudges
- (`_grounding_check`), max claimed-without-action nudges, tolerated tool refusals during the
- architect phase (`MAX_READONLY_REFUSALS`), `search_semantic` result count, indexing chunk
- size, and **context compaction** (`AUTO_COMPACT` on/off, `COMPACT_THRESHOLD_PCT` threshold,
- `COMPACT_KEEP_TURNS` recent turns kept).
+  processes, max self-check re-prompts, max fake-tool-call retries, max citation reminders,
+  max anti-hypothetical-fabrication nudges, max unsupported-values nudges
+  (`_grounding_check`), max claimed-without-action nudges, tolerated tool refusals during the
+  architect phase (`MAX_READONLY_REFUSALS`), `search_semantic` result count, indexing chunk
+  size, and **context compaction** (`AUTO_COMPACT` on/off, `COMPACT_THRESHOLD_PCT` threshold,
+  `COMPACT_KEEP_TURNS` recent turns kept).
 - **Web Search (8)**: search language, number of results kept, `search_web_deep` settings
- (pages actually read, character budget per page, timeout before giving up, thin-content
- threshold), the never-converging deep-search circuit breaker (`MAX_DEEP_SEARCHES`), and the
- RSS fallback toggle.
+  (pages actually read, character budget per page, timeout before giving up, thin-content
+  threshold), the never-converging deep-search circuit breaker (`MAX_DEEP_SEARCHES`), and the
+  RSS fallback toggle.
 
 ```
-You /parameters
+You → /parameters
 ```
 
 yes Changes are saved automatically (`~/.agentic_1a_params.json`) and reloaded on every launch
-, no need to re-tune everything each session.
+,  no need to re-tune everything each session.
 
 ---
 
@@ -372,18 +372,18 @@ When a conversation gets very long it eventually fills the model's context windo
 tokens** by default, tunable). Three tools:
 
 - **`/context`**: see where you stand: tokens actually used (Ollama's real
- `prompt_eval_count`, not an estimate) vs the cap, and the percentage.
+  `prompt_eval_count`, not an estimate) vs the cap, and the percentage.
 - **`/compact`**: compact now, on demand. Two stages, an approach drawn from research
- (LangChain, Zylos, Claude Code, Factory.ai…):
- 1. **lossless cleanup**: truncate old bulky tool results (free, no model call);
- 2. if needed, a **structured summary** (`## Goal / ## Files changed / ## Key decisions /
- ## Open problems / ## Next steps`) of the older turns, the system prompt and the **last
- 3 turns** are kept verbatim, never cut in the middle of a tool call.
-- **Auto-compaction** (`/parameters` *Auto-Compact Context*), **OFF by default, on
- purpose.** The community's main complaint is auto-compaction that destroys working context
- by surprise, so nothing compacts until you enable it. Once enabled, it triggers when the
- context passes `COMPACT_THRESHOLD_PCT` (70% by default, early, because a model near its cap
- summarises less well).
+  (LangChain, Zylos, Claude Code, Factory.ai…):
+  1. **lossless cleanup**: truncate old bulky tool results (free, no model call);
+  2. if needed, a **structured summary** (`## Goal / ## Files changed / ## Key decisions /
+     ## Open problems / ## Next steps`) of the older turns: the system prompt and the **last
+     3 turns** are kept verbatim, never cut in the middle of a tool call.
+- **Auto-compaction** (`/parameters` → *Auto-Compact Context*), **OFF by default, on
+  purpose.** The community's main complaint is auto-compaction that destroys working context
+  by surprise, so nothing compacts until you enable it. Once enabled, it triggers when the
+  context passes `COMPACT_THRESHOLD_PCT` (70% by default, early, because a model near its cap
+  summarises less well).
 
 > Note: Important facts should never depend on the summary (which is lossy by nature): ask the
 > agent to record durable decisions with `memory_write` (persistent), and it can find code by
@@ -413,12 +413,12 @@ tokens** by default, tunable). Three tools:
 ```bash
 # One project's conversation + audit + snapshots/checkpoints:
 rm -rf ~/path/to/project/.agentic/sessions
-rm -f ~/path/to/project/.agentic/audit_*.log
+rm -f  ~/path/to/project/.agentic/audit_*.log
 rm -rf ~/path/to/project/.agentic/snapshots ~/path/to/project/.agentic/checkpoints.git
-rm -f ~/path/to/project/.agentic/memory.md # if you also want to forget the memory
+rm -f  ~/path/to/project/.agentic/memory.md          # if you also want to forget the memory
 
 # The global input history (everything you typed, all projects):
-rm -f ~/.agentic_1a_history
+rm -f  ~/.agentic_1a_history
 ```
 
 In-session, **`/forget`** clears persistent memory and **`/undo`** reverts file writes. (Note:
@@ -433,7 +433,7 @@ bash launch.sh ~/my/project --private
 
 In `--private` mode **no trace of the conversation is written**: no session file, no input
 history (`~/.agentic_1a_history`, in-memory only), no audit log, no disk snapshots, no git
-checkpoints, no memory. A banner confirms it at startup, and **`/private`** shows the state
+checkpoints, no memory. A  banner confirms it at startup, and **`/private`** shows the state
 at any time. `/undo` still works (RAM snapshots) for the duration of the session.
 
 Note: **What private mode does NOT hide** (in the interest of honesty): the **real file changes**
@@ -457,8 +457,8 @@ portable.
 - The instructions can point to other files in the skill's folder; the agent reads them on demand.
 
 ```
-You /skills # list available skills + their descriptions
-You /skill commit-message # load a skill into context for your next request
+You → /skills                 # list available skills + their descriptions
+You → /skill commit-message   # load a skill into context for your next request
 ```
 
 **Where to put your skills** (most specific wins on a name clash):
@@ -469,12 +469,12 @@ You /skill commit-message # load a skill into context for your next request
 | `~/.agentic_1a_skills/` | **Your global skills** (all projects), created at startup |
 | `<project>/.agentic/skills/` | Project-specific skills |
 
-**Bundled skills (14)**, type `/skills` to see them with their descriptions:
+**Bundled skills (14)**: type `/skills` to see them with their descriptions:
 
 | Skill | What it does |
 |---|---|
 | `test-and-fix` | Runs the tests, diagnoses failures, fixes, re-runs until green |
-| `debug-error` | Debugs an error/traceback: reproduce locate fix verify |
+| `debug-error` | Debugs an error/traceback: reproduce → locate → fix → verify |
 | `write-tests-for` | Writes real unit tests (happy path + edge cases + errors) and makes them pass |
 | `security-review` | Audits code/diff for **real** security flaws, with a fix |
 | `optimize-performance` | Measures first (profiling), applies the highest-impact fix, proves the gain |
@@ -482,7 +482,7 @@ You /skill commit-message # load a skill into context for your next request
 | `explain-codebase` | Explores and explains the architecture of an unfamiliar project |
 | `dockerize-project` | Writes a correct Dockerfile + `.dockerignore`, builds and verifies it runs |
 | `changelog-from-git` | Generates a CHANGELOG / release notes from the real git history |
-| `web-research-report` | Sourced web research Markdown report with citations |
+| `web-research-report` | Sourced web research → Markdown report with citations |
 | `new-python-project` | Scaffolds a modern Python project (venv, pyproject, git, first green test) |
 | `commit-message` | Writes a clean commit message from the real diff |
 | `skill-creator` | Helps you **write a new skill** (adapted from `anthropics/skills`, Apache-2.0) |
@@ -492,7 +492,7 @@ You /skill commit-message # load a skill into context for your next request
 > adapted from Anthropic's official repository. See [`skills/LICENSES.md`](./skills/LICENSES.md).
 > You can add, edit or delete them freely: they are just folders with a `SKILL.md`.
 
-**Creating a skill**, a folder plus a `SKILL.md`:
+**Creating a skill**: a folder plus a `SKILL.md`:
 ```markdown
 ---
 name: security-review
@@ -517,7 +517,7 @@ description: Audit the diff for real security issues. Use when the user asks for
 
 ## Tool reference
 
-### Web search (`search_web` / `search_web_deep`)
+###  Web search (`search_web` / `search_web_deep`)
 
 Uses your local SearXNG instance. The tool detects news-type queries itself (keywords like
 "news", "today", "breaking", "latest") and automatically switches to the SearXNG "news"
@@ -532,12 +532,12 @@ invisible failover to the `duckduckgo` MCP server when SearXNG returns nothing a
 The model picks between them itself.
 
 ```
-You What's the weather in Paris today?
-You What's the latest news about Apple?
-You Search for tutorials on Python AI agents
+You → What's the weather in Paris today?
+You → What's the latest news about Apple?
+You → Search for tutorials on Python AI agents
 ```
 
-### Reading a web page (`fetch_url` / `fetch_url_rendered`)
+###  Reading a web page (`fetch_url` / `fetch_url_rendered`)
 
 `fetch_url` retrieves raw HTML without executing JavaScript, on a single-page app it sees
 only the empty shell (or the unexecuted `<script>` source, which can look like text when it
@@ -549,16 +549,16 @@ Requires `playwright` + `playwright install chromium` (optional dependency). Wit
 tool simply reports itself unavailable rather than crashing.
 
 ```
-You Read this article: https://example.com/article
-You Summarise this page (it's a React app): https://example.com
+You → Read this article: https://example.com/article
+You → Summarise this page (it's a React app): https://example.com
 ```
 
-### Reading files (`read_file` / `read_file_lines`)
+###  Reading files (`read_file` / `read_file_lines`)
 
 ```
-You Read src/config.yml and explain the configuration
-You Read lines 45 to 80 of src/main.py
-You Show me the function around line 120 of utils.py
+You → Read src/config.yml and explain the configuration
+You → Read lines 45 to 80 of src/main.py
+You → Show me the function around line 120 of utils.py
 ```
 
 ### Writing files (`write_file` / `append_file` / `edit_file`)
@@ -574,20 +574,20 @@ if it finds a close-enough passage (`difflib`) to your `old_text` elsewhere in t
 shows you that real passage with its line number.
 
 ```
-You Create a todo.md with a task list for this week
-You In main.py, replace get_user() with a version that validates the email
-You Fix the typo in README.md: "instalation" "installation"
+You → Create a todo.md with a task list for this week
+You → In main.py, replace get_user() with a version that validates the email
+You → Fix the typo in README.md: "instalation" → "installation"
 ```
 
-### Running commands (`run_command` / `run_tests` / `python_repl`)
+###  Running commands (`run_command` / `run_tests` / `python_repl`)
 
 ```
-You What Python version is installed?
-You Run the tests and tell me what fails
-You Run pytest and fix the errors
+You → What Python version is installed?
+You → Run the tests and tell me what fails
+You → Run pytest and fix the errors
 ```
 
-### Searching code (`search_in_files` / `find_files` / `find_references` / `search_semantic`)
+###  Searching code (`search_in_files` / `find_files` / `find_references` / `search_semantic`)
 
 - `search_in_files`: pattern across every project file (`grep -rn`).
 - `find_files`: files by name or glob pattern.
@@ -595,27 +595,27 @@ You Run pytest and fix the errors
 - `search_semantic`: conceptual search by meaning (local RAG).
 
 ```
-You Where is parse_user() defined?
-You Before renaming calculate_total, show me everything that uses it with find_references
-You Where is the retry logic handled?
+You → Where is parse_user() defined?
+You → Before renaming calculate_total, show me everything that uses it with find_references
+You → Where is the retry logic handled?
 ```
 
-### Quick check (`lint_file`)
+###  Quick check (`lint_file`)
 
 Runs a fast static check on a single file (much faster than `run_tests`): `ruff`/`flake8` for
 Python (falling back to `py_compile` if neither is installed), `eslint` for JS/TS (if
 installed as a local devDependency), `go vet` for Go.
 
-### Git (`git_status` / `git_diff` / `git_log` / `git_commit`)
+###  Git (`git_status` / `git_diff` / `git_log` / `git_commit`)
 
 ```
-You What's the state of the git repo?
-You Show me what changed since the last commit
-You Commit the changes with the message "feat: add email validation"
- (the model will run git add automatically via run_command before committing)
+You → What's the state of the git repo?
+You → Show me what changed since the last commit
+You → Commit the changes with the message "feat: add email validation"
+  (the model will run git add automatically via run_command before committing)
 ```
 
-### Other
+###  Other
 
 `get_datetime` (current date and time, the model is required to call it before any
 "today"/"current" search rather than guessing), `create_directory`, `list_directory`,
@@ -629,7 +629,7 @@ You Commit the changes with the message "feat: add email validation"
 ### `/diff`: see what changed
 
 ```
-You /diff
+You → /diff
 ```
 Shows a unified diff (like `git diff`) between the original files and their current state.
 
@@ -640,9 +640,9 @@ before the first write of each turn. It works even in projects that are not git 
 never touches your own git history.
 
 ```
-You /undo # list the available checkpoints
-You /undo last # restore the most recent one
-You /undo 3 # restore checkpoint number 3
+You → /undo          # list the available checkpoints
+You → /undo last     # restore the most recent one
+You → /undo 3        # restore checkpoint number 3
 ```
 
 > Each checkpoint corresponds to the state **before a turn's first write**, so `/undo last`
@@ -661,21 +661,21 @@ Inject files into the model's context before asking questions about them.
 
 ```bash
 # Inject one or more files
-You /add src/main.py src/utils.py
+You → /add src/main.py src/utils.py
 
 # See what's in context
-You /files
+You → /files
 
 # Stop tracking one
-You /drop utils.py
+You → /drop utils.py
 ```
 
 After `/add`, the model knows the content with line numbers. You can then:
 
 ```
-You Explain the main() function we just injected
-You Optimise the UserService class
-You Are there any bugs in this code?
+You → Explain the main() function we just injected
+You → Optimise the UserService class
+You → Are there any bugs in this code?
 ```
 
 ---
@@ -686,14 +686,14 @@ Ask the model to plan a task WITHOUT executing it. It explains its approach, the
 involved, and the risks.
 
 ```
-You /plan Refactor the auth module to use JWT
-You /plan Add unit tests to the UserService class
-You /plan Migrate from SQLite to PostgreSQL
+You → /plan Refactor the auth module to use JWT
+You → /plan Add unit tests to the UserService class
+You → /plan Migrate from SQLite to PostgreSQL
 ```
 
 Then, to execute it:
 ```
-You OK go ahead, execute that plan
+You → OK go ahead, execute that plan
 ```
 
 > For a stronger version of this, `/architect <task>` runs the plan phase on one model
@@ -709,27 +709,27 @@ cd ~/projects/my-project
 bash /path/to/Agentic_1A/launch.sh
 
 # 2. Explore the project
-You Show me the project structure
-You Find where the UserController class is defined
+You → Show me the project structure
+You → Find where the UserController class is defined
 
 # 3. Plan before acting
-You /plan Add a POST /users endpoint with email validation
+You → /plan Add a POST /users endpoint with email validation
 
 # 4. Inject the relevant files
-You /add src/routes/users.py src/models/user.py
+You → /add src/routes/users.py src/models/user.py
 
 # 5. Ask for the changes
-You Add the POST /users endpoint with email validation as planned
+You → Add the POST /users endpoint with email validation as planned
 
 # 6. Check the changes
-You /diff
-You Run the tests: pytest
+You → /diff
+You → Run the tests: pytest
 
 # 7. Commit if OK
-You Commit with "feat: add POST /users endpoint"
+You → Commit with "feat: add POST /users endpoint"
 
 # 8. Revert if there's a problem
-You /undo last
+You → /undo last
 ```
 
 ---
@@ -739,34 +739,34 @@ You /undo last
 ### Via the interactive list (recommended)
 
 ```
-You /model
+You → /model
 ```
 
 Shows a numbered table of every model from `ollama list`, with:
 
 - **Size / Params**: from `ollama list`.
-- **Usage**: Light / Medium / Heavy / Very heavy, computed from the RAM actually detected on the machine, not a fixed value. `` = MoE model (name containing `-aXb`, e.g. `30b-a3b`) runs faster than its raw size suggests.
+- **Usage**: Light / Medium / Heavy / Very heavy, computed from the RAM actually detected on the machine, not a fixed value. `` = MoE model (name containing `-aXb`, e.g. `30b-a3b`) → runs faster than its raw size suggests.
 - **Task**: what the model is best at (Code, Agentic, Research/RAG, Generalist…). It first uses a local knowledge base built into the agent; if a model is unknown, the agent runs a SearXNG search on its name and infers the category by keywords, then caches the result in `.agentic/model_categories.json` (searched once per model). Note: This automatic categorisation is a keyword heuristic, not an AI judgement, reliable when the model is well documented online, but it can be wrong on an obscure or poorly indexed name.
-- **Tools** /, tool-calling support.
+- **Tools** ✓/✗, tool-calling support.
 - **Active**: the model currently loaded.
 
 Type the number (e.g. `3`) or part of the name (e.g. `qwen3`) to switch, or leave it empty to
 cancel.
 
-A model marked **Tools ** is refused automatically (error message, no switch): the agent
+A model marked **Tools ✗** is refused automatically (error message, no switch): the agent
 needs tool calling to work, so those models (e.g. pure embedding models like `bge-m3`) are not
 selectable.
 
 ### Directly by name
 
 ```
-You /model qwen3.5:4b
+You → /model qwen3.5:4b
 ```
 
 ### Model recommendations
 
 Any tool-capable Ollama model works. Scores below are out of 100 from the ranking campaign in
-[`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md), four tasks
+[`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md): four tasks
 (reasoning, web search, agentic work, report writing) on a 24 GB Apple Silicon machine.
 
 | Model | Size | Score | Notes |
@@ -795,16 +795,16 @@ optional.
 
 ### Setup (first time only)
 ```bash
-cd /path/to/Agentic_1A &&.venv/bin/python imessage_bridge.py --setup
+cd /path/to/Agentic_1A && .venv/bin/python imessage_bridge.py --setup
 ```
 It will ask for your own phone number or iCloud email, the one you will message from.
 
-**Prerequisites:** System Settings Privacy Full Disk Access Terminal, Messages.app
+**Prerequisites:** System Settings → Privacy → Full Disk Access → Terminal ✓, Messages.app
 open on the Mac, Ollama running.
 
 ### Running the bridge
 ```bash
-cd /path/to/Agentic_1A &&.venv/bin/python imessage_bridge.py
+cd /path/to/Agentic_1A && .venv/bin/python imessage_bridge.py
 ```
 The bridge stops when you close the terminal. There is no need to leave it running
 permanently.
@@ -839,8 +839,8 @@ ollama serve
 
 ### "Model not found"
 ```bash
-ollama list # what's available
-ollama pull gemma4:12b-mlx # or any tool-capable model
+ollama list                                  # what's available
+ollama pull gemma4:12b-mlx                   # or any tool-capable model
 ```
 
 ### Search errors (`search_web`)
@@ -865,7 +865,7 @@ cd /path/to/Agentic_1A
 ### Rebuild the environment from scratch
 ```bash
 cd /path/to/Agentic_1A
-rm -rf.venv
+rm -rf .venv
 bash launch.sh
 ```
 
@@ -876,20 +876,20 @@ bash launch.sh
 ### Multi-step requests
 The agent chains several tools automatically:
 ```
-You Find the current Bitcoin price, compare it with a week ago from another
- source, and write a summary to bitcoin.md
+You → Find the current Bitcoin price, compare it with a week ago from another
+      source, and write a summary to bitcoin.md
 ```
 
 ### Carrying file context through a conversation
 ```
-You Read src/main.py
-You Optimise the parse_data() function you just read
-You Save the improved version to src/main_v2.py
+You → Read src/main.py
+You → Optimise the parse_data() function you just read
+You → Save the improved version to src/main_v2.py
 ```
 
 ### "System engineer" mode
 ```
-You Check whether git is installed, show me the version, and list the repos here
+You → Check whether git is installed, show me the version, and list the repos here
 ```
 
 ### Keeping a long session on track

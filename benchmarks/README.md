@@ -9,37 +9,37 @@ for the full investigation these came from.
 A small (~200-line) menu-driven text game with 4 real, verified bugs:
 
 1. `new_game()` never sets an `"alive"` key, but `main()` reads `player["alive"]`
- in its loop condition, crashes on the very first loop iteration.
+   in its loop condition, crashes on the very first loop iteration.
 2. `new_game()`/`choose_character()` set `player["attack"]`, but every other
- function (`player_attack`, `heal`, `level_up`, `print_screen`) reads
- `player["attack_range"]`, crashes on the first status screen or attack.
+   function (`player_attack`, `heal`, `level_up`, `print_screen`) reads
+   `player["attack_range"]`: crashes on the first status screen or attack.
 3. `enemy` is only assigned inside `if action in ("1", "2")`, but referenced
- unconditionally afterward, flagged by Pyright as an `UnboundLocalError`/
- possibly-unbound bug. **Correction (2026-08-04, verified by tracing the
- actual control flow):** this is a Pyright false positive, not a real
- runtime bug, the `elif`/`continue` guards in the original file are
- exhaustive, so no code path ever reaches the fight loop with `enemy`
- unassigned. This was validated via the Pyright diagnostic alone, never by
- an actual reproduction. Kept in the list for historical accuracy (models
- were scored against "fixing" it in earlier rounds), but don't treat it as
- a required fix going forward.
+   unconditionally afterward, flagged by Pyright as an `UnboundLocalError`/
+   possibly-unbound bug. **Correction (2026-08-04, verified by tracing the
+   actual control flow):** this is a Pyright false positive, not a real
+   runtime bug, the `elif`/`continue` guards in the original file are
+   exhaustive, so no code path ever reaches the fight loop with `enemy`
+   unassigned. This was validated via the Pyright diagnostic alone, never by
+   an actual reproduction. Kept in the list for historical accuracy (models
+   were scored against "fixing" it in earlier rounds), but don't treat it as
+   a required fix going forward.
 4. Choosing "Heal" still spawns an enemy and enters the fight loop even though
- the heal branch never damages it, an infinite unproductive loop.
- **Fixed directly in `game_py_bugfix_original.py` on 2026-08-04** (not left
- for models to find): after three separate rounds of testing (Ornith v1-v3,
- `qwen3-coder:30b` v3), no model ever solved this one, it's a design-
- comprehension gap (restructuring `main()` so only Attack triggers combat),
- not a tooling/verification gap, so further blind retries weren't expected
- to converge. Choosing "2" now heals and returns straight to the main loop,
- no enemy, no fight loop. See `DESIGN.md` for
- the full rationale and the retest this enabled. Bugs 1, 2, 3 (false
- positive), and 5 are untouched and still present in the original fixture.
+   the heal branch never damages it, an infinite unproductive loop.
+   **Fixed directly in `game_py_bugfix_original.py` on 2026-08-04** (not left
+   for models to find): after three separate rounds of testing (Ornith v1-v3,
+   `qwen3-coder:30b` v3), no model ever solved this one, it's a design-
+   comprehension gap (restructuring `main()` so only Attack triggers combat),
+   not a tooling/verification gap, so further blind retries weren't expected
+   to converge. Choosing "2" now heals and returns straight to the main loop,
+   no enemy, no fight loop. See `DESIGN.md` for
+   the full rationale and the retest this enabled. Bugs 1, 2, 3 (false
+   positive), and 5 are untouched and still present in the original fixture.
 
-**`game_py_bugfix_original.py`**, the exact buggy starting file, byte-for-byte
+**`game_py_bugfix_original.py`**: the exact buggy starting file, byte-for-byte
 reconstructed from the real incident transcript. Use this as the reset point
 before each model attempt.
 
-**`game_py_bugfix_reference_solution.py`**, a verified-working fix (all 4 bugs
+**`game_py_bugfix_reference_solution.py`**: a verified-working fix (all 4 bugs
 fixed, confirmed via full live playthroughs covering every menu action, not
 just lint). Use this to diff a model's attempt against a known-correct answer,
 or as a target for automated pass/fail checks.
@@ -58,15 +58,15 @@ cp benchmarks/game_py_bugfix_original.py /tmp/some_test_dir/game.py
 action (Attack, Heal, Use Item, Go Deeper, Info) at least 3 times** and classifies
 the outcome honestly, so model fixes can be scored without hand-piping stdin:
 
-- **TIMEOUT** likely infinite loop (this is how the Heal-enters-combat bug, bug 4,
- manifests), a FAIL.
-- **CRASH** any traceback whose final exception is *not* `EOFError`, a FAIL.
-- **OK (input exhausted)** the game asked for more input than the script provided.
- This game has no "quit" (it only ends on death), so running out of input is the
- **expected, benign** end, *not* a failure. This deliberately neutralizes the
- `EOFError`-from-exhausted-pipe artifact that twice hijacked the v2.9.24 search-web
- nudge during model tests (see `DESIGN.md` §3).
-- **OK (clean exit)** the game ended on its own (player death / game over).
+- **TIMEOUT** → likely infinite loop (this is how the Heal-enters-combat bug, bug 4,
+  manifests), a FAIL.
+- **CRASH** → any traceback whose final exception is *not* `EOFError`, a FAIL.
+- **OK (input exhausted)** → the game asked for more input than the script provided.
+  This game has no "quit" (it only ends on death), so running out of input is the
+  **expected, benign** end, *not* a failure. This deliberately neutralizes the
+  `EOFError`-from-exhausted-pipe artifact that twice hijacked the v2.9.24 search-web
+  nudge during model tests (see `DESIGN.md` §3).
+- **OK (clean exit)** → the game ended on its own (player death / game over).
 
 A run PASSES only if there's no crash, no hang, and all five actions ran ≥3×.
 
@@ -118,7 +118,7 @@ prompt, see the full analysis in `DESIGN.md`:
 | `Ornith-1.0-9B` (v3) | Bugs 1, 2, 5 fixed, 2 is a **fully consistent** rename this time (the rename-consistency nudge fired twice and the model visibly responded to it). Bug 4 (Heal enters combat) still produces a genuine infinite loop, confirmed by scripted playthrough. |
 | `qwen3-coder:30b` (v3) | Bugs 1, 2 (worked around, not renamed), 5 fixed. Bug 4 still an infinite loop, identical failure mode, reproduced independently. Bonus: implemented action "4" (Go Deeper), which the original file never actually handled at all. |
 
-**No model has yet produced a fully working fix in one sitting**, but the
+**No model has yet produced a fully working fix in one sitting**: but the
 gap narrowed concretely: bugs 1, 2, and 5 are now reliably reachable (5 in
 particular had never been caught by any model before this retest). What
 remains is bug 4, and it's a different *kind* of gap than the others, not
@@ -143,7 +143,7 @@ machine makes concurrent runs slower than sequential, not faster).
 | `Ornith-1.0-9B` (3 attempts) | Attempt 1 cut short by the Ollama parser bug, but this time **handled cleanly by v2.9.21** (2 retries, then a clear message) instead of crashing the session, first real-world confirmation of that fix working. Attempt 2 derailed by an unrelated new finding: the model consistently mistyped the long scratchpad path (`mounirekknaci` instead of `mounirmeknaci`) across most of its tool calls, burning nearly all 25 rounds on "file not found" before ever touching the bugs, worked around by retesting with a short path. Attempt 3 (clean): bugs 1, 2, 5 fixed; action "4" implemented but now prints "Unknown action" right after succeeding (new cosmetic regression); bug 4 still an infinite loop (3rd confirmed reproduction across this whole investigation). |
 | `qwen3.5:4b` | **Regressed to a syntactically broken file**, worse than the starting bug. Tried an unforced refactor of `choose_character`, broke syntax, got caught by the existing v2.9.20 check, self-corrected successfully, then retried the same risky refactor unprompted, broke it again identically, and this time a **second, different Ollama tool-parser bug** (`XML syntax error... element <parameter> closed by </function>`, matching `ollama/ollama#14834`/`#16383` found in the original research but never covered by a fix) ended the session before the break could be corrected. |
 
-**Search-web nudge (v2.9.24) fired twice**, once per model, and worked
+**Search-web nudge (v2.9.24) fired twice**: once per model, and worked
 exactly as designed (only triggers on a genuinely repeated failure). But both
 times, the repeated failure was an `EOFError` from the model's own piped test
 input running out, not a real code bug. Both models correctly recognized
@@ -154,7 +154,7 @@ logic bug).
 
 **Follow-up identified, not yet implemented**: extend the v2.9.21 retry
 pattern to also cover the XML tool-call parsing error found on `qwen3.5:4b`
-, same shape of fix (retry, then clean fallback), different root cause
+,  same shape of fix (retry, then clean fallback), different root cause
 (malformed tool-call XML from the model, not Ollama's internal parser
 generation) and different error signature, so the existing `except` clause
 doesn't catch it.

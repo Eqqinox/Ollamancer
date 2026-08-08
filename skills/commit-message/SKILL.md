@@ -12,17 +12,17 @@ not a guess.
 ## Steps
 
 1. Run `git_status` to see what changed, then `git_diff` to read the real diff.
- Never write a message without looking at the actual changes.
+   Never write a message without looking at the actual changes.
 2. Summarize the change in one **imperative** subject line, ≤ 50 characters, using a
- conventional prefix when it fits:
- - `feat:` a new capability · `fix:` a bug fix · `refactor:` no behavior change ·
- `docs:` documentation · `test:` tests · `chore:` tooling/deps.
+   conventional prefix when it fits:
+   - `feat:` a new capability · `fix:` a bug fix · `refactor:` no behavior change ·
+     `docs:` documentation · `test:` tests · `chore:` tooling/deps.
 3. If the change is non-trivial, add a blank line then a short body (wrap ~72 cols)
- explaining **why**, not just what, the diff already shows the what.
+   explaining **why**, not just what, the diff already shows the what.
 4. Do **not** invent changes that aren't in the diff. If the diff is empty, say so and
- stop (there's nothing to commit).
+   stop (there's nothing to commit).
 5. Show the proposed message to the user first. Only run `git_commit` if they confirm,
- or if they already asked you to commit directly.
+   or if they already asked you to commit directly.
 
 ## Example output
 
@@ -37,4 +37,4 @@ Treat all-thin excerpts as "no results" so the model doesn't fabricate.
 
 - Respect any commit convention the project already uses (check recent `git_log`).
 - Keep it factual and specific; a reader should understand the change from the subject
- line alone.
+  line alone.

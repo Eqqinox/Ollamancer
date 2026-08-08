@@ -12,7 +12,7 @@
 ## 1. In one paragraph
 
 Agentic_1A is a terminal AI agent that runs **entirely on your machine** through
-[Ollama](https://ollama.com), no cloud, no API keys, no data leaving your computer. You
+[Ollama](https://ollama.com): no cloud, no API keys, no data leaving your computer. You
 point it at a project folder and talk to it; it reasons and acts using **34 native tools**
 (files, git, web search, code execution, RAG, vision…), plus any [MCP](https://modelcontextprotocol.io)
 servers you configure, plus the full macOS shell. It was written **from scratch** (no
@@ -25,50 +25,50 @@ models, and privacy.**
 ## 2. Design philosophy
 
 - **Local and private first.** Everything runs offline via Ollama. A `--private` mode makes a
- session fully ephemeral (nothing written to disk).
+  session fully ephemeral (nothing written to disk).
 - **From scratch, no framework.** ~6,700 lines of readable Python across fourteen focused modules, auditable end-to-end.
- The decision was validated repeatedly: many fixes required line-level control a framework
- would have hidden.
+  The decision was validated repeatedly: many fixes required line-level control a framework
+  would have hidden.
 - **Nudge, never gate.** The agent warns and re-prompts the model; it never silently rewrites
- or blocks the model's output. Honesty checks are *nudges*, not censors.
+  or blocks the model's output. Honesty checks are *nudges*, not censors.
 - **Reliability over cleverness.** Small, quantized local models are fragile; the agent is
- engineered around their real failure modes (documented in a long benchmark campaign).
+  engineered around their real failure modes (documented in a long benchmark campaign).
 - **Verify, don't trust.** Every feature ships with a deterministic test; the docs never claim
- something works from reading the code alone.
+  something works from reading the code alone.
 
 ---
 
 ## 3. Architecture
 
-**ReAct loop** (`run_agent`): the model thinks calls tools reads results repeats until it
+**ReAct loop** (`run_agent`): the model thinks → calls tools → reads results → repeats until it
 can answer without a tool. The whole conversation is kept in memory and re-sent each turn.
 
 ```
-User message
-
-Model reasons calls tool(s) gets results reasons again … final answer User
+User → message
+  ↓
+Model reasons → calls tool(s) → gets results → reasons again … → final answer → User
 ```
 
 - **Tool schemas** are auto-extracted from Python type hints + docstrings (Ollama SDK), no
- manual JSON schemas.
+  manual JSON schemas.
 - **Streaming** final answers (buffered on tool rounds), with a live RAM readout while the
- model works.
+  model works.
 - **Safety rails**: a max-rounds guard, retry+fallback for three confirmed Ollama tool-call
- plumbing bugs, and a one-time **model failover** to a backup model when those retries exhaust.
+  plumbing bugs, and a one-time **model failover** to a backup model when those retries exhaust.
 
 ---
 
 ## 4. The tool belt (34 native tools)
 
 - **Web:** `search_web`, `search_web_deep` (reads the top pages), `fetch_url`,
- `fetch_url_rendered` (headless browser). SearXNG with automatic **DuckDuckGo-MCP failover**.
+  `fetch_url_rendered` (headless browser). SearXNG with automatic **DuckDuckGo-MCP failover**.
 - **Files:** `read_file`, `read_file_lines`, `write_file`, `append_file` (chunked writes),
- `edit_file` (surgical), `create_directory`, `list_directory`.
+  `edit_file` (surgical), `create_directory`, `list_directory`.
 - **Code navigation:** `search_in_files` (grep), `find_files`, `find_references` (AST-precise for
- Python), `search_semantic` (**local RAG** via the bge-m3 embedding model), `load_skill`.
+  Python), `search_semantic` (**local RAG** via the bge-m3 embedding model), `load_skill`.
 - **Git:** `git_status`, `git_diff`, `git_log`, `git_commit`.
 - **Verification / execution:** `lint_file`, `run_tests`, `run_command`, `python_repl`
- (persistent interpreter).
+  (persistent interpreter).
 - **Vision:** `analyze_image` (one-shot call to an installed multimodal model).
 - **Task/memory:** `todo_write`/`todo_read` (session), `memory_write`/`memory_read` (persistent).
 - **Background processes:** `run_background`, `check_process`, `kill_process`, `list_processes`.
@@ -81,28 +81,28 @@ Plus **`run_command`** exposes the entire shell, and **MCP** adds any third-part
 ## 5. Flagship features
 
 - **Architect / editor dual-model** (`/architect`), model A plans with read-only tools, model B
- executes with full tools; **strictly sequential loading** so two models are never resident at
- once (a 24 GB constraint).
+  executes with full tools; **strictly sequential loading** so two models are never resident at
+  once (a 24 GB constraint).
 - **Local RAG** (`search_semantic`), conceptual code search over the project using bge-m3
- embeddings in a stdlib SQLite index; incremental re-index on change. No heavy deps.
+  embeddings in a stdlib SQLite index; incremental re-index on change. No heavy deps.
 - **Context compaction**: when the conversation grows, deterministic lossless cleanup then a
- **structured** summary of old turns (system prompt + recent turns kept verbatim), triggered on
- the real Ollama token count. Off by default; `/compact` on demand; `/context` shows usage.
+  **structured** summary of old turns (system prompt + recent turns kept verbatim), triggered on
+  the real Ollama token count. Off by default; `/compact` on demand; `/context` shows usage.
 - **Git checkpoints** (`/undo`), a shadow git repo snapshots the project before each turn's first
- write; `/undo last` / `/undo <n>` revert.
+  write; `/undo last` / `/undo <n>` revert.
 - **Session persistence** (`/resume`), reload a previous conversation.
 - **Cross-model review** (`/review-by <model>`), an independent second model critiques the diff.
 - **Skills**: reusable **`SKILL.md`** workflows (the open standard, portable with Claude
- Code/Cursor/Codex), with progressive disclosure and a bundled 14-skill library.
+  Code/Cursor/Codex), with progressive disclosure and a bundled 14-skill library.
 - **Honesty layers**: `_grounding_check` (flags numbers/dates/URLs/names in the answer that
- appear in no tool result this turn) and a claim-vs-action nudge ("fixed"/"verified" with no
- real edit/verification), both deterministic.
+  appear in no tool result this turn) and a claim-vs-action nudge ("fixed"/"verified" with no
+  real edit/verification), both deterministic.
 - **Headless / batch**: `--run "prompt"` and `--recipe file.md` (exit code = success) for
- cron/scripts.
+  cron/scripts.
 - **Privacy**: `--private` ephemeral session; safe mode (`--safe`) approves risky calls; Docker
- sandbox (`--sandbox`) isolates shell/REPL.
+  sandbox (`--sandbox`) isolates shell/REPL.
 - **Terminal UX**: slash-command autocomplete (type `/`), streamed answers, live RAM,
- Esc-to-stop, bilingual interface.
+  Esc-to-stop, bilingual interface.
 
 ---
 
@@ -111,23 +111,23 @@ Plus **`run_command`** exposes the entire shell, and **MCP** adds any third-part
 Agentic_1A treats the failure modes of small local models as first-class problems:
 
 - **Anti-fabrication:** deterministic grounding checks, a hypothetical-tool-output nudge, an
- anti-structural-fabrication rule set, and citation nudges.
+  anti-structural-fabrication rule set, and citation nudges.
 - **Anti-false-success:** the claim-vs-action nudge, and `run_command` counting as *real*
- verification (a clean lint is not proof of correctness).
+  verification (a clean lint is not proof of correctness).
 - **Ollama plumbing bugs:** retry+fallback for three confirmed upstream bugs (#16988, #16383/#16810,
- and mid-JSON truncation), plus a configurable **model failover**.
+  and mid-JSON truncation), plus a configurable **model failover**.
 - **A documented benchmark campaign** (`benchmarks/`, `DESIGN.md`) comparing ~15 models
- on factual, reasoning, code, and multi-step tasks, with a repeat-action playthrough harness.
+  on factual, reasoning, code, and multi-step tasks, with a repeat-action playthrough harness.
 
 ---
 
 ## 7. Configuration & control
 
 - **`/parameters`**: a full-screen curses menu, **30 live-tunable settings** (generation params,
- context cap, safety/nudge limits, search tuning, streaming, compaction), persisted to
- `~/.agentic_1a_params.json`.
+  context cap, safety/nudge limits, search tuning, streaming, compaction), persisted to
+  `~/.agentic_1a_params.json`.
 - **Models**: `/model` (session), `/default-model` (persisted), `/failover-model`,
- `/architect-models`, `/vision-model`.
+  `/architect-models`, `/vision-model`.
 - **`/help`** lists every slash command (36 total).
 
 ---
@@ -135,10 +135,10 @@ Agentic_1A treats the failure modes of small local models as first-class problem
 ## 8. Requirements
 
 - **[Ollama](https://ollama.com)** with at least one tool-capable model (e.g. a small Qwen/Gemma
- build; the bge-m3 embedding model for RAG).
+  build; the bge-m3 embedding model for RAG).
 - **Python 3.12+** in a virtualenv (the `launch.sh` script sets it up).
 - Core Python deps: `ollama`, `requests`, `rich`, `prompt_toolkit`. Optional: `trafilatura`
- (clean web extraction), `feedparser` (news RSS), `playwright` (JS pages), `mcp` (MCP servers).
+  (clean web extraction), `feedparser` (news RSS), `playwright` (JS pages), `mcp` (MCP servers).
 - Optional services: **SearXNG** (Docker) for private web search; **Docker** for the sandbox.
 
 ---
@@ -146,18 +146,18 @@ Agentic_1A treats the failure modes of small local models as first-class problem
 ## 9. Repository map
 
 ```
-agent.py # the whole agent (ReAct loop, tools, UI), v3.0
-launch.sh # venv setup + launcher (flags: --safe --sandbox --private)
-skills/ # bundled SKILL.md workflows (14)
-benchmarks/ # reusable model-reliability fixtures + playthrough harness
-imessage_bridge.py # optional: drive the agent from iPhone via iMessage
+agent.py                  # the whole agent (ReAct loop, tools, UI), v3.0
+launch.sh                 # venv setup + launcher (flags: --safe --sandbox --private)
+skills/                   # bundled SKILL.md workflows (14)
+benchmarks/               # reusable model-reliability fixtures + playthrough harness
+imessage_bridge.py        # optional: drive the agent from iPhone via iMessage
 requirements.txt
-README.md # public front page
-Agentic_1A.md # this file, detailed presentation
-Agentic_Manual.md # full user manual
-capabilities.md # exhaustive capability list
-DESIGN.md # design rationale & engineering history
-tests/ # deterministic offline test suite (22 tests)
+README.md                 # public front page
+Agentic_1A.md             # this file, detailed presentation
+Agentic_Manual.md         # full user manual
+capabilities.md           # exhaustive capability list
+DESIGN.md                 # design rationale & engineering history
+tests/                    # deterministic offline test suite (22 tests)
 ```
 
 ---

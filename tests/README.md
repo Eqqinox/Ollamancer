@@ -22,13 +22,13 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh # from the project root "tests: 29 passed, 0 failed"
+bash tests/run_all.sh          # from the project root → "tests: 29 passed, 0 failed"
 ```
 
 Or a single test:
 
 ```bash
-PYTHONPATH="$PWD".venv/bin/python tests/test_skills.py
+PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 ```
 
 ## Coverage (24 files)
@@ -36,8 +36,8 @@ PYTHONPATH="$PWD".venv/bin/python tests/test_skills.py
 | File | Feature under test |
 |---|---|
 | `test_a1` | `append_file` + chunked-write note |
-| `test_a2` | SearXNG DuckDuckGo-MCP failover |
-| `test_a3` | bytestrafilatura encoding fix (mojibake) |
+| `test_a2` | SearXNG → DuckDuckGo-MCP failover |
+| `test_a3` | bytes→trafilatura encoding fix (mojibake) |
 | `test_a4` | closest-path hint on file-not-found |
 | `test_a56` | `_grounding_check` + claim-vs-action nudge |
 | `test_a7` | model failover on plumbing-bug exhaustion |
@@ -81,16 +81,16 @@ Both were verified *negatively*, each fails on the bug it exists to catch.
 These were written as fast standalone verification scripts. To formalize:
 1. Wrap each script's body in `def test_*()` functions.
 2. Add fixtures that reset mutated globals between tests. **`agentic.state.reset()` does this in
- one call**, it restores every per-session global to its startup default and clears the caches
- in place, without touching `config` (settings survive). So the fixture is roughly:
- ```python
- @pytest.fixture(autouse=True)
- def clean_state():
- state.reset()
- yield
- state.reset()
- ```
- Note some tests also monkeypatch `agent.ollama.chat`, which is not state, restore that separately.
+   one call**, it restores every per-session global to its startup default and clears the caches
+   in place, without touching `config` (settings survive). So the fixture is roughly:
+   ```python
+   @pytest.fixture(autouse=True)
+   def clean_state():
+       state.reset()
+       yield
+       state.reset()
+   ```
+   Note some tests also monkeypatch `agent.ollama.chat`, which is not state, restore that separately.
 3. Add a `conftest.py` that puts the project root on `sys.path`.
 4. Wire up a **GitHub Actions** workflow running them on push (matrix: Python 3.12 and 3.14, to
- prove the declared 3.12 floor).
+   prove the declared 3.12 floor).

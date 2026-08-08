@@ -8,8 +8,8 @@
 The agent has **34 dedicated tools** plus **`run_command`**, which exposes the entire shell.
 So there are two levels of capability:
 
-- **Native** a dedicated tool: reliable, with a precise docstring the model reads.
-- **Via shell** goes through `run_command`; works if the binary is installed.
+- **Native** → a dedicated tool: reliable, with a precise docstring the model reads.
+- **Via shell** → goes through `run_command`; works if the binary is installed.
 
 > **New in v3.0 (2026-08-05):** `append_file` (chunked writes, anti-truncation),
 > `search_semantic` (local RAG, meaning-based search via bge-m3), `analyze_image`
@@ -179,7 +179,7 @@ So there are two levels of capability:
 - Search/replace with regex across files (`grep`, `sed`) **[shell]**
 - Count lines, words, characters (`wc`) **[shell]**
 - Sort and deduplicate lines (`sort`, `uniq`) **[shell]**
-- Convert documents, Markdown PDF, HTML text (`pandoc`) **[shell]**
+- Convert documents, Markdown → PDF, HTML → text (`pandoc`) **[shell]**
 - Extract text from PDFs (`pdftotext`, `python3` with pdfminer) **[shell]**
 - Generate Markdown or HTML reports from data **[native]**
 
@@ -227,17 +227,17 @@ So there are two levels of capability:
 What the agent can do autonomously by chaining its tools:
 
 ### Research & documentation
-- Search the web summarise write a Markdown report git commit
-- Read online documentation write a tested code example
-- Compare several web sources synthesise structure as a table
+- Search the web → summarise → write a Markdown report → git commit
+- Read online documentation → write a tested code example
+- Compare several web sources → synthesise → structure as a table
 
 ### Autonomous development
-- Find a bug from the tests read the code fix re-run the tests commit
-- Analyse an unfamiliar project explore summarise the architecture
-- Take an issue described in natural language implement test commit
+- Find a bug from the tests → read the code → fix → re-run the tests → commit
+- Analyse an unfamiliar project → explore → summarise the architecture
+- Take an issue described in natural language → implement → test → commit
 - Refactor a module in several steps, verifying at each step
 - Generate a test suite for an existing file
-- Read a README install the dependencies run the project
+- Read a README → install the dependencies → run the project
 
 ### System automation
 - Watch a folder and process new files
@@ -246,15 +246,15 @@ What the agent can do autonomously by chaining its tools:
 - Create a complete new-project structure (folders, files, git init, venv)
 
 ### Data
-- Download CSV data analyse generate a report
-- Call an API transform the JSON write the result to a file
-- Scrape several web pages consolidate export
+- Download CSV data → analyse → generate a report
+- Call an API → transform the JSON → write the result to a file
+- Scrape several web pages → consolidate → export
 
 ---
 
 ## 9 bis. Live settings (`/parameters`)
 
-A full-screen interactive menu (`curses`, navigate with ///) for adjusting things without
+A full-screen interactive menu (`curses`, navigate with ↑/↓/←/→) for adjusting things without
 touching the code: Ollama generation parameters (temperature, top_p, top_k, repeat penalty,
 max tokens, seed, **none of which were tunable before 2026-08-02**), safety limits (max
 context, max tool rounds, max background processes, auto-retry budgets), and web-search
@@ -302,17 +302,17 @@ enabled, the command is refused rather than silently run on the host.
 Since v2.9.15, `DEFAULT_MODEL` in the code is no longer the only source of the startup model:
 
 - **`/default-model`** opens the same interactive picker as `/model`, but saves the choice to
- `~/.agentic_1a_default_model.txt`, used on every future launch, for every project, until
- changed. (`/model` on its own still changes the model for the current session only, without
- touching the persisted default.)
+  `~/.agentic_1a_default_model.txt`: used on every future launch, for every project, until
+  changed. (`/model` on its own still changes the model for the current session only, without
+  touching the persisted default.)
 - **Automatic fallback if the default disappeared:** if the chosen default model (or the code's
- `DEFAULT_MODEL` constant, when nothing is saved) has since been deleted (`ollama rm`), the
- agent no longer crashes at startup as it used to, it automatically picks a random
- tool-capable model from those currently installed, with an explicit message explaining what
- happened and inviting you to set a new default with `/default-model`.
+  `DEFAULT_MODEL` constant, when nothing is saved) has since been deleted (`ollama rm`), the
+  agent no longer crashes at startup as it used to, it automatically picks a random
+  tool-capable model from those currently installed, with an explicit message explaining what
+  happened and inviting you to set a new default with `/default-model`.
 - If **no** tool-capable model is installed at all, the agent shows the usual
- no-model-available message and stops, that case remains a deliberate halt, because there is
- nothing to fall back to.
+  no-model-available message and stops, that case remains a deliberate halt, because there is
+  nothing to fall back to.
 
 ---
 

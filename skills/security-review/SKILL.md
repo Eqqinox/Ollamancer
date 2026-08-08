@@ -16,16 +16,16 @@ Find *real* issues, ignore noise, and give a concrete fix for each. Be specific,
 ## What to look for
 
 1. **Injection**, user/external input flowing into SQL, shell (`os.system`, `subprocess` with
- `shell=True`), `eval`/`exec`, file paths, or HTML without escaping/parameterization.
+   `shell=True`), `eval`/`exec`, file paths, or HTML without escaping/parameterization.
 2. **Secrets**, hardcoded API keys, passwords, tokens, private keys in code or config.
 3. **AuthZ/AuthN**, missing permission checks, trusting client-supplied identity, broken access
- control on an endpoint.
+   control on an endpoint.
 4. **Unsafe deserialization**, `pickle`/`yaml.load`/`marshal` on untrusted data.
 5. **Path traversal / SSRF**, unvalidated paths or URLs, fetching attacker-controlled hosts.
 6. **Crypto misuse**, weak hashing for passwords (plain md5/sha1), hardcoded IVs, `random` for
- tokens instead of `secrets`.
+   tokens instead of `secrets`.
 7. **Dependency risk**, obviously outdated/known-vulnerable packages (mention `pip-audit`/
- `npm audit` to confirm).
+   `npm audit` to confirm).
 
 ## Output
 
