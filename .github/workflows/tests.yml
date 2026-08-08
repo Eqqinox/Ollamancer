@@ -1,0 +1,50 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # ubuntu, deliberately. The agent is developed on macOS and the README says so, but
+    # every test here is pure Python with no Ollama and no network, so Linux is the
+    # honest place to prove that. It also gives early warning for the Linux-support
+    # roadmap item: if something is quietly macOS-only, this is where it surfaces.
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false        # a 3.14-only break should not hide the 3.12 result
+      matrix:
+        # The floor the README claims, and the newest release. If the floor ever stops
+        # working the claim is wrong, and that should fail here rather than in an issue.
+        python-version: ["3.12", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # requirements.txt lists playwright and mcp, both optional at runtime and
+          # neither exercised by the offline suite. Skipping them keeps CI quick and
+          # avoids pulling a browser toolchain to run assertions about string parsing.
+          grep -vE '^(playwright|mcp)\b' requirements.txt > requirements-ci.txt
+          pip install -r requirements-ci.txt pytest
+
+      - name: Run the test suite
+        run: pytest -v
+
+      - name: Confirm the shell runner agrees
+        # run_all.sh is what the README tells people to use, so a green pytest run with a
+        # broken runner would still be a broken instruction. Cheap to check both.
+        run: bash tests/run_all.sh

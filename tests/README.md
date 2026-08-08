@@ -14,7 +14,20 @@ it, since a name imported elsewhere is a separate binding.
 > `GEN_NUM_PREDICT` from `-1` (unlimited) to `127`, which truncates every model answer. The
 > suite stayed green the whole time.
 
-## How to run (today)
+## How to run
+
+Either runner works, and both run each test in its **own process**.
+
+```bash
+pytest                         # 29 scripts plus a collection guard
+pytest -k skills               # one script
+pytest -x                      # stop at the first failure
+bash tests/run_all.sh          # no pytest needed
+```
+
+`pytest` gives you the failing script's stdout, stderr and traceback instead of a bare
+exit code. `run_all.sh` needs nothing but bash and works when pytest is not installed.
+Neither wraps the other.
 
 Each test must run in its **own process**. They are currently standalone scripts (module-level
 assertions ending in `... ALL PASS`), and several deliberately mutate module globals
@@ -76,21 +89,29 @@ Two of the tests are not behavioural. They exist to make the ongoing modularizat
 
 Both were verified *negatively*, each fails on the bug it exists to catch.
 
-## TODO (roadmap #3: CI)
+## How the pytest layer works
 
-These were written as fast standalone verification scripts. To formalize:
-1. Wrap each script's body in `def test_*()` functions.
-2. Add fixtures that reset mutated globals between tests. **`agentic.state.reset()` does this in
-   one call**, it restores every per-session global to its startup default and clears the caches
-   in place, without touching `config` (settings survive). So the fixture is roughly:
-   ```python
-   @pytest.fixture(autouse=True)
-   def clean_state():
-       state.reset()
-       yield
-       state.reset()
-   ```
-   Note some tests also monkeypatch `agent.ollama.chat`, which is not state, restore that separately.
-3. Add a `conftest.py` that puts the project root on `sys.path`.
-4. Wire up a **GitHub Actions** workflow running them on push (matrix: Python 3.12 and 3.14, to
-   prove the declared 3.12 floor).
+The scripts are **not** collected by pytest directly. They assert at import time and most
+mutate module globals, so importing them into one interpreter would let them corrupt each
+other, with whichever ran last deciding the result. Instead:
+
+- `conftest.py` excludes every `test_*.py` from collection except the runner, and adds a
+  session fixture that checksums `~/.agentic_1a_*` before and after the run.
+- `test_scripts.py` parametrises over the scripts and runs each one in a subprocess with
+  stdin closed.
+- `test_every_script_is_collected` compares the two lists, so a new script can never end
+  up both ignored by pytest and absent from the runner, silently untested.
+
+An autouse `clean_state` fixture calls `state.reset()` around every test, which restores
+each per-session global and clears the caches without touching `config`. Anything a test
+patches that is not state, `ollama.chat` above all, must still be restored by the test.
+
+CI runs both runners on Ubuntu against Python 3.12 and 3.14, the floor the README claims
+and the current release.
+
+## Still to do
+
+Convert the scripts into real pytest functions with assertions pytest can introspect.
+That is a per-file rewrite, not a mechanical one, because each script would need its
+global mutations replaced by fixtures before it is safe to share an interpreter. The
+subprocess runner above makes it optional rather than urgent.

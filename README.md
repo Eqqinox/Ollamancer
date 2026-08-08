@@ -142,8 +142,10 @@ The agent ships with 29 deterministic tests that run **fully offline**, no Ollam
 network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
-bash tests/run_all.sh          # → "tests: 29 passed, 0 failed"
+pytest                         # or: bash tests/run_all.sh
 ```
+
+They run on every push against Python 3.12 and 3.14, on Linux, via GitHub Actions.
 
 See [`tests/README.md`](./tests/README.md) for what each one covers.
 
