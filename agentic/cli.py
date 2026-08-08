@@ -52,13 +52,13 @@ atexit.register(mcp_client._cleanup_mcp)
 
 def main():
 
-    ui._load_params()  # réglages /parameters sauvegardés d'une session précédente
+    ui._load_params()  # /parameters settings saved by a previous session
     _mc = models._load_models_config()
     config.PLUMBING_FAILOVER_MODEL = _mc.get("failover", "")  # A7: persisted backup model
     config.ARCHITECT_MODEL = _mc.get("architect", "")          # B4
     config.EDITOR_MODEL = _mc.get("editor", "")                # B4
-    config.EMBED_MODEL = _mc.get("embed", config.EMBED_MODEL)         # B5 : modèle d'embedding (surchargeable)
-    config.VISION_MODEL = _mc.get("vision", "")                # B6 : modèle vision (vide = auto-détection)
+    config.EMBED_MODEL = _mc.get("embed", config.EMBED_MODEL)         # B5: embedding model (overridable)
+    config.VISION_MODEL = _mc.get("vision", "")                # B6: vision model ("" = auto-detect)
     try:
         config.SKILLS_GLOBAL_DIR.mkdir(parents=True, exist_ok=True)  # location of the global skills (empty at first)
     except Exception:
@@ -125,7 +125,7 @@ def main():
         state._BG_LOG_DIR  = agent_dir / "bg_logs"
         state._BG_LOG_DIR.mkdir(exist_ok=True)
         checkpoints._init_checkpoints()   # B1: shadow git repository for /undo checkpoints (silent if git is absent)
-        state._SESSION_DIR = agent_dir / "sessions"   # B3 : persistance de session + /resume
+        state._SESSION_DIR = agent_dir / "sessions"   # B3: session persistence + /resume
         state._SESSION_DIR.mkdir(exist_ok=True)
         state._SESSION_FILE = state._SESSION_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     state._SEMANTIC_DB = agent_dir / "semantic_index.db"   # B5: local RAG index (read; re-indexed only if search_semantic is used)
@@ -515,7 +515,7 @@ def main():
                 else:
                     resumed_messages, saved_model = loaded
                     messages = resumed_messages
-                    messages[0] = {"role": "system", "content": system_prompt}  # rafraîchit projet/mémoire courants
+                    messages[0] = {"role": "system", "content": system_prompt}  # refresh the current project/memory
                     n = len([m for m in messages if m.get("role") != "system"])
                     ui.console.print(f"[cyan]{t('resume_loaded', updated=datetime.now().strftime('%H:%M:%S'), n=n)}[/cyan]\n")
             continue
@@ -654,12 +654,12 @@ def main():
         except (loop._UserAbort, KeyboardInterrupt):
             ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
             safety._audit("USER_ABORT", {})
-            continue   # session reste vivante ; on revient à l'invite
+            continue   # the session stays alive; back to the prompt
         except ollama.ResponseError as e:
             ui.console.print(f"\n[red]{t('model_error', model=model)}[/red] {e.error}\n")
             if "does not support tools" in e.error.lower():
                 ui.console.print(f"[yellow]{t('model_no_tools_hint')}[/yellow]\n")
-            messages.pop()  # retire le message utilisateur non traité
+            messages.pop()  # drop the unprocessed user message
             continue
         except Exception as e:
             ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")

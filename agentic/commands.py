@@ -102,9 +102,9 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
             "first, then end your turn with the numbered plan as text and nothing else — the editor "
             f"model will write the code.\n\nTask: {task}")
 
-    # ── Phase 1 : architecte (lecture seule) ──
+    # ── Phase 1: architect (read-only) ──
     if architect_model != current_model:
-        models._unload_model(current_model)   # jamais deux modèles résidents
+        models._unload_model(current_model)   # never two models resident at once
     ui.console.print(f"\n[bold magenta]{t('architect_planning', model=architect_model)}[/bold magenta]")
     arch_messages = list(messages) + [{"role": "user", "content": arch_instr}]
     plan = loop.run_agent(arch_messages, architect_model,
@@ -483,4 +483,4 @@ def make_system_prompt(project_root: Path) -> str:
         suffix = f"\n\nProject root: {project_root}\nAll file/folder/command operations are relative to this root."
         if state._memory:
             suffix += f"\n\nPersistent memory (saved during previous sessions, may be outdated):\n{state._memory}"
-    return base + suffix + skills._skills_prompt_block()   # Tier 1 : découverte des skills (name+desc)
+    return base + suffix + skills._skills_prompt_block()   # Tier 1: skill discovery (name+desc)

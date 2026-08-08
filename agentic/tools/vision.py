@@ -25,10 +25,10 @@ from agentic.tools.files import _closest_path_hint
 # ── Vision : analyze_image (B6) ──────────────────────────────────────────────────
 # Name-based fallback, used ONLY if ollama.show() fails for a given model (an old
 # Ollama version, a corrupted model...) — primary detection is now the real
-# capacité "vision" exposée par ollama.show(model).capabilities. Vérifié en conditions
-# real ones (2026-08-05) that the name alone is misleading in both directions for the models
+# "vision" capability exposed by ollama.show(model).capabilities. Verified under
+# real conditions (2026-08-05): the name alone is misleading in both directions for the
 # installed here: `igorls/gemma-4-12B-...-heretic` matches "gemma-4" but does NOT have the
-# capacité vision (recompression communautaire texte-only) alors que `qwen3.5:4b` a
+# vision capability (a text-only community requantisation), while `qwen3.5:4b` does have
 # vision capability without matching any of the expected names (llava/-vl/moondream/...).
 _VISION_NAME_HINTS = ("llava", "vision", "-vl", "minicpm-v", "moondream", "bakllava",
                       "gemma3", "gemma-3", "gemma4", "gemma-4", "qwen2.5-vl", "qwen2-vl", "pixtral")

@@ -85,7 +85,7 @@ _SENSITIVE_PATH_PATTERNS = [
 ]
 
 
-# IPs/hostnames internes bloqués dans fetch_url (anti-SSRF)
+# Internal IPs/hostnames blocked in fetch_url (anti-SSRF)
 _PRIVATE_HOST_PATTERNS = [
     r"^localhost$",
     r"^127\.",

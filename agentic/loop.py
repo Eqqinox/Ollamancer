@@ -215,7 +215,7 @@ def _grounding_check(answer: str, tool_results: list[str]) -> list[str]:
     return unsupported
 
 
-# ── Nudge affirmation-vs-action : "corrigé/vérifié" sans édition/vérification réelle ──
+# ── Claim-vs-action nudge: "fixed/verified" with no real edit or verification ──
 _FIX_CLAIM_RE = re.compile(
     r"\b(fixed|fix(?:es|ed)? the bug|now works?|works? now|resolved|repaired|patched|"
     r"corrigé[es]?|réparé[es]?|résolu[es]?|ça marche maintenant|fonctionne maintenant)\b",
@@ -590,7 +590,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     all native + MCP); allowed_tools, if given, is a set of tool names permitted to actually
     execute — a call to anything outside it is refused without running (used by the architect
     phase (B4) to enforce a read-only planning pass even if the model tries a write)."""
-    state._CURRENT_MODEL = model               # B6 : appels latéraux (vision) savent quel modèle décharger
+    state._CURRENT_MODEL = model               # B6: side calls (vision) need to know which model to unload
     state._checkpoint_turn += 1
     state._checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
     rounds = 0
@@ -640,7 +640,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             err_payload = e.error
             err_text = err_payload.get("message", str(err_payload)) if isinstance(err_payload, dict) else str(err_payload or e)
             if "Unable to generate parser for this template" in err_text:
-                # Bug Ollama confirmé (ollama/ollama#16988) : la génération automatique
+                # Confirmed Ollama bug (ollama/ollama#16988): automatically
                 # generating the tool-calling parser for the chat template embedded in an
                 # hf.co GGUF (no native mapping on the Ollama library side) can fail
                 # mid-session, not only on the first call — reproduced twice
@@ -669,12 +669,12 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 safety._audit("TEMPLATE_PARSER_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("template_parser_fallback", error=err_text[:200])
             if "xml syntax error" in err_text.lower():
-                # Bug modèle confirmé (ollama/ollama#14834, #16383, #16810) : contrairement
+                # Confirmed model bug (ollama/ollama#14834, #16383, #16810): contrary
                 # to case #16988 above, the parser itself exists and works — it is the
                 # *model* (Qwen3.5/3.6 family, also seen on qwen3.5:4b) that occasionally
                 # drifts from its own documented tool-call format (e.g. emitting
-                # "element <parameter> closed by </function>" ou un wrapper <function_invocation>
-                # obsolete), which Ollama does not tolerate and reports as a 500 error instead
+                # "element <parameter> closed by </function>", or an obsolete <function_invocation>
+                # wrapper), which Ollama does not tolerate and reports as a 500 error instead
                 # of ignoring/repairing the drift. No upstream fix available to date (issues
                 # open) — reproduced in real conditions on qwen3.5:4b on 2026-08-04
                 # (see DESIGN.md): before this fix,
@@ -755,7 +755,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 continue
             if not (msg.content or "").strip():
                 # Empty final answer (no tool_calls either). Common with
-                # modèles "thinking" : ils réfléchissent (msg.thinking) puis s'arrêtent
+                # "thinking" models: they reason (msg.thinking) and then stop
                 # without ever producing final text or a tool call. We log
                 # the start of the reasoning (useful for diagnosis) and re-prompt the
                 # model a few times before giving up — never show an empty panel
@@ -786,7 +786,6 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 messages.append({"role": "assistant", "content": msg.content or ""})
                 messages.append(_nudge(t("grounding_nudge")))
                 continue
-            # Nudge affirmation-vs-action (A6, déterministe) : "corrigé"/"vérifié" sans
             # Circuit breaker: if the answer has collapsed into repeating itself, stop
             # nudging. Every nudge triggers another full rewrite, and a model already looping
             # loops harder — this is the same class of guard as the thin-search and
@@ -796,6 +795,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[dim]{t('repetition_stop_note')}[/dim]")
                 return msg.content or ""
 
+            # Claim-vs-action nudge (A6, deterministic): "fixed"/"verified" without
             # a real edit/verification this turn. Placed before _grounding_check.
             claim_kind = _claim_without_action(msg.content, had_successful_edit, had_verification)
             # Never in a read-only phase. The architect (B4) is *forbidden* to write, so
@@ -867,7 +867,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
 
             # B4: architect phase = read-only. Even if the model attempts a write,
             # we refuse without executing (the tool schema does not expose it, this is the
-            # ceinture-et-bretelles côté exécution).
+            # belt-and-braces on the execution side).
             if allowed_tools is not None and name not in allowed_tools and name not in mcp_client.MCP_TOOL_MAP:
                 readonly_refusals += 1
                 result = f"⛔ Read-only planning phase — '{name}' is not allowed here. Produce the plan; the editor model will make the changes."
@@ -916,7 +916,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             turn_tool_results.append(str(result))
 
             # Self-correction tracking: a successful edit arms the verification,
-            # un lint/test l'éteint.
+            # and a lint/test disarms it.
             if name in _EDIT_TOOLS and str(result).startswith(_EDIT_SUCCESS_PREFIX.get(name, "\0")):
                 edited_since_verify = True
                 had_successful_edit = True

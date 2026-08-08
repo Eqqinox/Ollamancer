@@ -309,7 +309,7 @@ def search_web(query: str) -> str:
                     results = alt
 
         # Automatic failover to the duckduckgo MCP server when SearXNG does not
-        # renvoie rien d'exploitable (0 résultat, ou extraits essentiellement vides
+        # return anything usable (0 results, or excerpts that are essentially empty
         # = often a CAPTCHA/rate-limit page returned as-is). Code-side and
         # invisible to the model, same pattern as the news routing (v2.9.3): the model
         # never chooses to call the MCP tool on its own (confirmed in benchmarks).
