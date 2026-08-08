@@ -37,7 +37,15 @@ MODELS_CONFIG_FILE = Path("~/.agentic_1a_models.json").expanduser()
 SKILLS_GLOBAL_DIR = Path("~/.agentic_1a_skills").expanduser()
 
 # ── Models ───────────────────────────────────────────────────────────────────
-DEFAULT_MODEL = "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M"
+DEFAULT_MODEL = "qwen3.5:4b"   # the fallback when no model has been chosen via /default-model.
+                               # Changed from Ornith-1.0-9B on 2026-08-08. Picked as a *default*
+                               # rather than as the best model: at 3.4 GB it runs on a modest
+                               # machine, it is a mainstream tag that is easy to pull, and in
+                               # benchmarks/model_ranking it scored a perfect 25/25 on web search
+                               # with zero swap. Ornith timed out on 3 of 4 tasks there. If this
+                               # model is not installed, _resolve_startup_model() falls back again
+                               # to any installed tool-capable model, so a wrong guess here is
+                               # never fatal.
 PLUMBING_FAILOVER_MODEL = ""   # backup model name; "" = disabled (default, see A7)
 ARCHITECT_MODEL = ""           # B4: "architect" model (plans, read-only); "" = current model
 EDITOR_MODEL = ""              # B4: "editor" model (executes the plan, all tools); "" = current model
@@ -67,7 +75,14 @@ SAFE_NUM_CTX = 65536   # context cap requested from Ollama (doubled 32768 -> 655
 GEN_TEMPERATURE     = 0.8
 GEN_TOP_P           = 0.9
 GEN_TOP_K           = 40
-GEN_REPEAT_PENALTY  = 1.1
+GEN_REPEAT_PENALTY  = 1.15   # raised from 1.1 on 2026-08-08. Measured, not guessed: at 1.1
+                             # `qwen3.5:4b` emitted a malformed tool call in 9 runs out of 11;
+                             # at 1.15, changing nothing else, it succeeded 9 times out of 9.
+                             # `qwen3-coder:30b` flips the same way. The plausible mechanism is
+                             # that tool-call syntax is highly repetitive (braces, quotes, key
+                             # names), so a penalty that is too weak lets the sampler fall into
+                             # a degenerate loop mid-JSON. Do not lower this without re-running
+                             # benchmarks/model_ranking on at least two models.
 GEN_NUM_PREDICT     = 4096   # ceiling on one reply; -1 (unlimited) is selectable but not the
                              # default: with no ceiling, a model that falls into a repetition
                              # loop generates until the whole context is full. Measured on a
@@ -129,7 +144,12 @@ SEMANTIC_CHUNK_LINES = 60      # B5: size of the indexed chunks (lines)
 SEMANTIC_TOP_K = 5             # B5: number of nearest chunks returned
 
 # ── Loop guardrails & retry budgets ──────────────────────────────────────────
-MAX_TOOL_ROUNDS   = 25  # guardrail: prevents an endless tool-call loop
+MAX_TOOL_ROUNDS   = 45  # guardrail: prevents an endless tool-call loop. Raised from 25 on
+                        # 2026-08-08: in benchmarks/model_ranking, gpt-oss:20b hit the old
+                        # ceiling on a single-file bugfix — it had already found both bugs and
+                        # was cut off before it could run the code to verify, which cost it the
+                        # task. A guardrail should stop runaway loops, not truncate work that is
+                        # still making progress; 45 does the first without the second.
 MAX_VERIFY_NUDGES = 2   # max auto "verify your edit" re-prompts per user turn
 MAX_THIN_SEARCHES = 4   # beyond this, force the model to stop searching into the void
 MAX_DEEP_SEARCHES = 6   # beyond this, force a stop even when the results are real — avoids
