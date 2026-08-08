@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ollamancer"
+version = "3.0.0"
+description = "Fully-local terminal AI agent for Ollama, with deterministic honesty checks, local RAG and MCP."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [{ name = "Mounir Meknaci" }]
+keywords = ["ollama", "llm", "agent", "cli", "local", "offline", "privacy", "rag", "mcp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Kept in step with requirements.txt, which stays as the file launch.sh installs from.
+dependencies = [
+    "ollama>=0.4.0",
+    "requests>=2.32.0",
+    "rich>=13.7.0",
+    "trafilatura>=2.0.0",
+    "feedparser>=6.0.10",
+]
+
+[project.optional-dependencies]
+# All three are optional at runtime by design: the agent starts and reports the feature
+# unavailable rather than failing. Kept out of the base install so a plain `pip install`
+# does not drag in a browser toolchain.
+browser = ["playwright>=1.62.0"]   # fetch_url_rendered; also needs: playwright install chromium
+mcp = ["mcp>=2.0.0"]               # third-party MCP servers
+prompt = ["prompt_toolkit>=3.0.0"] # fixes paste-submits-early on macOS libedit builds
+all = ["playwright>=1.62.0", "mcp>=2.0.0", "prompt_toolkit>=3.0.0"]
+dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/Eqqinox/Ollamancer"
+Issues = "https://github.com/Eqqinox/Ollamancer/issues"
+
+[project.scripts]
+ollamancer = "agentic.cli:main"
+
+[tool.setuptools]
+# `skills/` stays at the repository root, where the docs and launch.sh expect it, but the
+# wheel needs it inside the package: after `pip install` there is no repo root, and a
+# top-level `skills/` in site-packages would collide with anyone else's. The mapping below
+# relocates it at build time only. config.bundled_skills_dir() looks in both places.
+packages = ["agentic", "agentic.tools", "agentic.bundled_skills"]
+
+[tool.setuptools.package-dir]
+"agentic" = "agentic"
+"agentic.tools" = "agentic/tools"
+"agentic.bundled_skills" = "skills"
+
+[tool.setuptools.package-data]
+"agentic.bundled_skills" = ["**/*.md", "**/*.py", "**/*.txt", "**/*.json", "**/*.sh"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"

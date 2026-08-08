@@ -26,6 +26,26 @@ from pathlib import Path
 # NB: this module lives in agentic/, so the repository root is two levels up
 # (agentic/config.py -> agentic/ -> <repo>). Used to locate the bundled skills.
 _AGENT_HOME = Path(__file__).resolve().parent.parent
+
+
+def bundled_skills_dir() -> Path:
+    """Where the 14 shipped skills live, in either layout.
+
+    From a git checkout they sit at `<repo>/skills`, one level above this package. From a
+    `pip install` there is no repo: this file is in `site-packages/agentic/`, so
+    `_AGENT_HOME` is `site-packages` itself and `site-packages/skills` does not, and
+    should not, exist. The wheel therefore ships them inside the package as
+    `agentic/bundled_skills`, and this function prefers the checkout when it is present so
+    that editing a skill during development still takes effect immediately.
+
+    Getting this wrong fails silently: `_discover_skills` would simply find nothing and
+    the agent would run with zero bundled skills and no error. The same off-by-one-level
+    mistake was caught once already during the split into modules.
+    """
+    checkout = _AGENT_HOME / "skills"
+    if checkout.is_dir():
+        return checkout
+    return Path(__file__).resolve().parent / "bundled_skills"
 HISTORY_FILE  = Path("~/.agentic_1a_history").expanduser()
 PARAMS_FILE   = Path("~/.agentic_1a_params.json").expanduser()
 MCP_CONFIG_FILE = Path("~/.agentic_1a_mcp.json").expanduser()

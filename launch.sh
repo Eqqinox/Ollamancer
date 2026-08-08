@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Lance l'agent Agentic_1A
+# Launch the Agentic_1A agent.
 #
-# Usage :
-#   bash launch.sh                                → démarre dans le dossier courant
-#   bash launch.sh ~/Desktop/MonProjet             → démarre avec MonProjet comme racine
-#   bash launch.sh ~/Desktop/MonProjet --safe      → + mode sûr (ordre des args libre)
-#   bash launch.sh ~/Desktop/MonProjet --sandbox   → + sandbox Docker (ordre des args libre)
-#   bash launch.sh ~/Desktop/MonProjet --private   → session privée non journalisée (éphémère)
+# Usage:
+#   bash launch.sh                                 start in the current directory
+#   bash launch.sh ~/Desktop/MyProject             start with MyProject as the root
+#   bash launch.sh ~/Desktop/MyProject --safe      also approve risky tool calls
+#   bash launch.sh ~/Desktop/MyProject --sandbox   also isolate shell/REPL in Docker
+#   bash launch.sh ~/Desktop/MyProject --private   ephemeral session, nothing written to disk
+#
+# Flags may appear in any order, before or after the project path.
 #
 set -e
 
-AGENT_DIR="$(cd "$(dirname "$0")" && pwd)"   # Dossier de l'agent (Agentic_1A/)
+AGENT_DIR="$(cd "$(dirname "$0")" && pwd)"   # the agent's own directory
 
 SAFE_FLAG=""
 SANDBOX_FLAG=""
@@ -26,15 +28,15 @@ while [ $# -gt 0 ]; do
         *)                       POSITIONAL+=("$1"); shift ;;
     esac
 done
-PROJECT_ROOT="${POSITIONAL[0]:-$(pwd)}"       # 1er arg non-flag, ou dossier courant
+PROJECT_ROOT="${POSITIONAL[0]:-$(pwd)}"       # first non-flag argument, else the current directory
 
-# Créer le venv si absent
+# Create the virtual environment if it is missing
 if [ ! -d "$AGENT_DIR/.venv" ]; then
     echo "→ Creating the virtual environment..." >&2
     python3 -m venv "$AGENT_DIR/.venv"
 fi
 
-# Installer / mettre à jour les dépendances
+# Install or update the dependencies
 echo "→ Checking dependencies..." >&2
 "$AGENT_DIR/.venv/bin/pip" install -r "$AGENT_DIR/requirements.txt" -q
 
@@ -43,6 +45,6 @@ if [ ${#PASSTHROUGH[@]} -eq 0 ]; then
     echo ""
 fi
 
-# Lancer l'agent avec le dossier projet
+# Run the agent against the project folder
 "$AGENT_DIR/.venv/bin/python" "$AGENT_DIR/agent.py" "$PROJECT_ROOT" \
     $SAFE_FLAG $SANDBOX_FLAG $PRIVATE_FLAG "${PASSTHROUGH[@]}"

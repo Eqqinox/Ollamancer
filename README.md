@@ -2,6 +2,8 @@
 
 **A fully-local, terminal-first AI agent for [Ollama](https://ollama.com), built from scratch, obsessed with honesty, small-model reliability, and privacy.**
 
+[![tests](https://github.com/Eqqinox/Ollamancer/actions/workflows/tests.yml/badge.svg)](https://github.com/Eqqinox/Ollamancer/actions/workflows/tests.yml)
+
 No cloud. No API keys. No data leaves your machine. Point it at a project folder and talk to it. It reasons and acts with 34 native tools, MCP servers, and your shell.
 
 > Status: **v3.0** · developed on macOS (Apple Silicon, 24 GB) · Python 3.12+ · documentation in English, **bilingual EN/FR interface** · MIT.
@@ -68,15 +70,30 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 ollama pull gemma4:12b-mlx    # best all-round in our benchmark; any tool-capable model works
 ollama pull bge-m3            # embedding model, needed for local RAG
 
-# 2. Launch in your project folder (sets up the venv on first run):
-git clone https://github.com/Eqqinox/Ollamancer.git
-bash Ollamancer/launch.sh ~/path/to/your/project
+# 2. Install it (not on PyPI yet, so straight from the repo):
+pip install git+https://github.com/Eqqinox/Ollamancer.git
+
+# 3. Point it at a project:
+ollamancer ~/path/to/your/project
 ```
 
-Or run directly:
+Optional extras, all of which the agent runs happily without:
 
 ```bash
-cd Ollamancer && .venv/bin/python agent.py ~/path/to/your/project
+pip install "ollamancer[browser] @ git+https://github.com/Eqqinox/Ollamancer.git"
+pip install "ollamancer[mcp]     @ git+https://github.com/Eqqinox/Ollamancer.git"
+pip install "ollamancer[all]     @ git+https://github.com/Eqqinox/Ollamancer.git"
+```
+
+`browser` adds `fetch_url_rendered` and then needs `playwright install chromium`; `mcp`
+adds third-party MCP servers; `prompt` fixes paste-submits-early on macOS libedit builds.
+
+Prefer to work from a checkout? `launch.sh` creates the venv and installs dependencies
+for you:
+
+```bash
+git clone https://github.com/Eqqinox/Ollamancer.git
+bash Ollamancer/launch.sh ~/path/to/your/project
 ```
 
 **Optional flags:** `--safe` (approve risky tool calls), `--sandbox` (Docker isolation), `--private` (ephemeral, unlogged session).
@@ -175,6 +192,7 @@ All documentation is in English. The **agent's interface is bilingual EN/FR** (`
 ## Project layout
 
 ```
+pyproject.toml        # packaging; `ollamancer` console script -> agentic.cli:main
 agent.py              # entry point + compatibility facade (44 lines)
 agentic/              # the implementation
   config.py           #   persisted settings (the 30 /parameters values)

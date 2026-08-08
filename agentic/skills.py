@@ -47,7 +47,7 @@ def _parse_skill_frontmatter(text: str) -> tuple[dict, str]:
 def _skill_dirs() -> list[Path]:
     """Root directories to search for skills, least to most specific (most specific wins
     on a name clash)."""
-    dirs = [config._AGENT_HOME / "skills", config.SKILLS_GLOBAL_DIR]
+    dirs = [config.bundled_skills_dir(), config.SKILLS_GLOBAL_DIR]
     if state.PROJECT_ROOT is not None:
         dirs.append(state.PROJECT_ROOT / ".agentic" / "skills")
     return dirs
