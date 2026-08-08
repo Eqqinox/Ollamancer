@@ -1,0 +1,27 @@
+{
+  "_comment": "Manual scores for the two items score.py cannot compute. t1.d_judged max 4 (does the answer name the median-vs-tail flaw?), t4.prose_judged max 3 (is the report worth reading?). Empty/errored runs score 0.",
+  "t1.d_judged": {
+    "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest": 4,
+    "gemma4:12b-mlx": 4,
+    "gemma4:26b-mlx": 4,
+    "gpt-oss:20b": 4,
+    "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M": 4,
+    "qwen3.5:4b": 3,
+    "gamy316/aileen1.0:latest": 1,
+    "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest": 0,
+    "lfm2.5:8b": 0,
+    "ornith:9b": 0
+  },
+  "t4.prose_judged": {
+    "gpt-oss:20b": 3,
+    "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M": 3,
+    "ornith:9b": 3,
+    "gemma4:12b-mlx": 2.5,
+    "qwen3.5:4b": 2.5,
+    "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest": 2,
+    "gamy316/aileen1.0:latest": 0,
+    "lfm2.5:8b": 0,
+    "gemma4:26b-mlx": 0,
+    "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest": 0
+  }
+}

@@ -1,0 +1,14 @@
+Answer these four items from your own reasoning. Do NOT use any tool, do not search the web, do not read any file. Number your answers (a) to (d).
+
+(a) Four servers A, B, C and D were each restarted once, at four different times: 09:00, 10:00, 11:00 and 12:00. Given:
+  - A was restarted before C.
+  - The server restarted at 10:00 was not D.
+  - B was restarted exactly two hours after D.
+  - A was not restarted at 12:00.
+State the restart time of each server.
+
+(b) A client retries a failed request with exponential backoff, waiting 1s before the 1st retry, 2s before the 2nd, 4s before the 3rd, and so on, doubling each time. It gives up after the 8th retry attempt has failed. What is the total number of seconds spent waiting in backoff? Give a single number.
+
+(c) How many times does the letter "r" appear in the string "strawberry-raspberry"? Give a single number.
+
+(d) A team reports: "Our new cache dropped p50 latency from 120ms to 40ms, so the system is 3x faster for users." In one sentence, state the single biggest flaw in that conclusion.

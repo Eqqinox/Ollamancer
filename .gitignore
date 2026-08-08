@@ -51,3 +51,8 @@ backups/
 #   ~/.agentic_1a_skills/            your global skills
 #   ~/.agentic_imessage.json         iMessage bridge configuration
 # Nothing there is ever committed. See the Privacy section of the manual.
+
+# Model ranking campaign: keep the scores (the evidence behind RESULTS.md), drop the
+# raw run directories (~3 MB of captured web pages and transcripts, not worth versioning).
+benchmarks/model_ranking/results/*
+!benchmarks/model_ranking/results/scores.json

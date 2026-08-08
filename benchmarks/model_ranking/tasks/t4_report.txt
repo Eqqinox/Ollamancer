@@ -1,0 +1,16 @@
+Research the npm supply-chain worm attacks of 2025 and 2026 (the campaign known as "Shai-Hulud") and write a short report to a file named report.md in this folder.
+
+The report must have exactly these four sections, as level-2 markdown headings, in this order and with these exact titles:
+
+## Timeline
+## How it spreads
+## Remediation steps
+## Sources
+
+Rules:
+- Between 350 and 600 words. Be concise; do not pad.
+- Every factual claim in the first three sections must carry an inline citation like [1], [2] and so on.
+- The Sources section must be a numbered list where each number matches an inline citation and gives the full URL of a page you actually retrieved.
+- Do not invent CVE numbers, package names, dates or URLs. If you are unsure of a detail, leave it out.
+
+Write the file, then tell me the word count and how many sources you used.

@@ -1,0 +1,8 @@
+Give me the 3 most significant news stories from the last 24 hours.
+
+Requirements:
+- Cover at least 3 different topic areas (e.g. geopolitics, economy, science, sport, technology) — one story each.
+- Use 3 different news outlets. Do not take two stories from the same outlet.
+- Do NOT use aggregators as your source (no Wikipedia, no news-roundup or "current events portal" pages). Cite the outlet that actually reported the story.
+- For each story, give exactly: a one-line headline, one sentence of substance, and the source URL on its own line prefixed with "Source: ".
+- Keep it short. Only report stories you actually retrieved. If you cannot find 3, say so and give the ones you have.

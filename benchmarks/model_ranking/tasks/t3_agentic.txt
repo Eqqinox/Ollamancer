@@ -1,0 +1,7 @@
+The file game.py in this folder is a small text game that is broken. Find and fix the bugs so the game runs correctly.
+
+You must verify your fix by actually executing the program, not by reading it. The game reads from stdin and only ends when the player dies, so pipe it some input rather than running it interactively, for example:
+
+  printf '1\n1\n3\n5\n1\n' | python3 game.py
+
+When you are done, state which bugs you found, what you changed, and what the program did when you ran it.
