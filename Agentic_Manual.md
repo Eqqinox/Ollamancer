@@ -99,7 +99,7 @@ curl "http://localhost:8080/search?q=test&format=json"   # is SearXNG up?
 ```
 ────────────────────────────   Agentic_1A   ────────────────────────────
   Project : /Users/you/projects/my-project      ← the project root
-  Model   : hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M
+  Model   : gemma4:12b-mlx
   Tools   : search_web, fetch_url, read_file, write_file, edit_file,
             create_directory, list_directory, run_command, get_datetime
   Help    : type /help
@@ -765,16 +765,22 @@ You → /model qwen3.5:4b
 
 ### Model recommendations
 
-Any tool-capable Ollama model works. These were measured on a 24 GB Apple Silicon machine —
-see [`DESIGN.md`](./DESIGN.md) for the full benchmark campaign.
+Any tool-capable Ollama model works. Scores below are out of 100 from the ranking campaign in
+[`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md) — four tasks
+(reasoning, web search, agentic work, report writing) on a 24 GB Apple Silicon machine.
 
-| Model | Speed | Notes |
-|---|---|---|
-| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | Fast (5.6 GB, dense) | **Current default** — best overall in the benchmark campaign |
-| `qwen3.5:4b` | Very fast (3.4 GB, dense) | A very close 2nd; most rigorous code verification despite its size |
-| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | Fast (MoE ⚡, 18 GB) | Most systematic code-correction process |
-| `gpt-oss:20b` | Fast (MoE ⚡) | Natively supported by Ollama, 0 confirmed factual errors, fastest of all |
-| `qwen3.6:27b` | ~5 t/s | More powerful in theory, but measured impractical on 24 GB |
+| Model | Size | Score | Notes |
+|---|---|---|---|
+| `gemma4:12b-mlx` | 7.7 GB | **95** | **Recommended default.** The only model of ten that actually fixed the broken program rather than claiming to |
+| `gpt-oss:20b` | 13 GB | 75 | Best planner and best report prose; natively supported by Ollama; 0 timeouts, 0 swap |
+| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 71 | Strong reasoning and reports, but timed out on 3 of 4 tasks |
+| `qwen3.5:4b` | 3.4 GB | 70 | The shipped fallback: perfect web-search score at the smallest size, zero swap |
+| `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 64 | Uncensored (Heretic); perfect search score |
+| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 18 GB | 59 | Uncensored + vision, but ~8.7 GB of swap on a 24 GB machine |
+
+> ⚠️ **On 24 GB, models above ~13 GB are a poor trade.** `gemma4:26b-mlx` pushed **13.2 GB into
+> swap** and still scored below a 7.7 GB model. A 27B+ model at q8 may not load at all — Ollama
+> refused one outright with *"requires 26.6 GiB but only 17.3 GiB are available"*.
 
 > ⚠️ Models that do not support tool calling are not compatible, and `/model` blocks selecting
 > them. Models "uncensored" via classic abliteration (`huihui_ai/*`) showed repeated factual
@@ -834,7 +840,7 @@ ollama serve
 ### "Model not found"
 ```bash
 ollama list                                  # what's available
-ollama pull hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M
+ollama pull gemma4:12b-mlx                   # or any tool-capable model
 ```
 
 ### Search errors (`search_web`)

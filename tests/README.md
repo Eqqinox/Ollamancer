@@ -22,7 +22,7 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root → "tests: 24 passed, 0 failed"
+bash tests/run_all.sh          # from the project root → "tests: 29 passed, 0 failed"
 ```
 
 Or a single test:
@@ -59,6 +59,11 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_skills` | skills discovery / `load_skill` |
 | `test_structure` | golden master: tool registry, slash commands, EN/FR parity, params schema |
 | `test_import_rules` | live-module import rules, no globals() across modules, no shadowing, no undefined names |
+| `test_architect_guards` | architect phase stays read-only; no unsatisfiable claim-vs-action nudge |
+| `test_nudge_marking` | automatic nudges are labelled as checks, in EN and FR, so they read as corrections rather than new user requests |
+| `test_repetition_breaker` | stop nudging once an answer has collapsed into repeating itself |
+| `test_source_diversity` | one page per outlet in search results, rather than several from the same domain |
+| `test_duplicate_items` | flag the same event reported twice in one answer, without firing on a shared live-blog URL |
 
 ## Structural guardrails
 
@@ -66,7 +71,7 @@ Two of the tests are not behavioural — they exist to make the ongoing modulari
 
 | File | Enforces |
 |---|---|
-| `test_structure.py` | Golden master over the agent's *shape*: the 34-tool registry, the 36 slash commands, EN/FR parity across `STR`/`SYSTEM_PROMPT`/`HELP_TEXT`, and the 30-entry `/parameters` schema — including a live write/read round-trip proving the menu is still wired to the variables the agent reads. |
+| `test_structure.py` | Golden master over the agent's *shape*: the 34-tool registry, the slash-command set, EN/FR parity across `STR`/`SYSTEM_PROMPT`/`HELP_TEXT`, and the 30-entry `/parameters` schema — including a live write/read round-trip proving the menu is still wired to the variables the agent reads. |
 | `test_import_rules.py` | `config` and `state` must always be reached through the module object (`config.X`), never `from config import X`, which copies a value that never sees a later rebinding. Also bans `globals()[...]` across module boundaries and any local shadowing those module names. |
 
 Both were verified *negatively* — each fails on the bug it exists to catch.

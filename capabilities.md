@@ -365,11 +365,13 @@ combined ranking and history in `DESIGN.md`.
 > `brianmatzelle/qwen3-coder-heretic:30b`, `qwen3:8b`, the Heretic variants of `qwen3.5:9b`)
 > have since been **deleted** — either after a confirmed failure (the plain-text pseudo
 > tool-call bug, see `DESIGN.md`) or because a better candidate replaced them. The table below
-> reflects the real state as of 2026-08-03.
+> reflects the state as of 2026-08-03. The observations below are about *code* tasks with
+> external fact-checking; for the four-task ranking that supersedes the "which is best" question,
+> see [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md) (2026-08-08).
 
 | Model | Strengths | Weaknesses |
 |---|---|---|
-| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` (default model) | **Current champion** — best factual precision observed to date (4/4 verified by external fact-check), builds its own edge-case tests without being asked, reliable spontaneous discovery of unnamed MCP tools (including with zero hints) | Only 9B — more limited raw capacity than larger models on very complex tasks (not measured here) |
+| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | Best factual precision observed in *this* campaign (4/4 verified by external fact-check), builds its own edge-case tests without being asked, reliable spontaneous discovery of unnamed MCP tools (including with zero hints) | Only 9B. And in the later four-task campaign it timed out on 3 of 4 tasks, placing 8th of 10 — it is no longer the default |
 | `qwen3.5:4b` | A very close 2nd — the smallest model tested, very precise factual search, the most rigorous code verification | 4B — even more limited in raw capacity |
 | `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 3rd — MoE ⚡, uncensored (Heretic method, low capability loss), the most systematic code-correction process, verified by external fact-checking | 18 GB — the heaviest of the recommended models |
 | `igorls/gemma-4-12B-it-qat-q4_0-unquantized-heretic:Q4_0` | 4th — uncensored (Heretic), 4/4 tests passed | Messier execution (redundant calls), 1 confirmed factual error on a regulatory topic |

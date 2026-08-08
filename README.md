@@ -6,6 +6,9 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 
 > Status: **v3.0** · developed on macOS (Apple Silicon, 24 GB) · Python 3.12+ · documentation in English, **bilingual EN/FR interface** · MIT.
 
+> The repository is `Ollamancer`; the agent introduces itself as **Agentic_1A**, which is
+> the name in the code, the docs and the `~/.agentic_1a_*` config paths. Same project.
+
 <!-- TODO: demo recording.
      asciinema rec demo.cast --cols 100 --rows 30
      agg demo.cast demo.gif      # https://github.com/asciinema/agg
@@ -62,18 +65,18 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 
 ```bash
 # 1. Pull a tool-capable model (any small Qwen/Gemma build works), and the RAG embedder:
-ollama pull qwen3:8b
-ollama pull bge-m3
+ollama pull gemma4:12b-mlx    # best all-round in our benchmark; any tool-capable model works
+ollama pull bge-m3            # embedding model, needed for local RAG
 
 # 2. Launch in your project folder (sets up the venv on first run):
-git clone https://github.com/<you>/Agentic_1A.git
-bash Agentic_1A/launch.sh ~/path/to/your/project
+git clone https://github.com/Eqqinox/Ollamancer.git
+bash Ollamancer/launch.sh ~/path/to/your/project
 ```
 
 Or run directly:
 
 ```bash
-cd Agentic_1A && .venv/bin/python agent.py ~/path/to/your/project
+cd Ollamancer && .venv/bin/python agent.py ~/path/to/your/project
 ```
 
 **Optional flags:** `--safe` (approve risky tool calls), `--sandbox` (Docker isolation), `--private` (ephemeral, unlogged session).
@@ -91,7 +94,7 @@ You → do a security review of my changes
 You → research the latest on <topic> and write a cited report
 ```
 
-Type **`/`** to autocomplete commands. A few highlights (`/help` lists all 36):
+Type **`/`** to autocomplete commands — `/help` lists them all. A few highlights:
 
 | Command | Does |
 |---|---|
@@ -135,11 +138,11 @@ exactly what's stored, where, and how to delete it.
 
 ## Tests
 
-The agent ships with 24 deterministic tests that run **fully offline** — no Ollama, no
+The agent ships with 29 deterministic tests that run **fully offline** — no Ollama, no
 network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
-bash tests/run_all.sh          # → "tests: 24 passed, 0 failed"
+bash tests/run_all.sh          # → "tests: 29 passed, 0 failed"
 ```
 
 See [`tests/README.md`](./tests/README.md) for what each one covers.
@@ -161,6 +164,7 @@ See [`tests/README.md`](./tests/README.md) for what each one covers.
 - [`capabilities.md`](./capabilities.md) — exhaustive capability list.
 - [`DESIGN.md`](./DESIGN.md) — design rationale & engineering history (including what *didn't* work).
 - [`benchmarks/README.md`](./benchmarks/README.md) — the model-reliability fixtures and findings.
+- [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md) — ten local models ranked on reasoning, search, agentic work and report writing, with the protocol and its limits in [`PLAN.md`](./benchmarks/model_ranking/PLAN.md).
 
 All documentation is in English. The **agent's interface is bilingual EN/FR** (`/lang`) — that's a feature, not an oversight.
 
@@ -169,7 +173,7 @@ All documentation is in English. The **agent's interface is bilingual EN/FR** (`
 ## Project layout
 
 ```
-agent.py              # entry point + compatibility facade (45 lines)
+agent.py              # entry point + compatibility facade (44 lines)
 agentic/              # the implementation
   config.py           #   persisted settings (the 30 /parameters values)
   state.py            #   per-session runtime state + reset()
@@ -187,7 +191,7 @@ agentic/              # the implementation
 launch.sh             # venv setup + launcher
 skills/               # bundled SKILL.md workflows (14)
 benchmarks/           # model-reliability fixtures + playthrough harness
-tests/                # deterministic offline test suite (24 tests)
+tests/                # deterministic offline test suite (29 tests)
 imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)
 ```
 
