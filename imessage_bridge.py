@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Agentic_1A — iMessage bridge v1.0
+Ollamancer — iMessage bridge v1.0
 ─────────────────────────────────
 From an iPhone: send "! your question" to yourself (your own number/email).
 The Mac receives it, the agent handles it, and the answer comes back over iMessage.
@@ -64,7 +64,7 @@ def save_config(cfg: dict):
 def setup():
     """First-run configuration wizard (run once)."""
     print("\n══════════════════════════════════════════")
-    print("  Agentic_1A — Configuration iMessage")
+    print("  Ollamancer — Configuration iMessage")
     print("══════════════════════════════════════════\n")
     print("You will send commands to yourself from your iPhone.")
     print("The bridge needs your iMessage handle in order to filter messages.\n")
@@ -264,7 +264,7 @@ def main():
     ts = datetime.now().strftime("%H:%M:%S")
     console.print()
     console.print("─" * 50)
-    console.print(f"  [bold cyan]Agentic_1A — iMessage bridge[/bold cyan]")
+    console.print(f"  [bold cyan]Ollamancer — iMessage bridge[/bold cyan]")
     console.print(f"  Started at [yellow]{ts}[/yellow]")
     console.print(f"  Handle   : [green]{handle_filter or 'all contacts'}[/green]")
     console.print(f"  Project  : [white]{project_root}[/white]")

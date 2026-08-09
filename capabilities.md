@@ -1,11 +1,11 @@
-# Agentic_1A: Exhaustive capability list
+# Ollamancer: Exhaustive capability list
 > Everything the agent can do, updated 2026-08-05 (v3.0)
 
 ---
 
 ## How to read this file
 
-The agent has **34 dedicated tools** plus **`run_command`**, which exposes the entire shell.
+The agent has **35 dedicated tools** plus **`run_command`**, which exposes the entire shell.
 So there are two levels of capability:
 
 - **Native** → a dedicated tool: reliable, with a precise docstring the model reads.
@@ -255,6 +255,14 @@ What the agent can do autonomously by chaining its tools:
 
 ## 9 bis. Live settings (`/parameters`)
 
+**Tool call display.** By default the agent prints one line per tool call while it works,
+showing the name, the identifying argument, the size of the result and the elapsed time.
+**`/details`** then prints the complete record of the turn just finished: every call, its
+full arguments, and its **untruncated** result. Setting **Tool Call Display** to `full`
+restores the original two-panel view, which shows more on screen but actually less of a
+large result, since those panels cut each one at 300 characters and discard the remainder.
+
+
 A full-screen interactive menu (`curses`, navigate with ↑/↓/←/→) for adjusting things without
 touching the code: Ollama generation parameters (temperature, top_p, top_k, repeat penalty,
 max tokens, seed, **none of which were tunable before 2026-08-02**), safety limits (max
@@ -357,30 +365,71 @@ Since v2.9.15, `DEFAULT_MODEL` in the code is no longer the only source of the s
 
 ## 11. Capabilities by model
 
-The capabilities described above also depend on the model in use. Updated after a **full
-re-benchmark on 2026-08-02** (4 identical tests: factual search with real external
-fact-checking, reasoning, code verified by `pytest`, and a multi-step task), full detail,
-combined ranking and history in `DESIGN.md`.
+What the agent can actually do depends on the model driving it. Two benchmark campaigns
+are reported below. They are kept apart on purpose: they measured different things, so
+their results are not comparable and no combined ranking is offered. Only four models
+appear in both.
 
-> Note: Several models named in the re-benchmark history (`lfm2:24b-a2b`,
-> `brianmatzelle/qwen3-coder-heretic:30b`, `qwen3:8b`, the Heretic variants of `qwen3.5:9b`)
-> have since been **deleted**, either after a confirmed failure (the plain-text pseudo
-> tool-call bug, see `DESIGN.md`) or because a better candidate replaced them. The table below
-> reflects the state as of 2026-08-03. The observations below are about *code* tasks with
-> external fact-checking; for the four-task ranking that supersedes the "which is best" question,
-> see [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md) (2026-08-08).
+### 11.1 Current ranking (2026-08-08, four tasks)
 
-| Model | Strengths | Weaknesses |
-|---|---|---|
-| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | Best factual precision observed in *this* campaign (4/4 verified by external fact-check), builds its own edge-case tests without being asked, reliable spontaneous discovery of unnamed MCP tools (including with zero hints) | Only 9B. And in the later four-task campaign it timed out on 3 of 4 tasks, placing 8th of 10. It is no longer the default |
-| `qwen3.5:4b` | A very close 2nd, the smallest model tested, very precise factual search, the most rigorous code verification | 4B, even more limited in raw capacity |
-| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 3rd, MoE, uncensored (Heretic method, low capability loss), the most systematic code-correction process, verified by external fact-checking | 18 GB, the heaviest of the recommended models |
-| `igorls/gemma-4-12B-it-qat-q4_0-unquantized-heretic:Q4_0` | 4th, uncensored (Heretic), 4/4 tests passed | Messier execution (redundant calls), 1 confirmed factual error on a regulatory topic |
-| `gpt-oss:20b` | MoE, natively supported by Ollama (first-class support, not a community re-quantised GGUF), 0 confirmed factual errors, the fastest of all (see `DESIGN.md`) | Pickier about search than the others, needs an explicit date rather than "today" to avoid getting stuck on a midnight-boundary problem |
-| `qwen3.6:27b` / `qwen3.6:35b-a3b` | Theoretically deeper reasoning | **Objectively impractical on this hardware**, zero output observed in 8 minutes on a simple question, including the MoE version |
-| "Uncensored" models via classic abliteration (`huihui_ai/*`) | No content restrictions | Repeated factual fabrication under pressure (see `DESIGN.md`), prefer a model uncensored with the **Heretic** method if the subject requires it |
+**Battery:** reasoning with no tools, web search, an agentic fix-and-verify task, and
+report writing. 100 points, 25 per task, one run per model per task, five-minute cap per
+run, identical generation parameters throughout. Full protocol, per-run evidence and
+stated limits in
+[`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md).
 
-**Since v2.9.15** this default-model choice is no longer hard-coded, see section 9 quinquies.
+| Model | Size | Reasoning | Search | Agentic | Report | Total | Note |
+|---|---|---|---|---|---|---|---|
+| `gemma4:12b-mlx` | 7.7 GB | 25 | 20.7 | 25 | 24.5 | **95.2** | Current default. The only model of ten that actually fixed the broken program |
+| `gpt-oss:20b` | 13 GB | 19 | 19 | 12 | 25 | **75.0** | Current architect model. Best planner and best report prose, 0 timeouts, 0 swap |
+| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 25 | 17 | 6 | 22.8 | **70.8** | Strong reasoning, but timed out on 3 of 4 tasks |
+| `qwen3.5:4b` | 3.4 GB | 12 | 25 | 9 | 23.9 | **69.9** | Shipped fallback. Perfect search score at the smallest size, zero swap |
+| `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 0 | 25 | 15 | 23.9 | **63.9** | Best uncensored option. Timed out 3 of 4 |
+| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 17 GB | 25 | 25 | 9 | 0 | **59.0** | Uncensored + vision, but 8.7 GB of swap and never finished the report |
+| `gemma4:26b-mlx` | 17 GB | 25 | 22 | 9 | 0 | **56.0** | Pushed **13.2 GB into swap** on a 24 GB machine, for a score below a 7.7 GB model |
+| `ornith:9b` | 5.6 GB | 0 | 19 | 6 | 25 | **50.0** | Best report prose, but timed out 3 of 4 |
+| `gamy316/aileen1.0` | 4.9 GB | 13.8 | 14.3 | 6 | 0 | **34.1** | Fastest overall (189 s), weakest answers, made zero tool calls on the agentic task |
+| `lfm2.5:8b` | 5.2 GB | 0 | 17 | 9 | 0 | **26.0** | Never wrote the report file |
+
+Two findings that generalise beyond the ranking:
+
+- **On 24 GB, models above roughly 13 GB are a poor trade.** Both 17 GB models scored
+  below a 7.7 GB one while forcing 8 to 13 GB of swap.
+- **Tool-call count predicts agentic success almost perfectly.** The top four made 10 to
+  25 calls; the bottom three made 0 or 1 and simply asserted the code was fixed.
+
+Read the limits section of `RESULTS.md` before treating any of this as settled: one run
+per model per task separates 95 from 26, not 4th place from 5th.
+
+### 11.2 Earlier code-focused campaign (2026-08-02, archival)
+
+Kept because it measured two things the newer campaign does not: **claims verified by
+external fact-checking**, and **code verified by `pytest`**. Battery: four identical
+tests, factual search with external fact-checking, reasoning, verified code, and a
+multi-step task. Full detail and history in `DESIGN.md`.
+
+Rows are retained even where the model has since been removed from this machine. Several
+are negative results, and a finding that a model is unusable is worth as much as a
+finding that one is good; deleting it would only cost the next person the download. The
+status column says what is still here, so no row reads as a recommendation to install
+something that was tested and dropped.
+
+> Also removed since this campaign and not tabulated: `lfm2:24b-a2b`,
+> `brianmatzelle/qwen3-coder-heretic:30b`, `qwen3:8b`, and the Heretic variants of
+> `qwen3.5:9b`, all after a confirmed failure (the plain-text pseudo tool-call bug, see
+> `DESIGN.md`) or because a better candidate replaced them.
+
+| Model | Status | Strengths | Weaknesses |
+|---|---|---|---|
+| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | installed | Best factual precision in this campaign (4/4 verified by external fact-check), builds its own edge-case tests without being asked, reliable spontaneous discovery of unnamed MCP tools, including with zero hints | Only 9B, so more limited in raw capacity than larger models on very complex tasks |
+| `qwen3.5:4b` | installed | A very close 2nd, the smallest model tested, very precise factual search, the most rigorous code verification | 4B, even more limited in raw capacity |
+| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | installed | 3rd, MoE, uncensored (Heretic method, low capability loss), the most systematic code-correction process, verified by external fact-checking | 18 GB, the heaviest of the recommended models |
+| `igorls/gemma-4-12B-it-qat-q4_0-unquantized-heretic:Q4_0` | tested, removed | 4th, uncensored (Heretic), 4/4 tests passed | Messier execution (redundant calls), 1 confirmed factual error on a regulatory topic |
+| `gpt-oss:20b` | installed | MoE, natively supported by Ollama (first-class support, not a community re-quantised GGUF), 0 confirmed factual errors, the fastest of all (see `DESIGN.md`) | Pickier about search than the others, needs an explicit date rather than "today" to avoid getting stuck on a midnight-boundary problem |
+| `qwen3.6:27b` / `qwen3.6:35b-a3b` | tested, unusable | Theoretically deeper reasoning | **Objectively impractical on this hardware**, zero output observed in 8 minutes on a simple question, including the MoE version |
+| "Uncensored" models via classic abliteration (`huihui_ai/*`) | not recommended | No content restrictions | Repeated factual fabrication under pressure (see `DESIGN.md`), prefer a model uncensored with the **Heretic** method if the subject requires it |
+
+**Since v2.9.15** the default-model choice is no longer hard-coded, see section 9 quinquies.
 
 ---
 

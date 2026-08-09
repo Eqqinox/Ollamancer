@@ -1,4 +1,4 @@
-"""Agentic_1A — image understanding.
+"""Ollamancer — image understanding.
 
 One tool, `analyze_image`, which hands a picture to an installed multimodal model.
 

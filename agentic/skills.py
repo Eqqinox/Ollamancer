@@ -1,4 +1,4 @@
-"""Agentic_1A — skills (reusable SKILL.md workflows).
+"""Ollamancer — skills (reusable SKILL.md workflows).
 
 A skill is a folder containing a `SKILL.md`: YAML frontmatter with a `name` and a
 `description`, then free-form instructions. The format is the open standard shared with

@@ -1,4 +1,4 @@
-"""Agentic_1A — web search and page fetching.
+"""Ollamancer — web search and page fetching.
 
 Four tools, and a lot of routing the model never sees.
 
@@ -116,8 +116,8 @@ def _searxng_fetch(query: str, category: str = "general", cap: int | None = None
     # explicit language: the SearXNG instance has a French default_lang, without this
     # parameter every search (even "top international news" in English)
     # inherits the instance's French bias and gets polluted by
-    # sources francophones hors-sujet. "auto" (réglable via /parameters) laisse
-    # l'instance décider.
+    # off-topic French-language sources. "auto", tunable via /parameters, leaves
+    # the decision to the instance.
     # `cap` lets search_web_deep ask for a wider candidate pool than search_web keeps: it
     # then picks a domain-diverse subset from it. Without that, capping at SEARCH_RESULT_CAP
     # first can hand the deep read a pool that is already single-source.
@@ -336,8 +336,8 @@ def search_web(query: str) -> str:
         )
         return header + body
     except Exception as e:
-        # SearXNG a levé (connexion refusée, JSON invalide = page CAPTCHA/HTML au
-        # instead of JSON, timeout...), the same "CAPTCHA-shaped" conditions as above,
+        # SearXNG raised (connection refused, or invalid JSON because a CAPTCHA/HTML
+        # page came back instead, or a timeout): the same conditions as above,
         # on the transport side this time. Try the failover before returning the error.
         ddg = _duckduckgo_failover(query)
         if ddg:
@@ -424,8 +424,8 @@ def search_web_deep(query: str) -> str:
             try:
                 r = requests.get(url, headers={"User-Agent": config.USER_AGENT}, timeout=config.DEEP_SEARCH_TIMEOUT)
                 text, date = _extract_with_meta(r.content, url, r.apparent_encoding)
-                # Texte trop mince = probable coquille JS (single-page app) plutôt
-                # than a genuinely thin page, retry through a real browser before
+                # Text this thin is usually a JS shell (a single-page app) rather
+                # than a genuinely thin page, so retry through a real browser before
                 # giving up, instead of relying on the model to think of it.
                 if len(text.strip()) < config.DEEP_SEARCH_THIN_THRESHOLD:
                     rendered = _fetch_rendered_text(url, timeout_ms=10000)

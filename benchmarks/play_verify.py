@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repeat-action playthrough harness for the game_py_bugfix fixture (Agentic_1A benchmark B10).
+"""Repeat-action playthrough harness for the game_py_bugfix fixture (Ollamancer benchmark B10).
 
 Why this exists
 ---------------

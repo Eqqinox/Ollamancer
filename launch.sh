@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the Agentic_1A agent.
+# Launch the Ollamancer agent.
 #
 # Usage:
 #   bash launch.sh                                 start in the current directory

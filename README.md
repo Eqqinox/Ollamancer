@@ -1,4 +1,4 @@
-# Agentic_1A
+# Ollamancer
 
 **A fully-local, terminal-first AI agent for [Ollama](https://ollama.com), built from scratch, obsessed with honesty, small-model reliability, and privacy.**
 
@@ -8,13 +8,13 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 
 > Status: **v3.0** · developed on macOS (Apple Silicon, 24 GB) · Python 3.12+ · documentation in English, **bilingual EN/FR interface** · MIT.
 
-> The repository is `Ollamancer`; the agent introduces itself as **Agentic_1A**, which is
+> The repository is `Ollamancer`; the agent introduces itself as **Ollamancer**, which is
 > the name in the code, the docs and the `~/.agentic_1a_*` config paths. Same project.
 
 <!-- TODO: demo recording.
      asciinema rec demo.cast --cols 100 --rows 30
      agg demo.cast demo.gif      # https://github.com/asciinema/agg
-     Then replace this comment with:![Agentic_1A demo](./docs/demo.gif)
+     Then replace this comment with:![Ollamancer demo](./docs/demo.gif)
      Suggested 45s script: launch → "where is the retry logic handled?" (RAG)
      → "fix the failing test and verify it" (edit + run_tests) → /diff → /undo last -->
 
@@ -29,7 +29,7 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 
 ## Why another terminal agent?
 
-The local-agent space is crowded (Aider, OpenCode, Goose…). Agentic_1A is different where it counts: it takes seriously the three things the [2026 local-first market analysis](https://nimbalyst.com/blog/best-local-first-ai-coding-tools-2026/) says the field is *missing*:
+The local-agent space is crowded (Aider, OpenCode, Goose…). Ollamancer is different where it counts: it takes seriously the three things the [2026 local-first market analysis](https://nimbalyst.com/blog/best-local-first-ai-coding-tools-2026/) says the field is *missing*:
 
 -  **Deterministic honesty controls**: it flags numbers/dates/URLs/names in an answer that appear in *no* tool result this turn, and nudges when the model claims "fixed/verified" without a real edit or verification. Hallucination is treated as a first-class, *deterministic* problem, not left to the model.
 -  **Small-model reliability engineering**: retries + fallback for four confirmed Ollama tool-call failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across ~15 models.
@@ -55,16 +55,17 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 - **Git checkpoints**: `/undo` reverts a whole turn (shadow repo, works in non-git projects too).
 - **Context compaction**: summarizes old turns when the window fills (off by default; `/compact` on demand).
 - **Session resume**, **streaming answers**, **live RAM readout**, **Esc-to-stop**.
+- **Compact tool display**: one line per tool call with result size and elapsed time; `/details` prints the full, untruncated record of the last turn.
 - **Skills**: reusable [`SKILL.md`](https://agentskills.io) workflows (the open standard, portable with Claude Code / Cursor / Codex) + a bundled **14-skill library**.
 - **Headless / batch**: `--run "prompt"` and `--recipe file.md` (exit code = success) for cron/scripts.
 - **Safe mode** (approve risky calls) and a **Docker sandbox** (isolate shell/REPL).
-- **30 live-tunable settings** in a `/parameters` menu, persisted across sessions.
+- **31 live-tunable settings** in a `/parameters` menu, persisted across sessions.
 
 ---
 
 ## Quick start
 
-**Requirements:** [Ollama](https://ollama.com) running with at least one tool-capable model, **Python 3.12+** (a venv is created for you). Optional: SearXNG (Docker) for web search, Docker for the sandbox.
+**Requirements:** [Ollama](https://ollama.com) running with at least one tool-capable model, **Python 3.12+** (a venv is created for you). Optional: SearXNG (Docker) for web search ([setup](./Agentic_Manual.md#setting-up-searxng-optional-for-web-search)), Docker for the sandbox.
 
 ```bash
 # 1. Pull a tool-capable model (any small Qwen/Gemma build works), and the RAG embedder:
@@ -122,8 +123,9 @@ Type **`/`** to autocomplete commands, `/help` lists them all. A few highlights:
 | `/skills`, `/skill <name>` | List / load a skill |
 | `/undo`, `/diff` | Revert a turn / see changes |
 | `/context`, `/compact` | Context usage / compact now |
+| `/details` | Full record of the last turn's tool calls |
 | `/resume` | Reload a saved session |
-| `/parameters` | Settings menu (30 tunables) |
+| `/parameters` | Settings menu (31 tunables) |
 | `/private` | Is this session logged? |
 
 Press **Esc** (or Ctrl+C) while it's working to stop the model and return to the prompt.
@@ -156,7 +158,7 @@ exactly what's stored, where, and how to delete it.
 
 ## Tests
 
-The agent ships with 29 deterministic tests that run **fully offline**, no Ollama, no
+The agent ships with 33 deterministic tests that run **fully offline**, no Ollama, no
 network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
@@ -172,14 +174,14 @@ See [`tests/README.md`](./tests/README.md) for what each one covers.
 ## How it compares (honest)
 
 - **Aider**: better at disciplined git-native multi-file editing. Both now have a ranked repo map; Aider's covers more languages out of the box, while `repo_map` here needs no dependencies for Python and an optional extra for the rest.
-- **OpenCode**: far more popular, and provider-neutral across many cloud and local backends. Agentic_1A declines that neutrality on purpose: Ollama-only means no API keys and nothing leaving your machine.
-- **Agentic_1A's niche**: the deterministic honesty layers, small-model reliability work, privacy mode, local RAG, and skills-beyond-MCP, in one transparent, from-scratch tool.
+- **OpenCode**: far more popular, and provider-neutral across many cloud and local backends. Ollamancer declines that neutrality on purpose: Ollama-only means no API keys and nothing leaving your machine.
+- **Ollamancer's niche**: the deterministic honesty layers, small-model reliability work, privacy mode, local RAG, and skills-beyond-MCP, in one transparent, from-scratch tool.
 
 ---
 
 ## Documentation
 
-- [`Agentic_1A.md`](./Agentic_1A.md): detailed presentation.
+- [`Ollamancer.md`](./Ollamancer.md): detailed presentation.
 - [`Agentic_Manual.md`](./Agentic_Manual.md): full user manual.
 - [`capabilities.md`](./capabilities.md): exhaustive capability list.
 - [`DESIGN.md`](./DESIGN.md): design rationale & engineering history (including what *didn't* work).
@@ -196,7 +198,7 @@ All documentation is in English. The **agent's interface is bilingual EN/FR** (`
 pyproject.toml        # packaging; `ollamancer` console script -> agentic.cli:main
 agent.py              # entry point + compatibility facade (44 lines)
 agentic/              # the implementation
-  config.py           #   persisted settings (the 30 /parameters values)
+  config.py           #   persisted settings (the 31 /parameters values)
   state.py            #   per-session runtime state + reset()
   i18n.py             #   bilingual EN/FR strings and the system prompt
   ui.py               #   console, prompt, autocomplete, /parameters menu
@@ -212,7 +214,7 @@ agentic/              # the implementation
 launch.sh             # venv setup + launcher
 skills/               # bundled SKILL.md workflows (14)
 benchmarks/           # model-reliability fixtures + playthrough harness
-tests/                # deterministic offline test suite (29 tests)
+tests/                # deterministic offline test suite (33 tests)
 imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)
 ```
 

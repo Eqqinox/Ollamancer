@@ -1,4 +1,4 @@
-"""Agentic_1A — bilingual interface strings (EN/FR).
+"""Ollamancer — bilingual interface strings (EN/FR).
 
 Every user-facing string the agent can print, plus the system prompt it sends to the model
 and the /help text. **The bilingual interface is a feature, not leftover localisation**: the
@@ -163,6 +163,10 @@ STR = {
         "compact_cleanup_only": "🗜 Context trimmed losslessly ({saved} chars of old tool output truncated) — no summary needed yet.",
         "compact_too_few": "Not enough conversation to compact yet (need more than the last few turns). Keep going, or lower Keep-Recent-Turns in /parameters.",
         "compact_failed": "Compaction summary failed (model returned nothing) — history left unchanged.",
+        "details_none": "No tool calls in the last turn. /details shows the full record of the most recent turn's tool calls.",
+        "details_bad_index": "No tool call number {arg} in the last turn (1 to {max}). /details on its own shows them all.",
+        "details_args": "arguments:",
+        "details_result": "result ({n} chars, untruncated):",
         "context_usage": "Context: ~{used} / {cap} tokens ({pct}% of the window). Auto-compact: {auto} (threshold {thr}%). /compact to compact now.",
         "user_stopped": "⏹ Stopped by user — back to the prompt (type a new request, or /clear to start fresh).",
         "ctrl_c_at_prompt": "(Ctrl+C — input cleared. To quit, type /exit or press Ctrl+D.)",
@@ -320,6 +324,10 @@ STR = {
         "compact_cleanup_only": "🗜 Contexte allégé sans perte ({saved} caractères d'anciens résultats d'outils tronqués) — pas de résumé nécessaire pour l'instant.",
         "compact_too_few": "Pas assez de conversation à compacter pour l'instant (il faut plus que les derniers tours). Continue, ou baisse Keep-Recent-Turns dans /parameters.",
         "compact_failed": "Le résumé de compaction a échoué (le modèle n'a rien renvoyé) — historique inchangé.",
+        "details_none": "Aucun appel d'outil au dernier tour. /details affiche le detail complet des appels d'outils du tour le plus recent.",
+        "details_bad_index": "Pas d'appel d'outil numero {arg} au dernier tour (1 a {max}). /details seul les affiche tous.",
+        "details_args": "arguments :",
+        "details_result": "resultat ({n} caracteres, non tronque) :",
         "context_usage": "Contexte : ~{used} / {cap} tokens ({pct}% de la fenêtre). Auto-compaction : {auto} (seuil {thr}%). /compact pour compacter maintenant.",
         "user_stopped": "⏹ Arrêté par l'utilisateur — retour à l'invite (tape une nouvelle demande, ou /clear pour repartir de zéro).",
         "ctrl_c_at_prompt": "(Ctrl+C — saisie annulée. Pour quitter, tape /exit ou appuie sur Ctrl+D.)",
@@ -410,7 +418,7 @@ Réponds en français sauf si l'utilisateur écrit dans une autre langue.""",
 
 HELP_TEXT = {
     "en": """
-[bold]Available commands — Agentic_1A v3.0[/bold]
+[bold]Available commands — Ollamancer v3.0[/bold]
 
   [bold cyan]Session[/bold cyan]
   [yellow]/exit[/yellow]                  Quit
@@ -422,6 +430,7 @@ HELP_TEXT = {
   [yellow]/sandbox[/yellow]               Toggle Docker sandbox (run_command/run_tests/python_repl run isolated)
   [yellow]/parameters[/yellow]            Interactive settings menu (temperature, search tuning, safety limits...)
   [yellow]/resume[/yellow]                List saved sessions; /resume last or /resume <n> reloads one
+  [yellow]/details [n][/yellow]           Full record of the last turn's tool calls (args + untruncated result)
   [yellow]/context[/yellow]               Show current context usage (tokens used vs the window cap)
   [yellow]/compact[/yellow]               Compact the conversation now (summarize old turns, keep recent ones)
   [yellow]/private[/yellow]               Show whether this session is logged (start with --private for an unlogged session)
@@ -469,7 +478,7 @@ HELP_TEXT = {
   [dim]Headless: agent.py --run \"prompt\"  ·  agent.py --recipe file.md  (exit code = success)[/dim]
 """,
     "fr": """
-[bold]Commandes disponibles — Agentic_1A v3.0[/bold]
+[bold]Commandes disponibles — Ollamancer v3.0[/bold]
 
   [bold cyan]Session[/bold cyan]
   [yellow]/exit[/yellow]                  Quitter
@@ -481,6 +490,7 @@ HELP_TEXT = {
   [yellow]/sandbox[/yellow]               Activer/désactiver le sandbox Docker (run_command/run_tests/python_repl isolés)
   [yellow]/parameters[/yellow]            Menu de réglages interactif (temperature, recherche web, limites de sécurité...)
   [yellow]/resume[/yellow]                Lister les sessions sauvegardées ; /resume last ou /resume <n> en recharge une
+  [yellow]/details [n][/yellow]           Détail complet des appels d'outils du dernier tour (args + résultat entier)
   [yellow]/context[/yellow]               Afficher l'usage du contexte (tokens utilisés vs plafond de la fenêtre)
   [yellow]/compact[/yellow]               Compacter la conversation maintenant (résume les vieux tours, garde les récents)
   [yellow]/private[/yellow]               Indiquer si la session est journalisée (--private au lancement pour une session non journalisée)

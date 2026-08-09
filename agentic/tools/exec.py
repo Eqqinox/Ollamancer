@@ -1,4 +1,4 @@
-"""Agentic_1A — execution: linting, tests, shell, REPL and background processes.
+"""Ollamancer — execution: linting, tests, shell, REPL and background processes.
 
 Everything that runs code. All of it passes through the same two gates in `agentic/safety.py`:
 `_check_command` (destructive-pattern blocklist) and `_run_shell` (host or Docker sandbox,

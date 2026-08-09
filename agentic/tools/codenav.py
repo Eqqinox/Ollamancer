@@ -1,4 +1,4 @@
-"""Agentic_1A — code navigation.
+"""Ollamancer — code navigation.
 
 Three ways to find things, deliberately distinct because they fail differently:
 

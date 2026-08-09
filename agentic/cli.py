@@ -1,4 +1,4 @@
-"""Agentic_1A — command-line entry point.
+"""Ollamancer — command-line entry point.
 
 Parses the flags, prepares the session, and runs either the interactive prompt loop or a
 headless job (`--run` / `--recipe`).
@@ -152,7 +152,7 @@ def main():
             pass
 
     ui.console.print()
-    ui.console.print(Rule("[bold blue]  Agentic_1A v3.0  [/bold blue]", style="blue"))
+    ui.console.print(Rule("[bold blue]  Ollamancer v3.0  [/bold blue]", style="blue"))
     labels = [t("label_project"), t("label_model"), t("label_tools"), t("label_audit"), t("label_help")]
     w = max(len(l) for l in labels)
     ui.console.print(f"  [dim]{t('label_project').ljust(w)} :[/dim] [bold white]{project_root}[/bold white]")
@@ -256,6 +256,11 @@ def main():
             used = state._LAST_PROMPT_TOKENS or loop._estimate_tokens(messages)
             pct = int(used / cap * 100) if cap else 0
             ui.console.print(f"[dim]{t('context_usage', used=used, cap=cap, pct=pct, auto=config.AUTO_COMPACT, thr=config.COMPACT_THRESHOLD_PCT)}[/dim]\n")
+            continue
+
+        if user_input == "/details" or user_input.startswith("/details "):
+            arg = user_input[len("/details"):].strip()
+            ui.console.print(commands._render_tool_details(arg))
             continue
 
         if user_input == "/compact":

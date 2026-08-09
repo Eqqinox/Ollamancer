@@ -1,6 +1,6 @@
 # Licensing of the bundled skills
 
-Agentic_1A as a whole is **MIT** licensed (see [`../LICENSE`](../LICENSE)).
+Ollamancer as a whole is **MIT** licensed (see [`../LICENSE`](../LICENSE)).
 
 Twelve of the fourteen bundled skills were written for this project and are covered by that
 MIT license. **Two are adapted from third-party Apache-2.0 work and remain Apache-2.0.**
@@ -12,7 +12,7 @@ MIT license. **Two are adapted from third-party Apache-2.0 work and remain Apach
 | [`skill-creator/`](./skill-creator/SKILL.md) | [anthropics/skills](https://github.com/anthropics/skills), `skill-creator` |
 | [`mcp-builder/`](./mcp-builder/SKILL.md) | [anthropics/skills](https://github.com/anthropics/skills), `mcp-builder` |
 
-Both were **modified** for this agent: rewritten to target Agentic_1A's own tools, its
+Both were **modified** for this agent: rewritten to target Ollamancer's own tools, its
 `~/.agentic_1a_skills/` and `<project>/.agentic/skills/` discovery paths, and its
 `~/.agentic_1a_mcp.json` MCP configuration. Each file declares `license: Apache-2.0` in its
 YAML frontmatter and credits the upstream project inline.

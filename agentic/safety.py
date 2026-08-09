@@ -1,4 +1,4 @@
-"""Agentic_1A — safety rails.
+"""Ollamancer — safety rails.
 
 Everything that decides whether an action is allowed to happen, and everything that records
 that it did. Four independent layers, deliberately kept separate:
@@ -299,7 +299,7 @@ def _ensure_sandbox_container() -> tuple[bool, str]:
     tag = tag_or_err
 
     container_name = f"agentic1a-sandbox-{os.getpid()}"
-    subprocess.run(["docker", "rm", "-f", container_name], capture_output=True, timeout=10)  # résidu éventuel
+    subprocess.run(["docker", "rm", "-f", container_name], capture_output=True, timeout=10)  # any leftover container
     result = subprocess.run(
         ["docker", "run", "-d", "--name", container_name,
          "-v", f"{state.PROJECT_ROOT}:/workspace", "-w", "/workspace", tag,

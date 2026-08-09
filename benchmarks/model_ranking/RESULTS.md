@@ -1,7 +1,7 @@
-# Agentic_1A: Local Model Ranking
+# Ollamancer: Local Model Ranking
 
 **Machine:** MacBook, Apple Silicon, 24 GB unified memory · **Date:** 8 August 2026
-**Harness:** Agentic_1A OSS, 34 native tools, MCP disabled, `--private` mode
+**Harness:** Ollamancer OSS, 34 native tools, MCP disabled, `--private` mode
 **Parameters (identical for every model):** temp 0.35 · top_p 0.95 · top_k 40 · **repeat_penalty 1.15** · num_ctx 32768 · num_predict 4096
 **Scale:** 100 points = 4 tasks x 25 · 1 run per model per task · 5-minute hard cap per run
 
@@ -217,7 +217,7 @@ Max tool rounds      45                    (from 25, which truncated a model mid
 > penalty lets the sampler fall into a loop mid-JSON.
 >
 > This defect first appeared disguised as "these four models cannot call tools", which is how
-> much it matters. The Agentic_1A code default was 1.1 and has been fixed.
+> much it matters. The Ollamancer code default was 1.1 and has been fixed.
 
 ---
 

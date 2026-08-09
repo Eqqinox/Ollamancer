@@ -1,4 +1,4 @@
-"""Agentic_1A — the ReAct loop and its honesty layers.
+"""Ollamancer — the ReAct loop and its honesty layers.
 
 `run_agent` is the heart: the model thinks, calls tools, reads the results, and repeats until
 it can answer without a tool. Everything else in this module exists because that loop meets
@@ -58,10 +58,48 @@ _COMPACT_MARKER = "[⎗ Summary of earlier conversation (auto-compacted to save 
 # call as plain text instead of using Ollama's real tool-calling mechanism
 # never executed, never caught by the "empty response" fallback
 # since msg.content is not empty. Confirmed on `brianmatzelle/qwen3-coder-heretic:30b`
-# (`<function=search_in_files> <parameter=...> ... </tool_call>`) et `lfm2:24b-a2b`
-# (`<function=execute_tool> <parameter=command> ...`), deux familles de modèles
-# different families, same format failure.
+# (`<function=search_in_files> <parameter=...> ... </tool_call>`) and on `lfm2:24b-a2b`
+# (`<function=execute_tool> <parameter=command> ...`): two unrelated model
+# families producing the same format failure.
 _FAKE_TOOLCALL_RE = re.compile(r"<function=|<tool_call>|<\|tool_call\|>|function_calls>", re.IGNORECASE)
+
+
+_COMPACT_ARG_WIDTH = 46      # room for name(args) before the metrics column
+_COMPACT_LINE_WIDTH = 62     # where size and elapsed time are aligned
+
+
+def _brief_args(args: dict) -> str:
+    """The one argument worth seeing on a single line.
+
+    A tool call's identity is almost always its first meaningful value: the query, the
+    path, the command. Dumping the whole JSON is what made the old panel two lines wide
+    for no gain, and `/details` has the full version anyway.
+    """
+    if not isinstance(args, dict) or not args:
+        return ""
+    for key in ("query", "path", "file_path", "command", "name", "url", "pattern", "text"):
+        if key in args and args[key]:
+            val = str(args[key]).replace("\n", " ")
+            return f'"{val[:38]}…"' if len(val) > 38 else f'"{val}"'
+    first = next(iter(args.values()))
+    val = str(first).replace("\n", " ")
+    return f"{val[:38]}…" if len(val) > 38 else val
+
+
+def _compact_call_prefix(name: str, args: dict) -> str:
+    """Left half of the compact line, printed before the tool runs (no newline)."""
+    label = f"{name}({_brief_args(args)})"
+    if len(label) > _COMPACT_ARG_WIDTH:
+        label = label[:_COMPACT_ARG_WIDTH - 1] + "…"
+    return f"  [bold white]{rich_escape(label)}[/bold white]" + " " * max(1, _COMPACT_LINE_WIDTH - len(label))
+
+
+def _compact_call_suffix(result: str, seconds: float, blocked: bool) -> str:
+    """Right half, printed once the tool returns: how much came back, and how long it took."""
+    n = len(result)
+    size = f"{n} B" if n < 1024 else (f"{n / 1024:.1f} KB" if n < 1024 * 1024 else f"{n / 1048576:.1f} MB")
+    mark = "[red]blocked[/red]" if blocked else f"[dim]{size}[/dim]"
+    return f"{mark} [dim]{seconds:.1f}s[/dim]"
 
 
 def _nudge(body: str) -> dict:
@@ -153,7 +191,7 @@ def _stuck_search_nudge_suffix() -> str:
             "you're stuck on a bug, not only when you're missing a fact.")
 
 
-# ── Vérification déterministe post-réponse : jetons durs non étayés (_grounding_check) ──
+# ── Deterministic post-answer check: unsupported hard tokens (_grounding_check) ──
 # Idea: every documented confabulation incident (invented population
 # figures, invented table fields, an invented date, invented JSON)
 # shares a mechanically checkable property, the answer contains concrete tokens
@@ -593,6 +631,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     state._CURRENT_MODEL = model               # B6: side calls (vision) need to know which model to unload
     state._checkpoint_turn += 1
     state._checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
+    state._last_turn_tool_calls.clear()        # /details always describes the latest turn only
     rounds = 0
     dupe_nudges_used = 0          # same-event-twice check, capped at one per turn
     edited_since_verify = False
@@ -635,8 +674,8 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
         except ollama.ResponseError as e:
             # e.error is a dict ({"code":..., "message":...}) when the Ollama
             # response body is JSON with a nested "error" key (the case for this
-            # bug précis), voir ollama/_types.py ResponseError.__init__. On extrait
-            # the message for clean display rather than the dict's raw repr.
+            # bug), see ollama/_types.py ResponseError.__init__. We pull out the
+            # message for clean display rather than the dict's raw repr.
             err_payload = e.error
             err_text = err_payload.get("message", str(err_payload)) if isinstance(err_payload, dict) else str(err_payload or e)
             if "Unable to generate parser for this template" in err_text:
@@ -707,7 +746,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 # Ornith on 2026-08-04 right after a write_file on a bulky file (~14 KB):
                 # the previous turn had already left the file in a broken state (a syntax
                 # warning never fixed) and this error ended the session before any chance to
-                # réparer: voir agentic_contexte.md, section "7 septdecies".
+                # repair it. See DESIGN.md on the JSON-truncation signature.
                 if json_truncation_retries < config.MAX_JSON_TRUNCATION_RETRIES:
                     json_truncation_retries += 1
                     ui.console.print(f"[dim]{t('json_truncation_retry_note', n=json_truncation_retries, max=config.MAX_JSON_TRUNCATION_RETRIES)}[/dim]")
@@ -860,10 +899,18 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 except Exception:
                     args = {}
 
-            ui.console.print(Panel(
-                f"[bold white]{rich_escape(name)}[/bold white]([cyan]{rich_escape(json.dumps(args, ensure_ascii=False))}[/cyan])",
-                title=f"[yellow]{t('tool_panel_title')}[/yellow]", border_style="yellow", expand=False,
-            ))
+            call_started = time.time()
+            if config.TOOL_DISPLAY == "full":
+                ui.console.print(Panel(
+                    f"[bold white]{rich_escape(name)}[/bold white]([cyan]{rich_escape(json.dumps(args, ensure_ascii=False))}[/cyan])",
+                    title=f"[yellow]{t('tool_panel_title')}[/yellow]", border_style="yellow", expand=False,
+                ))
+            else:
+                # Printed without a newline, then completed with size and elapsed time once
+                # the tool returns. That way a slow call (search_web_deep can take 30 s) shows
+                # on screen the moment it starts, rather than the line appearing only after
+                # it finishes and leaving the terminal silent in between.
+                ui.console.print(_compact_call_prefix(name, args), end="")
 
             # B4: architect phase = read-only. Even if the model attempts a write,
             # we refuse without executing (the tool schema does not expose it, this is the
@@ -954,15 +1001,26 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             if name in _CITATION_ARMING_TOOLS and str(result).startswith("[WARNING:"):
                 searched_since_cite = True
 
-            # Affichage résultat
-            preview = str(result)
-            color   = "red" if blocked else "green"
-            if len(preview) > 300:
-                preview = preview[:300] + "…"
-            ui.console.print(Panel(
-                f"[{color}]{rich_escape(preview)}[/{color}]",
-                title=f"[cyan]{t('result_panel_title')}[/cyan]", border_style="dim green", expand=False,
-            ))
+            # Keep the WHOLE result, untruncated, so /details can show what the display
+            # left out. The panels below cut at 300 characters and throw the rest away;
+            # this is the only place the full text survives after the turn.
+            elapsed = time.time() - call_started
+            state._last_turn_tool_calls.append({
+                "name": name, "args": args, "result": str(result),
+                "seconds": round(elapsed, 2), "blocked": bool(blocked),
+            })
+
+            color = "red" if blocked else "green"
+            if config.TOOL_DISPLAY == "full":
+                preview = str(result)
+                if len(preview) > 300:
+                    preview = preview[:300] + "…"
+                ui.console.print(Panel(
+                    f"[{color}]{rich_escape(preview)}[/{color}]",
+                    title=f"[cyan]{t('result_panel_title')}[/cyan]", border_style="dim green", expand=False,
+                ))
+            else:
+                ui.console.print(_compact_call_suffix(str(result), elapsed, blocked))
 
             messages.append({"role": "tool", "content": str(result)})
 

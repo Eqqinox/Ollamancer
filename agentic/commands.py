@@ -1,4 +1,4 @@
-"""Agentic_1A — slash commands and session persistence.
+"""Ollamancer — slash commands and session persistence.
 
 Everything reachable from the prompt that is not the ReAct loop itself: the dual-model
 architect flow, cross-model review, context injection, diffs and undo, saved sessions, the
@@ -41,6 +41,44 @@ def _architect_models(current_model: str) -> tuple[str, str]:
     """Resolve the (architect, editor) pair — configured names, or the current model as a
     degenerate fallback so /architect always runs even before /architect-models is set."""
     return (config.ARCHITECT_MODEL or current_model, config.EDITOR_MODEL or current_model)
+
+
+def _render_tool_details(arg: str = "") -> str:
+    """Full record of the last turn's tool calls, for `/details` and `/details <n>`.
+
+    This is the other half of the compact display: one line per call on screen, and the
+    whole thing here on demand. Nothing is truncated, deliberately. The old two-panel view
+    cut every result at 300 characters and discarded the remainder, so a large search or a
+    long file read could not be inspected at all after the fact; this can.
+    """
+    calls = list(state._last_turn_tool_calls)
+    if not calls:
+        return f"[dim]{t('details_none')}[/dim]\n"
+
+    if arg:
+        try:
+            idx = int(arg)
+        except ValueError:
+            return f"[yellow]{t('details_bad_index', arg=rich_escape(arg), max=len(calls))}[/yellow]\n"
+        if not 1 <= idx <= len(calls):
+            return f"[yellow]{t('details_bad_index', arg=rich_escape(arg), max=len(calls))}[/yellow]\n"
+        calls = [calls[idx - 1]]
+        offset = idx
+    else:
+        offset = 1
+
+    out = []
+    for i, c in enumerate(calls, start=offset):
+        head = f"[bold cyan]{i}. {rich_escape(c['name'])}[/bold cyan] [dim]{c['seconds']}s"
+        if c.get("blocked"):
+            head += ", [red]blocked[/red][dim]"
+        head += "[/dim]"
+        out.append(head)
+        args_json = json.dumps(c.get("args") or {}, ensure_ascii=False, indent=2)
+        out.append(f"[dim]{t('details_args')}[/dim]\n[cyan]{rich_escape(args_json)}[/cyan]")
+        out.append(f"[dim]{t('details_result', n=len(c['result']))}[/dim]\n{rich_escape(c['result'])}")
+        out.append("")
+    return "\n".join(out)
 
 
 def _unseen_urls(plan: str, tool_results: list) -> list[str]:

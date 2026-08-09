@@ -71,7 +71,7 @@ check_config() {
   local after; after="$(snapshot_config)"
   if [ "$after" != "$BEFORE" ]; then
     echo ""
-    echo "!!! ABORT: a run modified your real Agentic_1A config. Diff:"
+    echo "!!! ABORT: a run modified your real Ollamancer config. Diff:"
     diff <(echo "$BEFORE") <(echo "$after")
     exit 2
   fi

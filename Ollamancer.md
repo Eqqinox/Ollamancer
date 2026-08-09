@@ -1,4 +1,4 @@
-# Agentic_1A: what it is, in detail
+# Ollamancer: what it is, in detail
 
 > A fully-local, terminal-first AI agent for Ollama, built from scratch in Python.
 > Version **v3.0** · developed on macOS (M4 Pro, 24 GB) · docs in English · bilingual EN/FR interface.
@@ -11,7 +11,7 @@
 
 ## 1. In one paragraph
 
-Agentic_1A is a terminal AI agent that runs **entirely on your machine** through
+Ollamancer is a terminal AI agent that runs **entirely on your machine** through
 [Ollama](https://ollama.com): no cloud, no API keys, no data leaving your computer. You
 point it at a project folder and talk to it; it reasons and acts using **35 native tools**
 (files, git, web search, code execution, RAG, vision…), plus any [MCP](https://modelcontextprotocol.io)
@@ -109,7 +109,7 @@ Plus **`run_command`** exposes the entire shell, and **MCP** adds any third-part
 
 ## 6. Reliability & honesty engineering (the differentiator)
 
-Agentic_1A treats the failure modes of small local models as first-class problems:
+Ollamancer treats the failure modes of small local models as first-class problems:
 
 - **Anti-fabrication:** deterministic grounding checks, a hypothetical-tool-output nudge, an
   anti-structural-fabrication rule set, and citation nudges.
@@ -124,7 +124,7 @@ Agentic_1A treats the failure modes of small local models as first-class problem
 
 ## 7. Configuration & control
 
-- **`/parameters`**: a full-screen curses menu, **30 live-tunable settings** (generation params,
+- **`/parameters`**: a full-screen curses menu, **31 live-tunable settings** (generation params,
   context cap, safety/nudge limits, search tuning, streaming, compaction), persisted to
   `~/.agentic_1a_params.json`.
 - **Models**: `/model` (session), `/default-model` (persisted), `/failover-model`,
@@ -154,7 +154,7 @@ benchmarks/               # reusable model-reliability fixtures + playthrough ha
 imessage_bridge.py        # optional: drive the agent from iPhone via iMessage
 requirements.txt
 README.md                 # public front page
-Agentic_1A.md             # this file, detailed presentation
+Ollamancer.md             # this file, detailed presentation
 Agentic_Manual.md         # full user manual
 capabilities.md           # exhaustive capability list
 DESIGN.md                 # design rationale & engineering history

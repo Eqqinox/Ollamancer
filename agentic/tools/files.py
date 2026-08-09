@@ -1,4 +1,4 @@
-"""Agentic_1A — file reading, writing and editing.
+"""Ollamancer — file reading, writing and editing.
 
 The seven file tools, plus the hint machinery that makes them recoverable when a model gets
 something slightly wrong. Those hints are not polish; each exists because a model burned a
@@ -153,7 +153,7 @@ def _rename_consistency_warning(old_text: str, new_text: str, new_content: str) 
     in every function but one leftover initializer, and separately renamed in every place except
     the one function that generates the object read by the others — both left a KeyError only
     reachable by actually running the program, invisible to lint and to this same check's sibling
-    _python_syntax_warning (see agentic_contexte.md, "systemic issue" follow-up).
+    _python_syntax_warning (see DESIGN.md on post-write syntax checking).
     """
     removed = set(_QUOTED_IDENTIFIER_RE.findall(old_text)) - set(_QUOTED_IDENTIFIER_RE.findall(new_text))
     if not removed:

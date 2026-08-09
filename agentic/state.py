@@ -1,4 +1,4 @@
-"""Agentic_1A — per-session runtime state.
+"""Ollamancer — per-session runtime state.
 
 Everything here describes **this run**: which project folder is active, whether safe mode is
 on, where this session's files live, what has been written so far. None of it is persisted
@@ -65,6 +65,11 @@ _checkpoint_made_this_turn = False
 
 _last_turn_tool_results: list = []   # raw tool output of the last completed turn, lets a
                                     # caller check whether URLs in an answer were really seen
+_last_turn_tool_calls: list = []    # [{name, args, result, seconds, blocked}] for the same
+                                    # turn, UNtruncated. Backs /details: the compact display
+                                    # prints one line per call and this is where everything it
+                                    # left out lives. Cleared at the start of each turn, so it
+                                    # always describes the most recent one.
 
 # ── Model & context tracking ─────────────────────────────────────────────────
 _CURRENT_MODEL = ""                # the current loop's model, updated by run_agent
@@ -115,5 +120,6 @@ def reset() -> None:
                       _num_ctx_cache, _search_cache, _robots_cache):
         container.clear()
     _last_turn_tool_results.clear()
+    _last_turn_tool_calls.clear()
     _CHECKPOINTS.clear()
     _repl_state.update({"proc": None, "mode": None})

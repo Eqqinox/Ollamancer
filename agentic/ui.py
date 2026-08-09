@@ -1,4 +1,4 @@
-"""Agentic_1A — terminal I/O primitives.
+"""Ollamancer — terminal I/O primitives.
 
 The console the agent writes to, the interactive prompt it reads from, and the slash-command
 autocomplete that drives it. This module owns *how* the agent talks to the terminal; what it
@@ -69,6 +69,8 @@ _SLASH_COMMANDS = [
     ("/clear", "Clear history & context", "Effacer l'historique & le contexte"),
     ("/history", "Show the last messages", "Afficher les derniers messages"),
     ("/context", "Show context usage (tokens vs cap)", "Afficher l'usage du contexte"),
+    ("/details", "Full record of the last turn's tool calls",
+                 "Détail complet des appels d'outils du dernier tour"),
     ("/compact", "Compact the conversation now", "Compacter la conversation maintenant"),
     ("/resume", "List/reload a saved session", "Lister/recharger une session sauvegardée"),
     ("/private", "Is this session logged? (--private = no)", "Session journalisée ? (--private = non)"),
@@ -336,6 +338,12 @@ _PARAM_SCHEMA = [
          "min": -1, "max": 999999, "step": 1, "default": -1, "special_min_label": "random",
          "help": "Fixed seed for reproducible outputs (same input -> same output). "
                  "-1 (random) = a different seed every request."},
+        {"var": "TOOL_DISPLAY", "label": "Tool Call Display", "kind": "enum",
+         "options": ["compact", "full"], "default": "compact",
+         "help": "How tool calls appear while the agent works. \"compact\" prints one line per "
+                 "call with the result size and elapsed time; \"full\" shows the original two "
+                 "panels. Compact loses nothing: /details prints the complete record of the "
+                 "last turn, untruncated, while the panels cut results at 300 characters."},
         {"var": "STREAM_FINAL", "label": "Stream Final Answer", "kind": "enum",
          "options": ["on", "off"], "default": "on",
          "help": "Stream the model's answer live as it generates instead of showing it all at "
@@ -544,7 +552,7 @@ def _parameters_curses_main(stdscr):
     while True:
         stdscr.erase()
         h, w = stdscr.getmaxyx()
-        stdscr.addstr(0, 2, "Agentic_1A — /parameters  (↑/↓ move, ←/→ adjust, r reset, q/Enter exit)",
+        stdscr.addstr(0, 2, "Ollamancer — /parameters  (↑/↓ move, ←/→ adjust, r reset, q/Enter exit)",
                       curses.A_BOLD)
         y = 2
         cur_row_idx = selectable[sel_pos]

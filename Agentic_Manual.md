@@ -1,4 +1,4 @@
-# Agentic_1A: User manual
+# Ollamancer: User manual
 > Local terminal AI agent · v3.0
 
 > **Interface language.** The agent's interface (banner, `/help`, messages, `/model` table)
@@ -6,7 +6,7 @@
 > is fully bilingual EN/FR. This manual, and all other documentation, is English-only.
 
 > **New to the project?** Read [`README.md`](./README.md) for the quick front page,
-> [`Agentic_1A.md`](./Agentic_1A.md) for the detailed presentation,
+> [`Ollamancer.md`](./Ollamancer.md) for the detailed presentation,
 > [`capabilities.md`](./capabilities.md) for the exhaustive capability list, and
 > [`DESIGN.md`](./DESIGN.md) for the engineering history and the reasoning behind the
 > reliability work. A condensed version history is in the [appendix](#appendix--version-history)
@@ -17,12 +17,14 @@
 ## Table of contents
 
 - [Quick start](#quick-start)
+- [Setting up SearXNG](#setting-up-searxng-optional-for-web-search)
 - [The startup interface](#the-startup-interface)
 - [Slash commands](#slash-commands)
 - [Headless mode](#headless-mode)
 - [What the agent can do](#what-the-agent-can-do)
 - [Live settings (`/parameters`)](#live-settings-parameters)
 - [Context management](#context-management)
+- [How tool calls are displayed](#how-tool-calls-are-displayed)
 - [Privacy & logs](#privacy--logs)
 - [Skills](#skills--reusable-workflows)
 - [Tool reference](#tool-reference)
@@ -44,7 +46,7 @@
 
 1. **Ollama** running, with at least one **tool-capable** model installed.
 2. **Python 3.12+** (a virtualenv is created for you by `launch.sh`).
-3. Optional: **Docker** for SearXNG (private web search) and for the sandbox.
+3. Optional: **Docker** for SearXNG (private web search, see [setup](#setting-up-searxng-optional-for-web-search)) and for the sandbox.
 
 ```bash
 # A tool-capable model, plus the embedding model used by local RAG:
@@ -57,23 +59,23 @@ ollama pull bge-m3
 **From inside a project folder (the main use):**
 ```bash
 cd ~/projects/my-project
-bash /path/to/Agentic_1A/launch.sh
+bash /path/to/Ollamancer/launch.sh
 ```
 
 **Passing the folder as an argument:**
 ```bash
-bash /path/to/Agentic_1A/launch.sh ~/projects/my-project
+bash /path/to/Ollamancer/launch.sh ~/projects/my-project
 ```
 
 **Starting directly in safe mode:**
 ```bash
-bash /path/to/Agentic_1A/launch.sh ~/projects/my-project --safe
+bash /path/to/Ollamancer/launch.sh ~/projects/my-project --safe
 # or, mid-session: /safe
 ```
 
 **Without a specific project (current folder):**
 ```bash
-cd /path/to/Agentic_1A
+cd /path/to/Ollamancer
 bash launch.sh
 # or directly:
 .venv/bin/python agent.py
@@ -92,12 +94,58 @@ ollama serve         # start Ollama if it isn't running
 curl "http://localhost:8080/search?q=test&format=json"   # is SearXNG up?
 ```
 
+### Setting up SearXNG (optional, for web search)
+
+Skip this if you do not need web search. Without SearXNG, `search_web` falls back to the
+`duckduckgo` MCP server if you have it configured, and otherwise reports itself
+unavailable; everything else in the agent works normally.
+
+SearXNG is a self-hosted metasearch engine. It queries public engines on your behalf and
+returns the results, so no search account or API key is involved. The quickest way to get
+one is Docker:
+
+```bash
+mkdir -p ~/searxng
+docker run -d --name searxng -p 8080:8080 \
+  -v ~/searxng:/etc/searxng \
+  -e "BASE_URL=http://localhost:8080/" \
+  searxng/searxng
+```
+
+**Then do the one step that is easy to miss.** A stock SearXNG serves HTML only, and this
+agent asks for `format=json`. Until JSON is enabled every search fails. Edit
+`~/searxng/settings.yml`, which the container writes on first start, and make sure the
+formats list includes `json`:
+
+```yaml
+search:
+  formats:
+    - html
+    - json
+```
+
+Then restart it and confirm you get JSON rather than a page of HTML:
+
+```bash
+docker restart searxng
+curl "http://localhost:8080/search?q=test&format=json"
+```
+
+If that returns JSON, the agent needs no configuration: it looks at
+`http://localhost:8080/search` by default. If you run SearXNG on another host or port, set
+**Search: SearXNG URL** in `/parameters`, which persists across sessions.
+
+Two settings worth knowing once it works. **Search Results Kept** controls how many
+results `search_web` retains, and **Deep Search: Pages Fetched** how many of them
+`search_web_deep` actually opens and reads. Raising the second is what buys source
+diversity on a research question, at the cost of a slower turn.
+
 ---
 
 ## The startup interface
 
 ```
-────────────────────────────   Agentic_1A   ────────────────────────────
+────────────────────────────   Ollamancer   ────────────────────────────
   Project : /Users/you/projects/my-project      ← the project root
   Model   : gemma4:12b-mlx
   Tools   : search_web, fetch_url, read_file, write_file, edit_file,
@@ -149,6 +197,8 @@ Type your message after `You →` and press Enter.
 | Command | Description |
 |---|---|
 | `/context` | Context usage: real tokens used vs the window cap, fill %, auto-compaction state |
+| `/details` | Full record of the last turn's tool calls: arguments and the **untruncated** result |
+| `/details <n>` | The same for one call only, numbered as shown on screen |
 | `/compact` | Compact the conversation now: losslessly clean old tool results, then summarise old turns while keeping the system prompt and the most recent turns verbatim |
 | `/add <files>` | Inject one or more files into the model's context |
 | `/files` | List the injected files |
@@ -404,6 +454,36 @@ tokens** by default, tunable). Three tools:
 
 ---
 
+## How tool calls are displayed
+
+By default each tool call prints one line while the agent works:
+
+```
+  search_web("npm shai hulud worm 2026")                  4.2 KB  1.8s
+  read_file("agentic/loop.py")                           56.1 KB  0.1s
+  run_command("rm -rf /")                                 blocked  0.0s
+```
+
+The name, the argument that identifies the call, how much came back, and how long it
+took. The line appears the moment the call starts and is completed when it returns, so a
+slow fetch is visible while it runs rather than only afterwards. The final answer is
+printed in full, unchanged.
+
+**`/details`** then prints everything that line left out, for the turn just finished:
+every call, its full arguments, and its complete result.
+
+```
+You → /details          # all calls from the last turn
+You → /details 2        # just the second one
+```
+
+This loses nothing compared with the old display. It gains: set **Tool Call Display** to
+`full` in `/parameters` for the original two-panel view, and note that those panels cut
+each result at 300 characters and discard the rest, so `full` actually shows *less* of a
+large result than `/details` does. The record covers the most recent turn only.
+
+---
+
 ## Privacy & logs
 
 **What is written to disk in a normal session** (`--private` turns all of it off, see below):
@@ -455,6 +535,30 @@ revert them if needed); **settings** (`/parameters`, models) are still saved (th
 conversation); and **web searches** still hit the network (SearXNG/DuckDuckGo). Private mode
 is about **local on-disk logs**, not the network.
 
+### Your IP address, when the agent goes online
+
+Inference is local and your conversation never leaves the machine. Three tools do reach
+the internet, and when they do, **your IP address is visible to whatever they contact**:
+
+| Tool | Who sees your IP |
+|---|---|
+| `search_web`, `search_web_deep` | the engines your SearXNG queries upstream, or DuckDuckGo on failover |
+| `fetch_url`, `fetch_url_rendered` | the site being read, directly |
+| An MCP server you configured | wherever that server sends its traffic |
+
+Self-hosting SearXNG already helps: the upstream engines see a search with no account and
+no cookies attached to you, rather than a query tied to a logged-in profile. What it does
+not do is hide where the request came from.
+
+If that matters for your work, run the machine behind a **VPN or Tor**. Be clear about
+what this buys: it substitutes the exit node's address for yours. The exit operator can
+see the same traffic your ISP would have, so it moves the exposure rather than removing
+it. Choose accordingly, and note that some sites block known VPN ranges, which shows up
+here as searches or page fetches failing rather than as an error mentioning the VPN.
+
+For an entirely offline session, do not use the web tools. Everything else, including
+local RAG over your code, works with no network at all.
+
 ---
 
 ## Skills: reusable workflows
@@ -478,7 +582,7 @@ You → /skill commit-message   # load a skill into context for your next reques
 
 | Location | Scope |
 |---|---|
-| `<Agentic_1A repo>/skills/` | **14 bundled skills** (see below) |
+| `<Ollamancer repo>/skills/` | **14 bundled skills** (see below) |
 | `~/.agentic_1a_skills/` | **Your global skills** (all projects), created at startup |
 | `<project>/.agentic/skills/` | Project-specific skills |
 
@@ -719,7 +823,7 @@ You → OK go ahead, execute that plan
 ```bash
 # 1. Launch from the project folder
 cd ~/projects/my-project
-bash /path/to/Agentic_1A/launch.sh
+bash /path/to/Ollamancer/launch.sh
 
 # 2. Explore the project
 You → Show me the project structure
@@ -808,7 +912,7 @@ optional.
 
 ### Setup (first time only)
 ```bash
-cd /path/to/Agentic_1A && .venv/bin/python imessage_bridge.py --setup
+cd /path/to/Ollamancer && .venv/bin/python imessage_bridge.py --setup
 ```
 It will ask for your own phone number or iCloud email, the one you will message from.
 
@@ -817,7 +921,7 @@ open on the Mac, Ollama running.
 
 ### Running the bridge
 ```bash
-cd /path/to/Agentic_1A && .venv/bin/python imessage_bridge.py
+cd /path/to/Ollamancer && .venv/bin/python imessage_bridge.py
 ```
 The bridge stops when you close the terminal. There is no need to leave it running
 permanently.
@@ -871,13 +975,13 @@ when one is configured, see the MCP section of [`capabilities.md`](./capabilitie
 
 ### Python import error
 ```bash
-cd /path/to/Agentic_1A
+cd /path/to/Ollamancer
 .venv/bin/pip install -r requirements.txt
 ```
 
 ### Rebuild the environment from scratch
 ```bash
-cd /path/to/Agentic_1A
+cd /path/to/Ollamancer
 rm -rf .venv
 bash launch.sh
 ```

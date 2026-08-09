@@ -1,4 +1,4 @@
-"""pytest configuration for the Agentic_1A suite.
+"""pytest configuration for the Ollamancer suite.
 
 Two jobs, and the first one is the reason this file is careful rather than boilerplate.
 

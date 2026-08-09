@@ -1,4 +1,4 @@
-"""Agentic_1A — git checkpoints (the engine behind /undo).
+"""Ollamancer — git checkpoints (the engine behind /undo).
 
 A **shadow** git repository lives in `.agentic/checkpoints.git`, using the project folder as
 its work tree. It is completely independent of whatever git the user has: dedicated GIT_DIR
@@ -66,7 +66,7 @@ def _init_checkpoints() -> None:
                 return
             # Local identity (the commit fails if a global user.name/email is missing).
             _git_ckpt("config", "user.email", "agentic@local")
-            _git_ckpt("config", "user.name", "Agentic_1A")
+            _git_ckpt("config", "user.name", "Ollamancer")
             _git_ckpt("config", "commit.gpgsign", "false")
         (gitdir / "info").mkdir(parents=True, exist_ok=True)
         (gitdir / "info" / "exclude").write_text(_CHECKPOINT_EXCLUDES, encoding="utf-8")

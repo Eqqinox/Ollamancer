@@ -1,4 +1,4 @@
-"""Agentic_1A — the clock, the task checklist, and persistent memory.
+"""Ollamancer — the clock, the task checklist, and persistent memory.
 
 Three tools at three different lifetimes.
 

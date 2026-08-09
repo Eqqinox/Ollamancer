@@ -1,4 +1,4 @@
-"""Agentic_1A — model management.
+"""Ollamancer — model management.
 
 Everything about *which* model runs and how it is configured: discovering what Ollama has
 installed, deciding what to start with, negotiating the context window, tracking RAM, and
@@ -204,8 +204,39 @@ _RUNNER_MARKERS = ("llama-server", "ollama_llama_server", "ollama runner")
 
 
 def ollama_runner_rss_gb() -> float | None:
-    """Real RAM (GB) currently held by Ollama's model-runner subprocess(es) — not an
-    estimate from file size, an actual live measurement via `ps`. None if not found."""
+    """RAM (GB) currently held by the loaded model(s). None if nothing is loaded.
+
+    Asks Ollama, rather than measuring the runner process, because process RSS is simply
+    the wrong number for the MLX engine. llama.cpp mmaps the weights, so touched pages
+    show up in RSS and it is accurate; the MLX engine allocates them as Metal
+    unified-memory buffers, which are not attributed to the process. Measured on
+    `gemma4:12b-mlx`, a 7.6 GB model:
+
+        just loaded        RSS 0.76 GB     ollama.ps() 7.6 GB
+        after generating   RSS 6.21 GB     ollama.ps() 7.6 GB
+
+    So RSS both undercounts and lags, converging upward as pages are touched, and it is
+    worst immediately after load, which is exactly when the readout is looked at. GGUF was
+    never affected, which is why this went unnoticed: `llama-server` on a 12 GB model
+    reported 11.91 GB.
+
+    `ollama.ps()` reports the size Ollama itself allocated, correct for both engines, and
+    needs no subprocess. The `ps` scan is kept only as a fallback for an Ollama too old to
+    expose it; that path carries the MLX inaccuracy and is expected to be dead code.
+    """
+    try:
+        resp = ollama.ps()
+        total = sum(getattr(m, "size", 0) or 0 for m in getattr(resp, "models", []) or [])
+        if total:
+            return total / 1_000_000_000        # bytes -> GB
+        return None                             # a valid empty answer: nothing is loaded
+    except Exception:                                          # noqa: BLE001
+        pass
+    return _runner_rss_gb_via_ps()
+
+
+def _runner_rss_gb_via_ps() -> float | None:
+    """Pre-`ollama.ps()` fallback. Accurate for GGUF, undercounts MLX badly: see above."""
     try:
         out = subprocess.run(["ps", "-axo", "rss=,command="], capture_output=True, text=True, timeout=3)
         total_kb = 0

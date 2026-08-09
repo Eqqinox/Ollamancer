@@ -1,4 +1,4 @@
-"""Agentic_1A — local RAG (semantic code search).
+"""Ollamancer — local RAG (semantic code search).
 
 `search_semantic` answers questions like "where is the retry logic handled?" — matching by
 meaning rather than by name, which grep and even AST analysis cannot do.
@@ -27,12 +27,12 @@ from agentic import config, state
 from agentic.safety import _audit
 from agentic.tools.codenav import _iter_source_files
 
-# ── RAG local / recherche sémantique (B5) ───────────────────────────────────────
+# ── Local RAG / semantic search (B5) ────────────────────────────────────────────
 # The third search pillar alongside search_in_files (exact text) and
-# find_references (symboles) : la recherche *conceptuelle*. Embeddings locaux via
+# find_references (symbols): searching by *meaning*. Local embeddings via
 # the already-installed bge-m3 model (ollama.embed), stored in a stdlib SQLite
-# (.agentic/semantic_index.db) ; similarité cosinus en pur Python (aucune dépendance
-# added: no numpy, no chromadb, no sqlite-vec, none of which are in this venv). Re-indexing
+# database (.agentic/semantic_index.db), with cosine similarity in pure Python (no
+# dependency added: no numpy, no chromadb, no sqlite-vec, none of which are here). Re-indexing
 # is incremental on mtime: only new/modified files are re-embedded.
 _SEMANTIC_EXTS = config._REF_SOURCE_EXTS | {".md", ".txt", ".rst", ".toml", ".yaml", ".yml", ".json", ".sh", ".cfg", ".ini"}
 

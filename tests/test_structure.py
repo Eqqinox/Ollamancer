@@ -17,6 +17,7 @@ the `agentic/` package:
 Runs offline: importing agent has no side effects that need Ollama or the network.
 """
 import pathlib
+import re
 import tempfile
 
 import agent
@@ -51,7 +52,7 @@ EXPECTED_TOOLS = {
 }
 
 EXPECTED_SLASH_COMMANDS = {
-    "/help", "/exit", "/clear", "/history", "/context", "/compact", "/resume", "/private",
+    "/help", "/exit", "/clear", "/history", "/context", "/details", "/compact", "/resume", "/private",
     "/lang", "/safe", "/sandbox", "/parameters", "/model", "/default-model",
     "/failover-model", "/architect", "/architect-models", "/review-by", "/vision-model",
     "/skills", "/skill", "/tools", "/mcp", "/pwd", "/add", "/files", "/drop", "/plan",
@@ -60,7 +61,7 @@ EXPECTED_SLASH_COMMANDS = {
 
 EXPECTED_PARAM_VARS = {
     "GEN_TEMPERATURE", "GEN_TOP_P", "GEN_TOP_K", "GEN_REPEAT_PENALTY", "GEN_NUM_PREDICT",
-    "GEN_SEED", "STREAM_FINAL",
+    "GEN_SEED", "TOOL_DISPLAY", "STREAM_FINAL",
     "SAFE_NUM_CTX", "MAX_TOOL_ROUNDS", "MAX_BACKGROUND_PROCESSES", "MAX_VERIFY_NUDGES",
     "MAX_FAKE_TOOLCALL_RETRIES", "MAX_CITATION_NUDGES", "MAX_GROUNDING_NUDGES",
     "MAX_GROUNDING_CHECK_NUDGES", "MAX_CLAIM_ACTION_NUDGES", "MAX_READONLY_REFUSALS",
@@ -108,10 +109,50 @@ def test_slash_commands():
     assert cmds == EXPECTED_SLASH_COMMANDS, (
         f"slash commands changed\n  missing: {sorted(EXPECTED_SLASH_COMMANDS - cmds)}"
         f"\n  unexpected: {sorted(cmds - EXPECTED_SLASH_COMMANDS)}")
-    assert len(ui._SLASH_COMMANDS) == 36
+    assert len(ui._SLASH_COMMANDS) == 37
     for cmd, en, fr in ui._SLASH_COMMANDS:
         assert cmd.startswith("/"), f"{cmd!r} is not a slash command"
         assert en and fr, f"{cmd} is missing an EN or FR description"
+
+
+def test_completer_matches_the_dispatch():
+    """Every command the CLI handles must also be offered by autocomplete.
+
+    `_SLASH_COMMANDS` is a hand-maintained table, and its own comment asks the reader to
+    keep it in step with the dispatch and HELP_TEXT: three lists, updated by hand. The
+    frozen-set check above cannot catch drift between them, because it compares the table
+    with a copy of itself. That is not hypothetical: `/details` shipped working and
+    documented, but absent from the table, so typing `/d` offered nothing and the suite
+    stayed green.
+
+    This compares the table against the commands `cli.py` actually dispatches, which is
+    the pairing a user experiences. HELP_TEXT is deliberately not included: it documents
+    aliases and argument forms (`/undo last`, `/lang fr`) that are not separate dispatch
+    keys, so it legitimately holds more entries.
+    """
+    src = (pathlib.Path(__file__).resolve().parent.parent / "agentic" / "cli.py").read_text()
+    dispatched = set(re.findall(r'user_input\s*==\s*"(/[a-z-]+)"', src))
+    dispatched |= set(re.findall(r'user_input\.startswith\("(/[a-z-]+)', src))
+    # `user_input in ("/parameters", "/params")` is the third dispatch form. Recognising it
+    # rather than granting it an exception keeps the forward check complete too.
+    for group in re.findall(r'user_input\s+in\s+\(([^)]*)\)', src):
+        dispatched |= set(re.findall(r'"(/[a-z-]+)"', group))
+    offered = {c for c, _en, _fr in ui._SLASH_COMMANDS}
+
+    # Convenience spellings the dispatch accepts but the menu deliberately does not
+    # advertise, so autocomplete shows one canonical name per command instead of two.
+    ALIASES = {"/params", "/models", "/failover", "/defaultmodel", "/architectmodels",
+               "/visionmodel", "/incognito"}
+
+    missing = dispatched - offered - ALIASES
+    assert not missing, (
+        f"handled by cli.py but not offered by autocomplete: {sorted(missing)}. "
+        "Add them to ui._SLASH_COMMANDS, or to ALIASES here if hiding them is deliberate.")
+
+    unknown = offered - dispatched
+    assert not unknown, (
+        f"offered by autocomplete but never dispatched: {sorted(unknown)}. "
+        "Either wire them up in cli.py or remove them from the table.")
 
 
 def test_interface_is_bilingual():
@@ -127,13 +168,13 @@ def test_interface_is_bilingual():
 
 
 def test_param_schema():
-    """The /parameters schema is frozen at 30 tunables, each well-formed."""
+    """The /parameters schema is frozen at 31 tunables, each well-formed."""
     params = ui._all_params()
     variables = {p["var"] for p in params}
     assert variables == EXPECTED_PARAM_VARS, (
         f"tunables changed\n  missing: {sorted(EXPECTED_PARAM_VARS - variables)}"
         f"\n  unexpected: {sorted(variables - EXPECTED_PARAM_VARS)}")
-    assert len(params) == 30, f"expected 30 tunables, got {len(params)}"
+    assert len(params) == 31, f"expected 31 tunables, got {len(params)}"
     for p in params:
         assert p["kind"] in ("int", "float", "enum"), f"{p['var']}: bad kind {p['kind']!r}"
         assert p.get("help"), f"{p['var']} has no help text"

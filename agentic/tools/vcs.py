@@ -1,4 +1,4 @@
-"""Agentic_1A — git tools.
+"""Ollamancer — git tools.
 
 Read-mostly wrappers over the user's own git repository. Distinct from
 `agentic/checkpoints.py`, which drives a *shadow* repo for /undo and never touches the user's

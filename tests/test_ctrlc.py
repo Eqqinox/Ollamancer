@@ -1,8 +1,17 @@
 import sys, tempfile, pathlib, io, contextlib
 import agent
+from agentic import config
 from agentic import ui
 from agentic import models
 from agentic import mcp_client
+
+# This test drives main() all the way to its exit path, and cli.py's exit handler calls
+# readline.write_history_file(config.HISTORY_FILE). Left alone that appends to the user's
+# real ~/.agentic_1a_history, which is exactly the class of leak the suite's config guard
+# exists to catch: it made the pytest run fail intermittently, only when the written
+# content happened to differ from what was already on disk. Redirect before importing
+# anything that reads it.
+config.HISTORY_FILE = pathlib.Path(tempfile.mkdtemp()) / "history"
 
 # Patch the heavy startup bits so main() runs without a real model/MCP.
 models.check_ollama = lambda m: True

@@ -1,7 +1,7 @@
-# Agentic_1A: Design & engineering history
+# Ollamancer: Design & engineering history
 
-> How this agent is built, why it is built that way, and what nine months of running local
-> models against real tasks actually taught us.
+> How this agent is built, why it is built that way, and what running local models against
+> real tasks actually taught us.
 >
 > This is a condensed English edition of the project's engineering log. It keeps the
 > reasoning, the measurements and the failures; it drops the day-by-day changelog (a
@@ -22,6 +22,11 @@ web front end, SearXNG for private search) and grew out of wanting something the
 not give: **an agent that acts on its own**, searching, reading and writing files, running
 commands, directly in the terminal.
 
+A browser front end also costs something on hardware where the model is already the
+bottleneck. It adds a round trip and re-sends the rendered conversation each turn, which is
+overhead you feel on a 24 GB machine running a local model, and none of which a terminal
+process pays.
+
 Three options were evaluated: a custom Python agent, [Smolagents](https://github.com/huggingface/smolagents),
 and a LangChain ReAct agent. **The custom agent won**, for total control, no hidden magic, a
 readable codebase, and immediate startup.
@@ -30,8 +35,8 @@ That decision was re-validated repeatedly. A large share of the fixes documented
 retry branches keyed on specific upstream error strings, a nudge injected between a model's
 final answer and the user, sequential model loading to fit 24 GB, required line-level control
 over the request/response loop that a framework abstraction would have hidden. The cost is
-real, but the tradeoff has paid for itself. The code is now split into fourteen modules
-under `agentic/`, which cost nothing in control: the boundaries follow the layering that was
+real, but the tradeoff has paid for itself. The code is now split into twelve modules
+under `agentic/` plus nine in `agentic/tools/`, which cost nothing in control: the boundaries follow the layering that was
 already implicit, settings, session state, interface strings, safety rails, tools, the loop.
 
 ---

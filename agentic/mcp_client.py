@@ -1,4 +1,4 @@
-"""Agentic_1A — MCP (Model Context Protocol) client.
+"""Ollamancer — MCP (Model Context Protocol) client.
 
 Connects to third-party MCP servers listed in `~/.agentic_1a_mcp.json` — the same
 `{"mcpServers": {...}}` format as Claude Desktop and Claude Code, so an existing config is

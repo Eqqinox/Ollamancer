@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Agentic_1A — a fully-local, terminal-first AI agent for Ollama.
+"""Ollamancer — a fully-local, terminal-first AI agent for Ollama.
 
 This file is the entry point and a compatibility facade. The implementation lives in the
 `agentic/` package:

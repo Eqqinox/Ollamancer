@@ -1,4 +1,4 @@
-"""Agentic_1A — the tool belt.
+"""Ollamancer — the tool belt.
 
 One module per domain: `web`, `files`, `codenav`, `rag`, `vcs`, `exec`, `vision`, `notes`,
 plus `load_skill` from `agentic/skills.py`. Each exposes the tools the model can call and the

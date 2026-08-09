@@ -1,7 +1,7 @@
-"""Agentic_1A — settings (user configuration, persisted).
+"""Ollamancer — settings (user configuration, persisted).
 
 This module holds the **tunable** values: config paths, model choices, generation
-parameters, web-search settings, and the loop guardrails. All 30 settings exposed by
+parameters, web-search settings, and the loop guardrails. All 31 settings exposed by
 `/parameters` live here and are persisted to `PARAMS_FILE`.
 
 ⚠️ IMPORT RULE (enforced by tests/test_import_rules.py) — these values are **rebound at
@@ -110,6 +110,12 @@ GEN_NUM_PREDICT     = 4096   # ceiling on one reply; -1 (unlimited) is selectabl
                              # the worst case at ~11 min and is ~2.5x the longest real answer
                              # observed (a multi-section sourced news roundup, ~1600 tokens).
 GEN_SEED            = -1     # -1 = random
+TOOL_DISPLAY              = "compact"  # "compact"/"full", how tool calls are shown while the
+                                       # agent works. "full" is the original two-panel view.
+                                       # "compact" prints one line per call and keeps the whole
+                                       # thing retrievable with /details, which is strictly more
+                                       # information: the panels truncate results at 300 chars
+                                       # and discard the rest.
 STREAM_FINAL              = "on"    # "on"/"off", stream the final answer live (B2); "off" = the older buffered behaviour (fallback if a model regresses on tool-calling while streaming)
 
 # ── Web search ───────────────────────────────────────────────────────────────
