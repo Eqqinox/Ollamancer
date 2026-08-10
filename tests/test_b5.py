@@ -1,18 +1,28 @@
+import hashlib
 import os, tempfile, pathlib, re
 import agent
 from agentic import tools
 from agentic import config, state
 from agentic.tools import rag
 
-# Deterministic hashing embedder (bag-of-words over 64 buckets), same process, so query
-# and chunks share the same mapping; word overlap → high cosine. No real model needed.
+# Deterministic hashing embedder (bag-of-words over 64 buckets); word overlap → high
+# cosine. No real model needed.
+#
+# The bucket must come from a stable hash, not the builtin one. Python salts str.__hash__
+# per process, so with only 64 buckets a run could occasionally land a query word in the
+# same bucket as a colors.py word, lift the wrong file from 0.41 to 0.42 and flip the
+# ranking assertion below. Every runner starts these scripts in a fresh interpreter, so
+# that re-rolled each time: measured 1 failure in 60 runs before this was pinned.
 DIM = 64
+def _bucket(word):
+    return int.from_bytes(hashlib.blake2b(word.encode(), digest_size=8).digest(), "big") % DIM
+
 def fake_embed(texts):
     out = []
     for t in texts:
         v = [0.0] * DIM
         for w in re.findall(r"[a-z]+", t.lower()):
-            v[hash(w) % DIM] += 1.0
+            v[_bucket(w)] += 1.0
         out.append(v)
     return out
 rag._embed_texts = fake_embed
