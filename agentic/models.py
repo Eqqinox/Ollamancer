@@ -421,7 +421,15 @@ def _parameter_size(info) -> str:
 def pick_model_interactive(current_model: str) -> str | None:
     """Show the list of installed Ollama models and let the user pick one."""
     try:
-        models = sorted(ollama.list().models, key=lambda m: m.model)
+        # Newest first, the same order `ollama list` uses. Alphabetical looked tidier but
+        # buried the model you just pulled somewhere in the middle, which is the one you
+        # almost always came here to select. `modified_at` can be missing on an old server,
+        # so fall back to the name rather than raising on the whole picker.
+        models = sorted(
+            ollama.list().models,
+            key=lambda m: (getattr(m, "modified_at", None) is not None, getattr(m, "modified_at", None), m.model),
+            reverse=True,
+        )
     except Exception:
         ui.console.print(f"\n[red]{t('ollama_not_started')}[/red]")
         return None
