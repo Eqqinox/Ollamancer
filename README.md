@@ -8,9 +8,6 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 
 > Status: **v3.0** · developed on macOS (Apple Silicon, 24 GB) · Python 3.12+ · documentation in English, **bilingual EN/FR interface** · MIT.
 
-> The repository is `Ollamancer`; the agent introduces itself as **Ollamancer**, which is
-> the name in the code, the docs and the `~/.agentic_1a_*` config paths. Same project.
-
 <!-- TODO: demo recording.
      asciinema rec demo.cast --cols 100 --rows 30
      agg demo.cast demo.gif      # https://github.com/asciinema/agg
@@ -154,11 +151,14 @@ history, and an audit log on disk, **`--private` disables all of it** (ephemeral
 exit). See the [Privacy & logs](./Agentic_Manual.md#privacy--logs) section of the manual for
 exactly what's stored, where, and how to delete it.
 
+Those files live in `~/.agentic_1a_*`, named before the project was renamed, and kept
+that way so upgrades do not orphan an existing install.
+
 ---
 
 ## Tests
 
-The agent ships with 33 deterministic tests that run **fully offline**, no Ollama, no
+The agent ships with 34 deterministic tests that run **fully offline**, no Ollama, no
 network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
@@ -214,7 +214,7 @@ agentic/              # the implementation
 launch.sh             # venv setup + launcher
 skills/               # bundled SKILL.md workflows (14)
 benchmarks/           # model-reliability fixtures + playthrough harness
-tests/                # deterministic offline test suite (33 tests)
+tests/                # deterministic offline test suite (34 tests)
 imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)
 ```
 

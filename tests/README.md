@@ -35,7 +35,7 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root, "tests: 33 passed, 0 failed"
+bash tests/run_all.sh          # from the project root, "tests: 34 passed, 0 failed"
 ```
 
 Or a single test:
@@ -76,6 +76,7 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_packaging` | the 14 bundled skills are findable in a checkout and shipped by the wheel; requirements.txt and pyproject stay in step |
 | `test_repomap` | PageRank, the distinctiveness filter, Python extraction, ranking order, `focus=`, the character budget, and both language paths |
 | `test_tool_display` | the compact one-line tool display, and that `/details` keeps the full untruncated result the line omitted |
+| `test_banner` | the startup wordmark keeps its shape, and the width guard hides it on a terminal too narrow to hold it |
 | `test_architect_guards` | architect phase stays read-only; no unsatisfiable claim-vs-action nudge |
 | `test_nudge_marking` | automatic nudges are labelled as checks, in EN and FR, so they read as corrections rather than new user requests |
 | `test_repetition_breaker` | stop nudging once an answer has collapsed into repeating itself |

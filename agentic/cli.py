@@ -50,6 +50,21 @@ atexit.register(toolexec._cleanup_background_processes)
 atexit.register(mcp_client._cleanup_mcp)
 
 
+def _print_banner():
+    """Draw the startup wordmark, when the terminal is wide enough to hold it.
+
+    The art is fixed-width and Rich will not reflow it, so a narrow window would wrap every
+    row and turn the logo into noise. Below the threshold we print nothing and let the rule
+    underneath carry the name on its own, which is what every version before this did.
+    """
+    if ui.console.width < i18n.BANNER_MIN_COLS:
+        return
+    for line in i18n.BANNER_ART:
+        # No markup parsing: the art is data, and one stray bracket would be eaten as a tag.
+        ui.console.print(line, style="blue", markup=False, highlight=False)
+    ui.console.print()
+
+
 def main():
 
     ui._load_params()  # /parameters settings saved by a previous session
@@ -152,6 +167,7 @@ def main():
             pass
 
     ui.console.print()
+    _print_banner()
     ui.console.print(Rule("[bold blue]  Ollamancer v3.0  [/bold blue]", style="blue"))
     labels = [t("label_project"), t("label_model"), t("label_tools"), t("label_audit"), t("label_help")]
     w = max(len(l) for l in labels)

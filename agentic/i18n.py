@@ -23,6 +23,27 @@ The active language itself lives in `config.LANG` (it *is* rebound, by /lang), w
 
 from agentic import config
 
+# ── Startup banner ───────────────────────────────────────────────────────────
+# Language-independent, so it lives outside STR: the wordmark is the product name and
+# does not translate. Drawn with half-block characters, where `▀` fills only the top of a
+# cell, which is what produces the thin stripe through each letter. The icon beside it is
+# deliberately solid, so it anchors the striped type.
+#
+# ASCII art is fragile in a way normal strings are not: a single character added to one
+# line shifts that row out of alignment and nothing catches it at runtime, so the widths
+# are pinned by tests/test_banner.py. Keep every line of ART_LINES the same length.
+BANNER_WIDTH = 67           # widest rendered line, including the two-space indent
+BANNER_MIN_COLS = 72        # below this the art would wrap; fall back to the plain rule
+
+BANNER_ART = [
+    "  ▀▀▀▀ ▀    ▀    ▀▀▀▀ ▀   ▀ ▀▀▀▀ ▀   ▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀       ▄▄▄▄▄  ",
+    "  ▀  ▀ ▀    ▀    ▀  ▀ ▀▀ ▀▀ ▀  ▀ ▀▀  ▀ ▀    ▀    ▀  ▀      ▄█ ▲ █▄ ",
+    "  ▀  ▀ ▀    ▀    ▀▀▀▀ ▀ ▀ ▀ ▀▀▀▀ ▀ ▀ ▀ ▀    ▀▀▀  ▀▀▀▀     █  →●←  █",
+    "  ▀  ▀ ▀    ▀    ▀  ▀ ▀   ▀ ▀  ▀ ▀  ▀▀ ▀    ▀    ▀ ▀       ▀█ ▼ █▀ ",
+    "  ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀ ▀   ▀ ▀  ▀ ▀   ▀ ▀▀▀▀ ▀▀▀▀ ▀  ▀       ▀▀▀▀▀  ",
+]
+
+
 STR = {
     "en": {
         "label_project": "Project", "label_model": "Model", "label_tools": "Tools",
