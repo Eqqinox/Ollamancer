@@ -26,6 +26,9 @@
 > ten that actually fixed the broken program**. Every other model claimed success while
 > leaving a crash in place. At 7.7 GB it also leaves you 16 GB of headroom.
 
+> Three models were added on 10 August and are **not** in the table above, which is left as
+> it ran. See [section 9](#9-additions-10-august-2026) for the combined ranking.
+
 ### Reliability, the column that decides daily use
 
 | Model | Timeouts (of 4) | Swap caused | Total time |
@@ -253,5 +256,86 @@ has no tool support and is therefore out of this ranking, but which works for tr
 - **The search and report tasks hit the live web,** so difficulty varies a little between runs.
   Citations are therefore scored on *grounding*, meaning whether a URL appears in real
   retrieved content, rather than on truth.
-- Full evidence, including every answer, tool trace and score, is in
-  `benchmarks/model_ranking/results/`.
+- **Per-run scores ship; raw run directories do not.** `results/scores.json` is committed and
+  holds every sub-score, timing and tool-call count behind the tables above. The run
+  directories beside it, with each model's answers and tool traces, are deliberately
+  gitignored: they contain the full text of third-party news articles fetched during the
+  search and report tasks, which is not ours to republish. Re-running the harness locally
+  regenerates them.
+
+---
+
+## 9. Additions, 10 August 2026
+
+Same harness, same pinned parameters, same 5-minute cap. Three models added; the ten above
+were not re-run, so their numbers are unchanged.
+
+| # | Model | Size | Reasoning | Search | Agentic | Report | **Total** |
+|---|---|---|---|---|---|---|---|
+| 1 | **gemma4:12b-mlx** | 7.7 GB | 25 | 20.7 | **25** | 24.5 | **95.2** |
+| 2 | **gpt-oss:20b** | 13 GB | 19 | 19 | 12 | **25** | **75.0** |
+| 2= | **gemma4:e4b-mlx** | **8.8 GB** | 21 | 20 | 12 | 22 | **75.0** |
+| 4 | Ornith-1.0-9B-GGUF | 5.6 GB | 25 | 17 | 6 | 22.8 | 70.8 |
+| 5 | qwen3.5:4b | 3.4 GB | 12 | **25** | 9 | 23.9 | 69.9 |
+| 6 | gemma-4-12b-nightshift-heretic | 7.4 GB | 0 | **25** | 15 | 23.9 | 63.9 |
+| 7 | Agen/gemma-4-26B-heretic | 17 GB | 25 | **25** | 9 | 0 | 59.0 |
+| 8 | gemma4:26b-mlx | 17 GB | 25 | 22 | 9 | 0 | 56.0 |
+| 9 | qwen2.5:7b | 4.7 GB | 9 | 18.7 | 6 | 20.2 | 53.9 |
+| 10 | ornith:9b | 5.6 GB | 0 | 19 | 6 | **25** | 50.0 |
+| 11 | gemma4:e4b-mlx-bf16 | 16 GB | 15 | **25** | 6 | 0 | 46.0 |
+| 12 | gamy316/aileen1.0 | 4.9 GB | 13.8 | 14.3 | 6 | 0 | 34.1 |
+| 13 | lfm2.5:8b | 5.2 GB | 0 | 17 | 9 | 0 | 26.0 |
+
+`gemma4:e4b-mlx` enters joint 2nd at **8.8 GB**, matching a 13 GB model. `qwen2.5:7b` lands
+mid-table with no niche of its own, though at 397 s it is the fastest model scoring above 34.
+
+### 9.1 Full precision lost to 4-bit, by 29 points
+
+The two `e4b` entries are the same Google model, same architecture, same MLX engine, differing
+only in quantisation. That makes them the one controlled pair in this campaign.
+
+| Task | `e4b-mlx` (8.8 GB, nvfp4) | `e4b-mlx-bf16` (16 GB, unquantised) | Delta |
+|---|---|---|---|
+| Reasoning | 21.0 (50 s) | 15.0 (56 s) | **+6.0** |
+| Search | 20.0 (56 s) | **25.0** (149 s) | -5.0 |
+| Agentic | 12.0 (300 s) | 6.0 (300 s) | **+6.0** |
+| Report | 22.0 (300 s) | **0.0** (293 s) | **+22.0** |
+| **Total** | **75.0** | **46.0** | **+29.0** |
+
+The extra 7.2 GB bought no measurable quality. It bought swap. The bf16 build was **2.7x
+slower on the search task** for an identical result, touched swap on both runs where it was
+sampled (+1342 MB, +1066 MB), and on the report task spent 293 seconds to produce a single
+tool call and no file at all.
+
+> **The lesson is not "quantisation is free."** It is that on 24 GB of unified memory, memory
+> headroom dominates precision. A 4-bit build that fits beats a full-precision build that
+> swaps, and it is not close. Spend the budget on headroom first.
+
+### 9.2 A reproducible blind spot in `gemma4:e4b-mlx`
+
+The one task bf16 won was search, and the whole 5-point gap is a single sub-score:
+
+```
+e4b-mlx        datetime_first 0 · deep_read 4 · story_count 5 · diversity 4 · grounded 7.0
+e4b-mlx-bf16   datetime_first 5 · deep_read 4 · story_count 5 · diversity 4 · grounded 7.0
+```
+
+Every other signal is identical. The quantised build never calls `get_datetime` before
+searching. That looked like a coin flip, so the search task was re-run at four different
+seeds: **0 out of 4**. It is a stable trait, not sampling noise.
+
+The system prompt is explicit about this (`agentic/i18n.py`, "Never guess today's date ...
+call `get_datetime` first"), so this is an instruction-following failure rather than a gap in
+the agent.
+
+**It already produces wrong answers, quietly.** Instead of resolving the date, the model puts
+the relative phrase straight into the query -- `search_web_deep("geopolitics breaking news
+last 24 hours")` -- and lets the search engine handle recency. In the run inspected on
+2026-08-10, two of its three stories fell outside the requested window, including one about
+events "last month". Story count, diversity and grounding all scored full marks, because none
+of them checks recency. `datetime_first` is the only signal that catches it.
+
+Grounding itself was flawless: **7.0/7.0 across all four reruns, zero fabricated URLs.**
+
+> **Practical guidance.** For date-bounded questions, either use `qwen3.5:4b` (25/25 on
+> search, 3.4 GB) or tell `gemma4:e4b-mlx` to check the date explicitly, which it then does.

@@ -359,6 +359,264 @@
     "n_tool_calls": 7
   },
   {
+    "run": "results/gemma4_e4b-mlx/t1_rep1",
+    "model": "gemma4:e4b-mlx",
+    "task": "t1",
+    "total": 21.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand"
+    ],
+    "judged_pending": [
+      "d_judged"
+    ],
+    "seconds": 50.1,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/gemma4_e4b-mlx/t2_rep1",
+    "model": "gemma4:e4b-mlx",
+    "task": "t2",
+    "total": 20.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: npr.org, techcrunch.com, theguardian.com"
+    ],
+    "judged_pending": [],
+    "seconds": 56.4,
+    "n_tool_calls": 1
+  },
+  {
+    "run": "results/gemma4_e4b-mlx/t2_rep2",
+    "model": "gemma4:e4b-mlx",
+    "task": "t2",
+    "total": 18.7,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 2.7,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "2 distinct domains: bbc.co.uk, cnbc.com"
+    ],
+    "judged_pending": [],
+    "seconds": 50.3,
+    "n_tool_calls": 1
+  },
+  {
+    "run": "results/gemma4_e4b-mlx/t2_rep3",
+    "model": "gemma4:e4b-mlx",
+    "task": "t2",
+    "total": 20.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: bbc.co.uk, npr.org, reuters.com"
+    ],
+    "judged_pending": [],
+    "seconds": 47.4,
+    "n_tool_calls": 1
+  },
+  {
+    "run": "results/gemma4_e4b-mlx/t2_rep4",
+    "model": "gemma4:e4b-mlx",
+    "task": "t2",
+    "total": 20.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: bbc.co.uk, npr.org, theguardian.com"
+    ],
+    "judged_pending": [],
+    "seconds": 43.1,
+    "n_tool_calls": 1
+  },
+  {
+    "run": "results/gemma4_e4b-mlx/t3_rep1",
+    "model": "gemma4:e4b-mlx",
+    "task": "t3",
+    "total": 12,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 6,
+      "bug_attack": 6,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 20
+  },
+  {
+    "run": "results/gemma4_e4b-mlx/t4_rep1",
+    "model": "gemma4:e4b-mlx",
+    "task": "t4",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "411 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand"
+    ],
+    "judged_pending": [
+      "prose_judged"
+    ],
+    "seconds": 300.0,
+    "n_tool_calls": 10
+  },
+  {
+    "run": "results/gemma4_e4b-mlx-bf16/t1_rep1",
+    "model": "gemma4:e4b-mlx-bf16",
+    "task": "t1",
+    "total": 15.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 0,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand"
+    ],
+    "judged_pending": [
+      "d_judged"
+    ],
+    "seconds": 55.9,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/gemma4_e4b-mlx-bf16/t2_rep1",
+    "model": "gemma4:e4b-mlx-bf16",
+    "task": "t2",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: bbc.co.uk, npr.org, reuters.com"
+    ],
+    "judged_pending": [],
+    "seconds": 149.0,
+    "n_tool_calls": 3
+  },
+  {
+    "run": "results/gemma4_e4b-mlx-bf16/t3_rep1",
+    "model": "gemma4:e4b-mlx-bf16",
+    "task": "t3",
+    "total": 6,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 6,
+      "bug_attack": 0,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 2 unfixed: KeyError on attack/attack_range",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 2
+  },
+  {
+    "run": "results/gemma4_e4b-mlx-bf16/t4_rep1",
+    "model": "gemma4:e4b-mlx-bf16",
+    "task": "t4",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "written": 0,
+      "structure": 0,
+      "length": 0,
+      "citations_resolve": 0,
+      "citations_grounded": 0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "report.md was never written"
+    ],
+    "judged_pending": [
+      "prose_judged"
+    ],
+    "seconds": 292.8,
+    "n_tool_calls": 1
+  },
+  {
     "run": "results/gpt-oss_20b/t1_rep1",
     "model": "gpt-oss:20b",
     "task": "t1",
@@ -815,6 +1073,101 @@
     "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 8
+  },
+  {
+    "run": "results/qwen2.5_7b/t1_rep1",
+    "model": "qwen2.5:7b",
+    "task": "t1",
+    "total": 9.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand"
+    ],
+    "judged_pending": [
+      "d_judged"
+    ],
+    "seconds": 67.4,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/qwen2.5_7b/t2_rep1",
+    "model": "qwen2.5:7b",
+    "task": "t2",
+    "total": 18.7,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 2.7,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "12 stories, 3 source URLs",
+      "2 distinct domains: aljazeera.com, sciencedaily.com"
+    ],
+    "judged_pending": [],
+    "seconds": 71.6,
+    "n_tool_calls": 3
+  },
+  {
+    "run": "results/qwen2.5_7b/t3_rep1",
+    "model": "qwen2.5:7b",
+    "task": "t3",
+    "total": 6,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 147.1,
+    "n_tool_calls": 5
+  },
+  {
+    "run": "results/qwen2.5_7b/t4_rep1",
+    "model": "qwen2.5:7b",
+    "task": "t4",
+    "total": 20.2,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 1.2,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "135 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand"
+    ],
+    "judged_pending": [
+      "prose_judged"
+    ],
+    "seconds": 111.3,
+    "n_tool_calls": 5
   },
   {
     "run": "results/qwen3.5_4b/t1_rep1",

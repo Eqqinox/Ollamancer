@@ -888,13 +888,18 @@ Any tool-capable Ollama model works. Scores below are out of 100 from the rankin
 
 | Model | Size | Score | Notes |
 |---|---|---|---|
-| `gemma4:12b-mlx` | 7.7 GB | **95** | **Recommended default.** The only model of ten that actually fixed the broken program rather than claiming to |
+| `gemma4:12b-mlx` | 7.7 GB | **95** | **Recommended default.** The only model of thirteen that actually fixed the broken program rather than claiming to |
 | `gpt-oss:20b` | 13 GB | 75 | Best planner and best report prose; natively supported by Ollama; 0 timeouts, 0 swap |
+| `gemma4:e4b-mlx` | 8.8 GB | 75 | Matches a 13 GB model at 8.8 GB. Skips `get_datetime` unless told to, so say "check the date first" for date-bounded questions |
 | `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 71 | Strong reasoning and reports, but timed out on 3 of 4 tasks |
 | `qwen3.5:4b` | 3.4 GB | 70 | The shipped fallback: perfect web-search score at the smallest size, zero swap |
 | `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 64 | Uncensored (Heretic); perfect search score |
 | `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 18 GB | 59 | Uncensored + vision, but ~8.7 GB of swap on a 24 GB machine |
 
+> Note: **Buy memory headroom before precision.** `gemma4:e4b-mlx` (4-bit, 8.8 GB) beat its
+> own unquantised twin `gemma4:e4b-mlx-bf16` (16 GB) by 29 points. The extra 7.2 GB bought
+> swap, not quality: 2.7x slower search for an identical result, and no report at all.
+>
 > Note: **On 24 GB, models above ~13 GB are a poor trade.** `gemma4:26b-mlx` pushed **13.2 GB into
 > swap** and still scored below a 7.7 GB model. A 27B+ model at q8 may not load at all, Ollama
 > refused one outright with *"requires 26.6 GiB but only 17.3 GiB are available"*.

@@ -310,6 +310,8 @@ enabled, the command is refused rather than silently run on the host.
 
 Since v2.9.15, `DEFAULT_MODEL` in the code is no longer the only source of the startup model:
 
+- **`/model`** lists the installed models **newest first**, the same order `ollama list`
+  uses, so a model you just pulled is at the top rather than buried alphabetically.
 - **`/default-model`** opens the same interactive picker as `/model`, but saves the choice to
   `~/.agentic_1a_default_model.txt`: used on every future launch, for every project, until
   changed. (`/model` on its own still changes the model for the current session only, without
@@ -370,7 +372,7 @@ are reported below. They are kept apart on purpose: they measured different thin
 their results are not comparable and no combined ranking is offered. Only four models
 appear in both.
 
-### 11.1 Current ranking (2026-08-08, four tasks)
+### 11.1 Current ranking (2026-08-08, extended 2026-08-10, four tasks)
 
 **Battery:** reasoning with no tools, web search, an agentic fix-and-verify task, and
 report writing. 100 points, 25 per task, one run per model per task, five-minute cap per
@@ -380,23 +382,37 @@ stated limits in
 
 | Model | Size | Reasoning | Search | Agentic | Report | Total | Note |
 |---|---|---|---|---|---|---|---|
-| `gemma4:12b-mlx` | 7.7 GB | 25 | 20.7 | 25 | 24.5 | **95.2** | Current default. The only model of ten that actually fixed the broken program |
+| `gemma4:12b-mlx` | 7.7 GB | 25 | 20.7 | 25 | 24.5 | **95.2** | Current default. The only model of thirteen that actually fixed the broken program |
 | `gpt-oss:20b` | 13 GB | 19 | 19 | 12 | 25 | **75.0** | Current architect model. Best planner and best report prose, 0 timeouts, 0 swap |
+| `gemma4:e4b-mlx` | 8.8 GB | 21 | 20 | 12 | 22 | **75.0** | Added 2026-08-10. Matches a 13 GB model at 8.8 GB, but never calls `get_datetime` unprompted (0 of 4 runs) |
 | `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 25 | 17 | 6 | 22.8 | **70.8** | Strong reasoning, but timed out on 3 of 4 tasks |
 | `qwen3.5:4b` | 3.4 GB | 12 | 25 | 9 | 23.9 | **69.9** | Shipped fallback. Perfect search score at the smallest size, zero swap |
 | `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 0 | 25 | 15 | 23.9 | **63.9** | Best uncensored option. Timed out 3 of 4 |
 | `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 17 GB | 25 | 25 | 9 | 0 | **59.0** | Uncensored + vision, but 8.7 GB of swap and never finished the report |
 | `gemma4:26b-mlx` | 17 GB | 25 | 22 | 9 | 0 | **56.0** | Pushed **13.2 GB into swap** on a 24 GB machine, for a score below a 7.7 GB model |
+| `qwen2.5:7b` | 4.7 GB | 9 | 18.7 | 6 | 20.2 | **53.9** | Added 2026-08-10. Fastest model scoring above 34 (397 s), but no standout task and no `thinking` capability |
 | `ornith:9b` | 5.6 GB | 0 | 19 | 6 | 25 | **50.0** | Best report prose, but timed out 3 of 4 |
+| `gemma4:e4b-mlx-bf16` | 16 GB | 15 | 25 | 6 | 0 | **46.0** | Added and removed 2026-08-10. Full-precision twin of `gemma4:e4b-mlx`, and 29 points worse. See below |
 | `gamy316/aileen1.0` | 4.9 GB | 13.8 | 14.3 | 6 | 0 | **34.1** | Fastest overall (189 s), weakest answers, made zero tool calls on the agentic task |
 | `lfm2.5:8b` | 5.2 GB | 0 | 17 | 9 | 0 | **26.0** | Never wrote the report file |
 
-Two findings that generalise beyond the ranking:
+Four findings that generalise beyond the ranking:
 
 - **On 24 GB, models above roughly 13 GB are a poor trade.** Both 17 GB models scored
   below a 7.7 GB one while forcing 8 to 13 GB of swap.
 - **Tool-call count predicts agentic success almost perfectly.** The top four made 10 to
   25 calls; the bottom three made 0 or 1 and simply asserted the code was fixed.
+- **Memory headroom beats precision.** `gemma4:e4b-mlx` (4-bit, 8.8 GB) beat its own
+  unquantised twin `gemma4:e4b-mlx-bf16` (16 GB) by **29 points**, winning three tasks of
+  four. The extra 7.2 GB bought no measurable quality, only swap: the bf16 build was 2.7x
+  slower on search for an identical result, and produced no report at all. Buy headroom
+  before precision.
+- **A capability badge is not a behaviour.** `gemma4:e4b-mlx` has `tools` and follows the
+  system prompt's date rule only when told to. Left alone it skips `get_datetime` in 4 of 4
+  runs and hands the raw phrase to the search engine, which silently returns results outside
+  the requested window. Grounding stayed perfect (7.0/7.0, no fabricated URLs), so the
+  failure is invisible to every check except `datetime_first`. For date-bounded questions
+  prefer `qwen3.5:4b`, or say "check the date first", which works.
 
 Read the limits section of `RESULTS.md` before treating any of this as settled: one run
 per model per task separates 95 from 26, not 4th place from 5th.
