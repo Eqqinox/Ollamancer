@@ -38,15 +38,20 @@ ALL_MODELS=(
   "oamazonasgabriel/qwen2.5-coder.1.5b-mlx:f16-8gbGPU"                        # 3.1 GB
   "htunnthuthutech/gemma-4-e2b-aiops:latest"                                  # 3.4 GB
   "qwen3.5:4b"                                                                # 3.4 GB
+  "qwen3.5:4b-mlx"                                                            # 4.0 GB
   "gamy316/aileen1.0:latest"                                                  # 4.9 GB
   "lfm2.5:8b"                                                                 # 5.2 GB
   "MHKetbi/DeepSeek-R1-Distill-Llama-8B-NexaQuant:latest"                     # 5.3 GB
   "ornith:9b"                                                                 # 5.6 GB
   "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M"                          # 5.6 GB
+  "qwen-heretic:latest"                                                       # 7.0 GB  Qwen3.5-9B Q4_K_M
   "studiobrn/modCoderMLX:latest"                                              # 7.4 GB
   "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest"  # 7.4 GB
   "gemma4:12b-mlx"                                                            # 7.7 GB
+  "qwen3.5:9b-mlx"                                                            # 8.9 GB  Qwen3.5-9B nvfp4
+  "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M"       # 12.0 GB 34.7B A3B MoE
   "gpt-oss:20b"                                                               # 13.8 GB
+  "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M"       # 16.0 GB 34.7B A3B MoE
   "gemma4:26b-mlx"                                                            # 17.6 GB
   "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest"                         # 18.0 GB
   "qwen3-coder:30b"                                                           # 18.6 GB
@@ -127,7 +132,10 @@ run_one() {
 
 # ── argument parsing ─────────────────────────────────────────────────────────
 MODE="${1:-}"; shift 2>/dev/null || true
-REPS=1
+# Two reps is the protocol default (PLAN.md §1.3): score.py reports the MINIMUM across
+# reps, and a single rep cannot support a pass^k claim at all. --reps 1 is still allowed
+# for a cheap look, but anything it produces is pass^1 and must be labelled as such.
+REPS=2
 TASKS="t1,t2,t3,t4"
 SKIP_HEAVY=0
 while [ $# -gt 0 ]; do
@@ -154,6 +162,8 @@ case "$MODE" in
       if is_heavy "$m"; then
         echo "  (heavy: $(model_gb "$m") GB on disk — watching swap; a crash here is a result)"
       fi
+      # Rep is hardcoded to 1 on purpose: the gate is a single pass/fail screen for tool
+      # discipline, not a scored measurement, so REPS does not apply to it.
       run_one "$m" t0 1
     done
     echo ""

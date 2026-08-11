@@ -26,6 +26,25 @@ design:
 3. **`pass^k`, not best-of-k.** τ-bench's reliability metric *decays* with repeats:
    a model scores only if it passes *every* run. A model that succeeds once in three
    is not a model you can build on. Where repeats are affordable, that is the rule.
+
+   This is now what the code actually computes. `score.py --all` groups runs by
+   `(model, task)` and reports the **minimum** of the per-rep totals as
+   `pass_k_total`, with `mean_total` and `spread` (max − min) alongside for context,
+   and sums the minima across `t1..t4` into one ranked per-model table. A rep that
+   crashed or timed out already scores 0, so it collapses the pass^k total on its
+   own. `rank.sh` therefore defaults to `--reps 2`.
+
+   > **Results produced before 2026-08-11 are `pass^1`.** They are single
+   > observations, not reliability measurements, and are *not* directly comparable to
+   > `pass^2` rows. The printed tables mark any row whose rep count differs from the
+   > rest of the table with `◆` rather than letting the two silently mix.
+
+   One caveat the metric cannot fix on its own: the two hand-judged items
+   (`t1.d_judged`, `t4.prose_judged`) were originally keyed by model alone, so every
+   rep of a model shared one judgement. `judged.json` now takes a per-rep key
+   (`<model>#rep<n>`); the legacy model-only key still resolves, but any total
+   relying on one is flagged as inherited, and any total with an unjudged item is
+   reported `PROVISIONAL` — a floor that can only rise, never a final score.
 4. **The function-calling configuration is part of the score, not a separable
    variable.** So §3 is reported alongside the results, and no per-model tuning is
    allowed, a model that needs a different temperature to work is a model that
@@ -221,10 +240,10 @@ hand.
 | **Agentic** (T3) | 25 | 10 `play_verify` PASS · 6 bug 1 · 6 bug 2 · 3 actually ran the code |
 | **Report** (T4) | 25 | 4 file written · 5 structure exact (4 sections, in order) · 3 word count (≥350) · 6 citations resolve · 4 citations grounded · 3 judged prose quality |
 
-With `--reps ≥ 2` the reported score is the **minimum** across reps (`pass^k`), and
-the mean is recorded alongside so flakiness is visible rather than hidden. At the
-default `--reps 1` no `pass^k` claim can be made at all; that is the price of the
-cheaper campaign, and Round 3 buys it back for the models it matters for.
+With `--reps ≥ 2` — now the default — the reported score is the **minimum** across
+reps (`pass^k`), and the mean is recorded alongside so flakiness is visible rather
+than hidden. At `--reps 1` no `pass^k` claim can be made at all; that is the price of
+the cheaper campaign, and it is why every pre-2026-08-11 row is `pass^1`.
 
 Also recorded per run, unscored but reported: wall-clock seconds, tool-call count,
 nudges fired, peak RSS. Speed does not enter the score. It is a separate axis the

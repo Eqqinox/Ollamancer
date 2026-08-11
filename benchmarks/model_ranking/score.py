@@ -7,7 +7,18 @@ score can be audited afterwards rather than taken on trust. The two judged items
 in the output as `judged_pending` so they cannot be silently forgotten.
 
     python3 score.py results/qwen3.5_4b/t1_rep1
-    python3 score.py --all results/          # rolls everything up into a table
+    python3 score.py --all results/
+
+`--all` scores every run under the path and then prints three things: the per-run
+detail blocks, a pass^k table with one row per (model, task), and a ranked per-model
+table summing pass^k across t1..t4. It writes `scores.json` (the flat per-run list,
+kept as the auditable record) and `scores_rollup.json` (both roll-up levels).
+
+The headline number is the MINIMUM across reps, not the mean — see `rollup()`. Rows
+whose rep count differs from the rest of the table are marked, because mixing pass^1
+and pass^2 rows without a marker is precisely the error this roll-up exists to stop.
+A pass^k total is PROVISIONAL while any contributing rep still needs a hand
+judgement; `--all` ends with a worklist of every judgement still owed.
 """
 
 import argparse
@@ -34,20 +45,53 @@ EXEC_TOOLS = {"run_command", "python_repl", "run_tests", "run_background"}
 T1_SCHEDULE = {"A": "10:00", "B": "11:00", "C": "12:00", "D": "09:00"}
 
 
+def _read_json(path: Path, default):
+    """Parse a JSON artefact, tolerating a file that is missing or still being written.
+
+    The campaign driver writes into `results/` while a roll-up may be reading it, so a
+    run directory can legitimately be caught half-written. A partial artefact must not
+    crash the whole table: it is reported as an unscoreable run instead.
+    """
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+        return default
+
+
+def _rep_of(run: Path) -> int | None:
+    """Rep number from the run directory name: `t1_rep2` -> 2.
+
+    Returned as None when the name carries no rep, so callers can tell "rep unknown"
+    apart from "rep 1" — assuming 1 is how a rep-2 answer ends up silently scored
+    against a rep-1 hand judgement.
+    """
+    m = re.search(r"_rep(\d+)$", run.name)
+    return int(m.group(1)) if m else None
+
+
 def _load(run: Path) -> tuple[str, dict, list, list]:
-    answer = (run / "answer.txt").read_text(errors="replace") if (run / "answer.txt").exists() else ""
-    meta = json.loads((run / "meta.json").read_text()) if (run / "meta.json").exists() else {}
-    trace = json.loads((run / "tool_trace.json").read_text()) if (run / "tool_trace.json").exists() else []
+    answer = ""
+    if (run / "answer.txt").exists():
+        try:
+            answer = (run / "answer.txt").read_text(errors="replace")
+        except OSError:
+            answer = ""
+    meta = _read_json(run / "meta.json", {})
+    trace = _read_json(run / "tool_trace.json", [])
     # Grounding evidence: prefer the full per-call capture. `tool_results.json` (from
     # state._last_turn_tool_results) only ever holds the final ReAct round, so on its own
     # it makes a model that cited real URLs early in the run look like a fabricator.
     outs = (run / "tool_outputs.json")
     if outs.exists():
-        results = [o["output"] for o in json.loads(outs.read_text())]
+        raw = _read_json(outs, [])
+        results = [o["output"] for o in raw if isinstance(o, dict) and "output" in o]
     else:
-        rf = run / "tool_results.json"
-        results = json.loads(rf.read_text()) if rf.exists() else []
-    return answer, meta, trace, results
+        results = _read_json(run / "tool_results.json", [])
+    if not isinstance(results, list):
+        results = []
+    return answer, meta, trace, [r for r in results if isinstance(r, str)]
 
 
 def _section(text: str, letter: str) -> str:
@@ -291,6 +335,14 @@ def _rel(run: Path) -> str:
 
 def score_run(run: Path) -> dict:
     answer, meta, trace, results = _load(run)
+
+    # No parseable meta.json: the run is unscoreable, which is NOT the same as scoring 0.
+    # rank.sh writes into results/ while a roll-up may be reading it, so a directory can
+    # be caught mid-write. Returning a 0 row here would let a half-written rep collapse
+    # that model's pass^k total, inventing a reliability failure out of a race.
+    if not meta:
+        return None
+
     task = meta.get("task", run.name.split("_")[0])
     meta["_run_dir"] = str(run)
 
@@ -299,10 +351,13 @@ def score_run(run: Path) -> dict:
         # are not part of the 100-point battery. Skip them rather than crashing the roll-up.
         return None
 
-    if meta.get("status") != "ok":
-        return {"run": _rel(run), "model": meta.get("model"), "task": task,
-                "total": 0, "max": MAX.get(task, 25), "parts": {},
-                "notes": [f"run did not complete: {meta.get('status')}"],
+    rep = _rep_of(run)
+    status = meta.get("status")
+
+    if status != "ok":
+        return {"run": _rel(run), "model": meta.get("model"), "task": task, "rep": rep,
+                "status": status, "total": 0, "max": MAX.get(task, 25), "parts": {},
+                "notes": [f"run did not complete: {status}"],
                 "judged_pending": [], "seconds": meta.get("seconds"),
                 "n_tool_calls": meta.get("n_tool_calls")}
 
@@ -310,20 +365,190 @@ def score_run(run: Path) -> dict:
 
     # Fold in the hand-scored items from judged.json, so the totals are complete and the
     # judgements stay reviewable in version control rather than living in someone's head.
+    #
+    # Lookup order is per-rep first, then the legacy model-level key. The legacy form
+    # predates reps: it applies one hand score to every rep of a model, even though each
+    # rep produced a different answer.txt. That is still honoured so the judgements made
+    # before this change are not thrown away, but it is flagged in the notes, because an
+    # inherited score is not evidence about the rep it is being applied to.
     jf = HERE / "judged.json"
     if jf.exists():
-        judged = json.loads(jf.read_text())
+        judged = _read_json(jf, {})
+        model = meta.get("model")
         for key in list(pending):
-            val = judged.get(f"{task}.{key}", {}).get(meta.get("model"))
+            table = judged.get(f"{task}.{key}", {})
+            if not isinstance(table, dict):
+                continue
+            val = table.get(f"{model}#rep{rep}") if rep is not None else None
             if val is not None:
                 parts[key] = val
                 pending.remove(key)
-                notes.append(f"{key} = {val} (manual, see judged.json)")
+                notes.append(f"{key} = {val} (manual, judged for this rep)")
+                continue
+            val = table.get(model)
+            if val is not None:
+                parts[key] = val
+                pending.remove(key)
+                notes.append(f"{key} = {val} (manual) — judged score inherited from "
+                             f"legacy model-level key, not judged for this rep specifically")
     total = max(0, min(MAX[task], round(sum(parts.values()), 1)))
-    return {"run": _rel(run), "model": meta.get("model"), "task": task,
-            "total": total, "max": MAX[task], "parts": parts, "notes": notes,
-            "judged_pending": pending, "seconds": meta.get("seconds"),
+    return {"run": _rel(run), "model": meta.get("model"), "task": task, "rep": rep,
+            "status": status, "total": total, "max": MAX[task], "parts": parts,
+            "notes": notes, "judged_pending": pending, "seconds": meta.get("seconds"),
             "n_tool_calls": meta.get("n_tool_calls")}
+
+
+TASK_ORDER = ["t1", "t2", "t3", "t4"]
+
+
+def rollup(scored: list[dict]) -> list[dict]:
+    """Aggregate the per-run scores into one pass^k row per (model, task).
+
+    PLAN.md §1.3 follows tau-bench: reliability has to DECAY with repeats, so the
+    headline number is the MINIMUM across reps, never the mean and never the best.
+    A model that scores 25 on one rep and 0 on the next is not a 12.5 model, it is a
+    0 model — you cannot build on something that only works sometimes. A rep that
+    did not complete already scores 0 in score_run(), so a crash or a timeout in any
+    rep collapses the pass^k total on its own, which is the intended behaviour.
+
+    `mean_total` is carried for context and `spread` (max − min) because a pass^k of
+    0 means two very different things at spread 0 (consistently bad) and at spread 25
+    (bimodal, i.e. unreliable) — and that distinction is the entire point of reps.
+
+    `provisional` is set when any contributing rep still owes a hand judgement. Such
+    a total is a FLOOR, not a score: the unjudged item currently contributes 0, and
+    filling in judged.json can only raise it. It must never be presented as final.
+    """
+    groups: dict[tuple[str, str], list[dict]] = {}
+    for s in scored:
+        groups.setdefault((s["model"], s["task"]), []).append(s)
+
+    rows = []
+    for (model, task), runs in sorted(groups.items(), key=lambda kv: (str(kv[0][0]), str(kv[0][1]))):
+        runs = sorted(runs, key=lambda r: (r.get("rep") or 0, r["run"]))
+        totals = [r["total"] for r in runs]
+        pending = sorted({f"{r['task']}.{k}#rep{r.get('rep')}"
+                          for r in runs for k in r["judged_pending"]})
+        rows.append({
+            "model": model,
+            "task": task,
+            "max": runs[0]["max"],
+            "n_reps": len(runs),
+            "pass_k_total": min(totals),
+            "mean_total": round(sum(totals) / len(totals), 2),
+            "spread": round(max(totals) - min(totals), 1),
+            "status_all_ok": all(r.get("status") == "ok" for r in runs),
+            "provisional": bool(pending),
+            "per_rep_totals": totals,
+            "reps": [r.get("rep") for r in runs],
+            "runs": [r["run"] for r in runs],
+            "judged_pending": pending,
+        })
+    return rows
+
+
+def rollup_by_model(rows: list[dict]) -> list[dict]:
+    """Sum pass^k across t1..t4 into one ranked row per model.
+
+    Summing minima is deliberately harsh: a model has to be reliable on every task to
+    place well, which is the same principle as pass^k applied one level up.
+    """
+    per_model: dict[str, list[dict]] = {}
+    for r in rows:
+        per_model.setdefault(r["model"], []).append(r)
+
+    out = []
+    for model, rs in per_model.items():
+        reps = sorted({r["n_reps"] for r in rs})
+        out.append({
+            "model": model,
+            "pass_k_sum": round(sum(r["pass_k_total"] for r in rs), 1),
+            "mean_sum": round(sum(r["mean_total"] for r in rs), 1),
+            "max_possible": sum(r["max"] for r in rs),
+            "tasks": sorted((r["task"] for r in rs), key=lambda t: TASK_ORDER.index(t)
+                            if t in TASK_ORDER else 99),
+            "n_tasks": len(rs),
+            "n_reps": reps[0] if len(reps) == 1 else None,   # None => mixed across tasks
+            "n_reps_range": reps,
+            "status_all_ok": all(r["status_all_ok"] for r in rs),
+            "provisional": any(r["provisional"] for r in rs),
+            "per_task": {r["task"]: r["pass_k_total"] for r in rs},
+        })
+    return sorted(out, key=lambda r: -r["pass_k_sum"])
+
+
+def _rep_marker(rows: list[dict]) -> tuple[int | None, str]:
+    """The table's dominant rep count, and a legend line if anything differs from it."""
+    counts: dict[int, int] = {}
+    for r in rows:
+        n = r["n_reps"]
+        if n is not None:
+            counts[n] = counts.get(n, 0) + 1
+    if not counts:
+        return None, ""
+    dominant = max(counts, key=lambda k: (counts[k], k))
+    odd = [r for r in rows if r["n_reps"] != dominant]
+    if not odd:
+        return dominant, ""
+    return dominant, (
+        f"\n  ‼ {len(odd)} row(s) marked ◆ have a rep count different from the "
+        f"table's pass^{dominant}. Those rows are NOT comparable to the rest:\n"
+        f"    a pass^1 score is a single observation, not a reliability measurement."
+    )
+
+
+def print_rollup(rows: list[dict], model_rows: list[dict]) -> None:
+    print("\n\n=== pass^k by (model, task) — headline is the MIN across reps (PLAN.md §1.3) ===\n")
+    dominant, legend = _rep_marker(rows)
+    print(f"  {'model':48} {'task':4} {'k':>2} {'pass^k':>7} {'mean':>6} {'spread':>7}  per-rep")
+    print(f"  {'-' * 48} {'-' * 4} {'--':>2} {'-' * 7} {'-' * 6} {'-' * 7}  {'-' * 12}")
+    for r in rows:
+        mark = "◆" if r["n_reps"] != dominant else " "
+        flags = []
+        if r["provisional"]:
+            flags.append("PROVISIONAL")
+        if not r["status_all_ok"]:
+            flags.append("a rep did not complete")
+        tail = ("  ← " + ", ".join(flags)) if flags else ""
+        print(f"{mark} {str(r['model'])[:48]:48} {r['task']:4} {r['n_reps']:>2} "
+              f"{r['pass_k_total']:>7} {r['mean_total']:>6} {r['spread']:>7}  "
+              f"{r['per_rep_totals']}{tail}")
+    if legend:
+        print(legend)
+
+    print("\n\n=== ranked by pass^k summed across t1..t4 ===\n")
+    dom_m, legend_m = _rep_marker(model_rows)
+    print(f"  {'#':>2} {'model':48} {'k':>3} {'pass^k sum':>11} {'mean sum':>9}  tasks")
+    print(f"  {'--':>2} {'-' * 48} {'---':>3} {'-' * 11} {'-' * 9}  {'-' * 5}")
+    for i, r in enumerate(model_rows, 1):
+        mark = "◆" if r["n_reps"] != dom_m else " "
+        k = str(r["n_reps"]) if r["n_reps"] is not None else "/".join(map(str, r["n_reps_range"]))
+        tail = "  ← PROVISIONAL" if r["provisional"] else ""
+        missing = "" if r["n_tasks"] == len(TASK_ORDER) else f"  (only {r['n_tasks']}/4 tasks)"
+        print(f"{mark} {i:>2} {str(r['model'])[:48]:48} {k:>3} "
+              f"{r['pass_k_sum']:>11} {r['mean_sum']:>9}  {r['n_tasks']}/4{tail}{missing}")
+    if legend_m:
+        print(legend_m)
+    if any(r["provisional"] for r in model_rows):
+        print("\n  PROVISIONAL = a contributing rep still owes a hand judgement. The unjudged\n"
+              "  item scores 0 for now, so these totals are FLOORS and can only rise.")
+
+
+def print_judgement_worklist(scored: list[dict]) -> None:
+    """Every (task, item, model, rep) still needing a hand score, so the debt is visible."""
+    owed = [(s["task"], key, s["model"], s.get("rep"), s["run"])
+            for s in scored for key in s["judged_pending"]]
+    print("\n\n=== hand-judgement worklist ===\n")
+    if not owed:
+        print("  none — every scored run has its judged items filled in.")
+        return
+    print(f"  {len(owed)} judgement(s) owed. Add them to judged.json under the per-rep key\n"
+          f"  \"<model>#rep<n>\" (see _schema in that file); until then the totals above\n"
+          f"  are floors, not scores.\n")
+    print(f"  {'task.item':22} {'rep':>3}  {'model':44}  run")
+    for task, key, model, rep, run in sorted(owed, key=lambda x: (x[0], x[1], str(x[2]), x[3] or 0)):
+        print(f"  {task + '.' + key:22} {rep if rep is not None else '?':>3}  "
+              f"{str(model)[:44]:44}  {run}")
 
 
 def main() -> int:
@@ -335,6 +560,19 @@ def main() -> int:
 
     runs = sorted(p.parent for p in root.rglob("meta.json")) if args.all else [root]
     scored = [s for s in (score_run(r) for r in runs) if s is not None]
+
+    # A directory whose meta.json will not parse is skipped rather than scored 0 (see
+    # score_run). Say so out loud: silently dropping a run from a reliability table is
+    # how a campaign ends up reporting pass^2 over one rep.
+    unreadable = [r for r in runs
+                  if (r / "meta.json").exists() and _read_json(r / "meta.json", None) is None]
+    if unreadable:
+        print(f"\n⚠ {len(unreadable)} run dir(s) have an unparseable meta.json and were "
+              f"SKIPPED, not scored 0:")
+        for r in unreadable:
+            print(f"    {_rel(r)}")
+        print("  If the campaign is still running these are simply half-written; re-run "
+              "score.py when it finishes.")
 
     for s in scored:
         print(f"\n{s['model']}  [{s['task']}]  {s['total']}/{s['max']}   "
@@ -348,7 +586,15 @@ def main() -> int:
 
     if args.all:
         (root / "scores.json").write_text(json.dumps(scored, indent=2))
-        print(f"\nwrote {root / 'scores.json'}  ({len(scored)} runs)")
+        rows = rollup(scored)
+        model_rows = rollup_by_model(rows)
+        (root / "scores_rollup.json").write_text(json.dumps(
+            {"by_model_task": rows, "by_model": model_rows}, indent=2))
+        print_rollup(rows, model_rows)
+        print_judgement_worklist(scored)
+        print(f"\n\nwrote {root / 'scores.json'}  ({len(scored)} runs)")
+        print(f"wrote {root / 'scores_rollup.json'}  "
+              f"({len(rows)} model×task pairs, {len(model_rows)} models)")
     return 0
 
 

@@ -1,5 +1,13 @@
 {
   "_comment": "Manual scores for the two items score.py cannot compute. t1.d_judged max 4 (does the answer name the median-vs-tail flaw?), t4.prose_judged max 3 (is the report worth reading?). Empty/errored runs score 0.",
+  "_schema": {
+    "keys": "Each '<task>.<item>' table accepts two key forms, tried in this order.",
+    "1_per_rep": "'<model>#rep<n>' — the judgement for ONE rep, e.g. 'gpt-oss:20b#rep2'. Prefer this: each rep produces a different answer.txt, so each rep needs its own judgement.",
+    "2_legacy_model_only": "'<model>' — applies to every rep of that model. Predates reps; kept so judgements made before the per-rep change are not lost. score.py honours it but records a note that the score was inherited rather than judged for that rep.",
+    "missing": "A model/rep in neither form is reported as judged_pending and appears in the --all worklist. It is NOT scored 0: unjudged and zero are different, and the roll-up marks any total with a pending item as PROVISIONAL.",
+    "note": "Entries below are all legacy model-only keys, made 2026-08-08 against rep 1. They have deliberately not been rewritten as per-rep keys, because doing so would assert they describe rep 2 as well, which nobody has checked.",
+    "judged_2026_08_11": "The 26 per-rep entries added 2026-08-11 were scored against the existing model-level judgements as calibration: t1 4 = names the median-vs-tail flaw crisply, 3 = right idea without naming a percentile, 2 = a genuine but different flaw (latency vs throughput), 0 = empty or errored. t4 3 = concrete and specific, 2.5 = strong with a defect, 2 = readable but thin, 1 = stub, 0 = no report.md written."
+  },
   "t1.d_judged": {
     "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest": 4,
     "gemma4:12b-mlx": 4,
@@ -10,7 +18,20 @@
     "gamy316/aileen1.0:latest": 1,
     "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest": 0,
     "lfm2.5:8b": 0,
-    "ornith:9b": 0
+    "ornith:9b": 0,
+    "gemma4:e4b-mlx#rep1": 4,
+    "gemma4:e4b-mlx-bf16#rep1": 3,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M#rep1": 3,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M#rep2": 2,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M#rep1": 4,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M#rep2": 4,
+    "qwen-heretic:latest#rep1": 4,
+    "qwen-heretic:latest#rep2": 2,
+    "qwen2.5:7b#rep1": 3,
+    "qwen3.5:4b-mlx#rep1": 4,
+    "qwen3.5:4b-mlx#rep2": 0,
+    "qwen3.5:9b-mlx#rep1": 0,
+    "qwen3.5:9b-mlx#rep2": 4
   },
   "t4.prose_judged": {
     "gpt-oss:20b": 3,
@@ -22,6 +43,19 @@
     "gamy316/aileen1.0:latest": 0,
     "lfm2.5:8b": 0,
     "gemma4:26b-mlx": 0,
-    "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest": 0
+    "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest": 0,
+    "gemma4:e4b-mlx#rep1": 2,
+    "gemma4:e4b-mlx-bf16#rep1": 0,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M#rep1": 3,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M#rep2": 2.5,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M#rep1": 3,
+    "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M#rep2": 3,
+    "qwen-heretic:latest#rep1": 3,
+    "qwen-heretic:latest#rep2": 3,
+    "qwen2.5:7b#rep1": 1,
+    "qwen3.5:4b-mlx#rep1": 2,
+    "qwen3.5:4b-mlx#rep2": 2.5,
+    "qwen3.5:9b-mlx#rep1": 3,
+    "qwen3.5:9b-mlx#rep2": 0
   }
 }

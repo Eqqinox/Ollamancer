@@ -83,6 +83,7 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_source_diversity` | one page per outlet in search results, rather than several from the same domain |
 | `test_duplicate_items` | flag the same event reported twice in one answer, without firing on a shared live-blog URL |
 | `test_ram_units` | the `/model` header shows memory in binary GiB (a "24 GB" Mac reports 25.77 decimal GB and used to print **26**), while `usage_tier` keeps the decimal value so it still matches the model sizes Ollama reports. Pins both halves, and the 16.3 GB boundary model that the two divisors disagree about |
+| `test_score_rollup` | the benchmark scorer's `pass^k` roll-up: the headline is the **minimum** across reps and never the mean, a differing rep count is visibly marked in the table, per-rep hand judgements win over the legacy model-level key, and an unjudged item is reported `judged_pending` rather than silently scored 0. Also that a half-written run directory is skipped rather than crashing or scoring 0, since `results/` is written concurrently by a running campaign |
 
 ## Structural guardrails
 
