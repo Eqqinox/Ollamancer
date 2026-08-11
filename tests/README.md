@@ -82,6 +82,7 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_repetition_breaker` | stop nudging once an answer has collapsed into repeating itself |
 | `test_source_diversity` | one page per outlet in search results, rather than several from the same domain |
 | `test_duplicate_items` | flag the same event reported twice in one answer, without firing on a shared live-blog URL |
+| `test_ram_units` | the `/model` header shows memory in binary GiB (a "24 GB" Mac reports 25.77 decimal GB and used to print **26**), while `usage_tier` keeps the decimal value so it still matches the model sizes Ollama reports. Pins both halves, and the 16.3 GB boundary model that the two divisors disagree about |
 
 ## Structural guardrails
 

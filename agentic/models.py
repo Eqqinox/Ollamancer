@@ -184,12 +184,36 @@ def get_num_ctx(model: str) -> int:
 
 
 def get_system_ram_gb() -> float:
-    """Total unified memory of the machine (GB), via sysctl (macOS)."""
+    """Total unified memory of the machine in **decimal GB**, via sysctl (macOS).
+
+    Decimal on purpose: this figure is only ever divided by a model size, and model sizes
+    come from Ollama in decimal GB too (`m.size / 1_000_000_000`). Both sides must use the
+    same divisor or `usage_tier` silently mis-tiers every model — switching this one to
+    binary alone would inflate every ratio by 7.4% and push models into a heavier band.
+
+    For the number shown to the user, use `get_system_ram_display_gb()` instead.
+    """
     try:
         out = subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True, timeout=3)
         return int(out.stdout.strip()) / 1_000_000_000
     except Exception:
         return 16.0  # default estimate if unavailable
+
+
+def get_system_ram_display_gb() -> float:
+    """Total memory as the machine is actually *sold and reported*, i.e. binary GiB.
+
+    `hw.memsize` on a 24 GB Mac is 25_769_803_776 bytes: 24.0 GiB, but 25.77 decimal GB,
+    which the label rounded to a wrong-looking "26 GB RAM". Memory is conventionally
+    binary (Apple, System Information and every spec sheet say 24 GB) while *file* sizes
+    are decimal, which is why the model-size column keeps its own divisor and agrees with
+    `ollama list`. The two units are not an inconsistency, they are the convention.
+    """
+    try:
+        out = subprocess.run(["sysctl", "-n", "hw.memsize"], capture_output=True, text=True, timeout=3)
+        return int(out.stdout.strip()) / 1024 ** 3
+    except Exception:
+        return 16.0
 
 
 def get_chip_name() -> str:
@@ -438,9 +462,9 @@ def pick_model_interactive(current_model: str) -> str | None:
         ui.console.print(f"[yellow]{t('no_models')}[/yellow]")
         return None
 
-    ram_gb = get_system_ram_gb()
+    ram_gb = get_system_ram_gb()                    # decimal, for the size ratio below
     chip   = get_chip_name()
-    ui.console.print(f"[dim]{t('machine_detected', chip=chip, ram=ram_gb)}[/dim]")
+    ui.console.print(f"[dim]{t('machine_detected', chip=chip, ram=get_system_ram_display_gb())}[/dim]")
 
     cache = _load_category_cache()
     cache_dirty = False
