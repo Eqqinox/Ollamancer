@@ -29,7 +29,7 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 The local-agent space is crowded (Aider, OpenCode, Goose…). Ollamancer is different where it counts: it takes seriously the three things the [2026 local-first market analysis](https://nimbalyst.com/blog/best-local-first-ai-coding-tools-2026/) says the field is *missing*:
 
 -  **Deterministic honesty controls**: it flags numbers/dates/URLs/names in an answer that appear in *no* tool result this turn, and nudges when the model claims "fixed/verified" without a real edit or verification. Hallucination is treated as a first-class, *deterministic* problem, not left to the model.
--  **Small-model reliability engineering**: retries + fallback for four confirmed Ollama tool-call failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across ~15 models.
+-  **Small-model reliability engineering**: retries + fallback for four confirmed Ollama tool-call failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across 18 models, scored `pass^k` (the *minimum* across repeats, so a model counts only what it delivers every time).
 -  **Privacy by design**: fully offline, plus a `--private` ephemeral mode that writes *nothing* to disk.
 
 Plus local RAG, vision, dual-model planning, skills, and a genuinely nice terminal UX.
@@ -66,7 +66,7 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 
 ```bash
 # 1. Pull a tool-capable model (any small Qwen/Gemma build works), and the RAG embedder:
-ollama pull gemma4:12b-mlx    # best all-round in our benchmark; any tool-capable model works
+ollama pull gemma4:12b-mlx    # the default; any tool-capable model works. See RESULTS.md §10
 ollama pull bge-m3            # embedding model, needed for local RAG
 
 # 2. Install it (not on PyPI yet, so straight from the repo):
@@ -186,7 +186,7 @@ See [`tests/README.md`](./tests/README.md) for what each one covers.
 - [`capabilities.md`](./capabilities.md): exhaustive capability list.
 - [`DESIGN.md`](./DESIGN.md): design rationale & engineering history (including what *didn't* work).
 - [`benchmarks/README.md`](./benchmarks/README.md): the model-reliability fixtures and findings.
-- [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md): ten local models ranked on reasoning, search, agentic work and report writing, with the protocol and its limits in [`PLAN.md`](./benchmarks/model_ranking/PLAN.md).
+- [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md): 18 local models ranked on reasoning, search, agentic work and report writing, with the protocol and its limits in [`PLAN.md`](./benchmarks/model_ranking/PLAN.md). §10 is the current `pass^2` ranking; the earlier sections are single-run and are kept only to show how much a second run moved them.
 
 All documentation is in English. The **agent's interface is bilingual EN/FR** (`/lang`), that's a feature, not an oversight.
 

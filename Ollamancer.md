@@ -117,8 +117,10 @@ Ollamancer treats the failure modes of small local models as first-class problem
   verification (a clean lint is not proof of correctness).
 - **Ollama plumbing bugs:** retry+fallback for three confirmed upstream bugs (#16988, #16383/#16810,
   and mid-JSON truncation), plus a configurable **model failover**.
-- **A documented benchmark campaign** (`benchmarks/`, `DESIGN.md`) comparing ~15 models
+- **A documented benchmark campaign** (`benchmarks/`, `DESIGN.md`) comparing 18 models
   on factual, reasoning, code, and multi-step tasks, with a repeat-action playthrough harness.
+  Scored `pass^k`: the **minimum** across repeats, so a model counts only what it delivers
+  every time. Adding a second repeat cost eight of ten models points, one of them 17.
 
 ---
 

@@ -1,0 +1,27 @@
+
+─────────────────────────────   Agentic_1A v3.0   ──────────────────────────────
+  Project : 
+/Users/mounirmeknaci/Desktop/Local_AI/Agentic_1A_oss/benchmarks/model_ranking/re
+sults/qwen3.5_4b/t0_rep1/project
+  Model   : qwen3.5:4b
+  Tools   : 34 tools  (type /tools)
+  Audit   : None
+  Help    : type /help
+  Press Esc (or Ctrl+C) while it's working to stop the model and return to the 
+prompt.
+  🔒 PRIVATE SESSION — nothing from this conversation is written to disk (no 
+session file, no input history, no audit log, no snapshots/checkpoints, no 
+memory). It vanishes when you quit. Note: actual file edits the agent makes to 
+your project are real — use /undo before quitting to revert them.
+────────────────────────────────────────────────────────────────────────────────
+
+🔁 The model's tool call didn't match Ollama's expected XML format — retrying 
+the same request (1/2).
+🔁 The model's tool call didn't match Ollama's expected XML format — retrying 
+the same request (2/2).
+⚠️ The model repeatedly produced a malformed tool-call (XML syntax error on line
+6: element <function> closed by </parameter>). This is a known model-side drift 
+on some Qwen 3.5/3.6 builds (tracked upstream as ollama/ollama#14834, #16383, 
+#16810) — the model occasionally deviates from its own documented tool-call 
+format and Ollama rejects it instead of tolerating the drift. Nothing was lost —
+try again, or switch models with /model.

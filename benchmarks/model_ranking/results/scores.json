@@ -3,6 +3,8 @@
     "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t1_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -17,16 +19,44 @@
       "(b) 255 found",
       "(c) 6 found",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 4 (manual, see judged.json)"
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 268.4,
     "n_tool_calls": 0
   },
   {
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t1_rep2",
+    "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 166.5,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t2_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -47,9 +77,36 @@
     "n_tool_calls": 4
   },
   {
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t2_rep2",
+    "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 1,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: apnews.com, cnn.com, reuters.com"
+    ],
+    "judged_pending": [],
+    "seconds": 137.6,
+    "n_tool_calls": 3
+  },
+  {
     "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t3_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 9,
     "max": 25,
     "parts": {
@@ -67,9 +124,33 @@
     "n_tool_calls": 3
   },
   {
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t3_rep2",
+    "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 3
+  },
+  {
     "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t4_rep1",
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -82,16 +163,44 @@
     },
     "notes": [
       "report.md was never written",
-      "prose_judged = 0 (manual, see judged.json)"
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.1,
     "n_tool_calls": 3
   },
   {
+    "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t4_rep2",
+    "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "446 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 300.1,
+    "n_tool_calls": 7
+  },
+  {
     "run": "results/gamy316_aileen1.0_latest/t1_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 13.8,
     "max": 25,
     "parts": {
@@ -106,16 +215,44 @@
       "(b) 255 found",
       "(c) wrong / missing",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 1 (manual, see judged.json)"
+      "d_judged = 1 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 64.9,
     "n_tool_calls": 0
   },
   {
+    "run": "results/gamy316_aileen1.0_latest/t1_rep2",
+    "model": "gamy316/aileen1.0:latest",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 1.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 0.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 1,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 0/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 1 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 39.6,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/gamy316_aileen1.0_latest/t2_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 14.3,
     "max": 25,
     "parts": {
@@ -137,9 +274,37 @@
     "n_tool_calls": 1
   },
   {
+    "run": "results/gamy316_aileen1.0_latest/t2_rep2",
+    "model": "gamy316/aileen1.0:latest",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 20.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
+    ],
+    "judged_pending": [],
+    "seconds": 58.7,
+    "n_tool_calls": 1
+  },
+  {
     "run": "results/gamy316_aileen1.0_latest/t3_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 6,
     "max": 25,
     "parts": {
@@ -158,9 +323,34 @@
     "n_tool_calls": 0
   },
   {
+    "run": "results/gamy316_aileen1.0_latest/t3_rep2",
+    "model": "gamy316/aileen1.0:latest",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 6,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 49.9,
+    "n_tool_calls": 1
+  },
+  {
     "run": "results/gamy316_aileen1.0_latest/t4_rep1",
     "model": "gamy316/aileen1.0:latest",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -173,16 +363,42 @@
     },
     "notes": [
       "report.md was never written",
-      "prose_judged = 0 (manual, see judged.json)"
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 26.8,
     "n_tool_calls": 0
   },
   {
+    "run": "results/gamy316_aileen1.0_latest/t4_rep2",
+    "model": "gamy316/aileen1.0:latest",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "written": 0,
+      "structure": 0,
+      "length": 0,
+      "citations_resolve": 0,
+      "citations_grounded": 0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "report.md was never written",
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 36.1,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/gemma4_12b-mlx/t1_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -197,16 +413,44 @@
       "(b) 255 found",
       "(c) 6 found",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 4 (manual, see judged.json)"
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 94.8,
     "n_tool_calls": 0
   },
   {
+    "run": "results/gemma4_12b-mlx/t1_rep2",
+    "model": "gemma4:12b-mlx",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 261.6,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/gemma4_12b-mlx/t2_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 20.7,
     "max": 25,
     "parts": {
@@ -227,9 +471,36 @@
     "n_tool_calls": 3
   },
   {
+    "run": "results/gemma4_12b-mlx/t2_rep2",
+    "model": "gemma4:12b-mlx",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aljazeera.com, npr.org, theguardian.com"
+    ],
+    "judged_pending": [],
+    "seconds": 113.0,
+    "n_tool_calls": 3
+  },
+  {
     "run": "results/gemma4_12b-mlx/t3_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -246,9 +517,33 @@
     "n_tool_calls": 13
   },
   {
+    "run": "results/gemma4_12b-mlx/t3_rep2",
+    "model": "gemma4:12b-mlx",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 5
+  },
+  {
     "run": "results/gemma4_12b-mlx/t4_rep1",
     "model": "gemma4:12b-mlx",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 24.5,
     "max": 25,
     "parts": {
@@ -263,7 +558,33 @@
       "sections 4/4 present, order ok",
       "389 words",
       "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2.5 (manual, see judged.json)"
+      "prose_judged = 2.5 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 4
+  },
+  {
+    "run": "results/gemma4_12b-mlx/t4_rep2",
+    "model": "gemma4:12b-mlx",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 24.5,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 2.5
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "434 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 2.5 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -273,6 +594,8 @@
     "run": "results/gemma4_26b-mlx/t1_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -287,16 +610,44 @@
       "(b) 255 found",
       "(c) 6 found",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 4 (manual, see judged.json)"
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 115.1,
     "n_tool_calls": 0
   },
   {
+    "run": "results/gemma4_26b-mlx/t1_rep2",
+    "model": "gemma4:26b-mlx",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 230.4,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/gemma4_26b-mlx/t2_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 22.0,
     "max": 25,
     "parts": {
@@ -317,9 +668,36 @@
     "n_tool_calls": 4
   },
   {
+    "run": "results/gemma4_26b-mlx/t2_rep2",
+    "model": "gemma4:26b-mlx",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: bbc.com, sports.yahoo.com, thestreet.com"
+    ],
+    "judged_pending": [],
+    "seconds": 181.8,
+    "n_tool_calls": 7
+  },
+  {
     "run": "results/gemma4_26b-mlx/t3_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 9,
     "max": 25,
     "parts": {
@@ -337,9 +715,33 @@
     "n_tool_calls": 4
   },
   {
+    "run": "results/gemma4_26b-mlx/t3_rep2",
+    "model": "gemma4:26b-mlx",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 4
+  },
+  {
     "run": "results/gemma4_26b-mlx/t4_rep1",
     "model": "gemma4:26b-mlx",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -352,34 +754,59 @@
     },
     "notes": [
       "report.md was never written",
-      "prose_judged = 0 (manual, see judged.json)"
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 7
   },
   {
+    "run": "results/gemma4_26b-mlx/t4_rep2",
+    "model": "gemma4:26b-mlx",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "written": 0,
+      "structure": 0,
+      "length": 0,
+      "citations_resolve": 0,
+      "citations_grounded": 0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "report.md was never written",
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 2
+  },
+  {
     "run": "results/gemma4_e4b-mlx/t1_rep1",
     "model": "gemma4:e4b-mlx",
     "task": "t1",
-    "total": 21.0,
+    "rep": 1,
+    "status": "ok",
+    "total": 25,
     "max": 25,
     "parts": {
       "a_schedule": 9.0,
       "b_backoff": 6,
       "c_count": 6,
-      "d_judged": 0,
+      "d_judged": 4,
       "tool_penalty": 0
     },
     "notes": [
       "(a) 4/4 pairings correct",
       "(b) 255 found",
       "(c) 6 found",
-      "(d) JUDGED \u2014 max 4, fill in by hand"
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual, judged for this rep)"
     ],
-    "judged_pending": [
-      "d_judged"
-    ],
+    "judged_pending": [],
     "seconds": 50.1,
     "n_tool_calls": 0
   },
@@ -387,6 +814,8 @@
     "run": "results/gemma4_e4b-mlx/t2_rep1",
     "model": "gemma4:e4b-mlx",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 20.0,
     "max": 25,
     "parts": {
@@ -411,6 +840,8 @@
     "run": "results/gemma4_e4b-mlx/t2_rep2",
     "model": "gemma4:e4b-mlx",
     "task": "t2",
+    "rep": 2,
+    "status": "ok",
     "total": 18.7,
     "max": 25,
     "parts": {
@@ -435,6 +866,8 @@
     "run": "results/gemma4_e4b-mlx/t2_rep3",
     "model": "gemma4:e4b-mlx",
     "task": "t2",
+    "rep": 3,
+    "status": "ok",
     "total": 20.0,
     "max": 25,
     "parts": {
@@ -459,6 +892,8 @@
     "run": "results/gemma4_e4b-mlx/t2_rep4",
     "model": "gemma4:e4b-mlx",
     "task": "t2",
+    "rep": 4,
+    "status": "ok",
     "total": 20.0,
     "max": 25,
     "parts": {
@@ -483,6 +918,8 @@
     "run": "results/gemma4_e4b-mlx/t3_rep1",
     "model": "gemma4:e4b-mlx",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 12,
     "max": 25,
     "parts": {
@@ -503,7 +940,9 @@
     "run": "results/gemma4_e4b-mlx/t4_rep1",
     "model": "gemma4:e4b-mlx",
     "task": "t4",
-    "total": 22.0,
+    "rep": 1,
+    "status": "ok",
+    "total": 24.0,
     "max": 25,
     "parts": {
       "written": 4,
@@ -511,16 +950,15 @@
       "length": 3,
       "citations_resolve": 6.0,
       "citations_grounded": 4.0,
-      "prose_judged": 0
+      "prose_judged": 2
     },
     "notes": [
       "sections 4/4 present, order ok",
       "411 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand"
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 2 (manual, judged for this rep)"
     ],
-    "judged_pending": [
-      "prose_judged"
-    ],
+    "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 10
   },
@@ -528,24 +966,25 @@
     "run": "results/gemma4_e4b-mlx-bf16/t1_rep1",
     "model": "gemma4:e4b-mlx-bf16",
     "task": "t1",
-    "total": 15.0,
+    "rep": 1,
+    "status": "ok",
+    "total": 18.0,
     "max": 25,
     "parts": {
       "a_schedule": 9.0,
       "b_backoff": 6,
       "c_count": 0,
-      "d_judged": 0,
+      "d_judged": 3,
       "tool_penalty": 0
     },
     "notes": [
       "(a) 4/4 pairings correct",
       "(b) 255 found",
       "(c) wrong / missing",
-      "(d) JUDGED \u2014 max 4, fill in by hand"
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 3 (manual, judged for this rep)"
     ],
-    "judged_pending": [
-      "d_judged"
-    ],
+    "judged_pending": [],
     "seconds": 55.9,
     "n_tool_calls": 0
   },
@@ -553,6 +992,8 @@
     "run": "results/gemma4_e4b-mlx-bf16/t2_rep1",
     "model": "gemma4:e4b-mlx-bf16",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -576,6 +1017,8 @@
     "run": "results/gemma4_e4b-mlx-bf16/t3_rep1",
     "model": "gemma4:e4b-mlx-bf16",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 6,
     "max": 25,
     "parts": {
@@ -597,6 +1040,8 @@
     "run": "results/gemma4_e4b-mlx-bf16/t4_rep1",
     "model": "gemma4:e4b-mlx-bf16",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -608,11 +1053,10 @@
       "prose_judged": 0
     },
     "notes": [
-      "report.md was never written"
+      "report.md was never written",
+      "prose_judged = 0 (manual, judged for this rep)"
     ],
-    "judged_pending": [
-      "prose_judged"
-    ],
+    "judged_pending": [],
     "seconds": 292.8,
     "n_tool_calls": 1
   },
@@ -620,6 +1064,8 @@
     "run": "results/gpt-oss_20b/t1_rep1",
     "model": "gpt-oss:20b",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 19.0,
     "max": 25,
     "parts": {
@@ -634,16 +1080,44 @@
       "(b) 255 found",
       "(c) wrong / missing",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 4 (manual, see judged.json)"
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 60.2,
     "n_tool_calls": 0
   },
   {
+    "run": "results/gpt-oss_20b/t1_rep2",
+    "model": "gpt-oss:20b",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 58.3,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/gpt-oss_20b/t2_rep1",
     "model": "gpt-oss:20b",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 19.0,
     "max": 25,
     "parts": {
@@ -664,9 +1138,37 @@
     "n_tool_calls": 4
   },
   {
+    "run": "results/gpt-oss_20b/t2_rep2",
+    "model": "gpt-oss:20b",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 20.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: bbc.co.uk, finance.yahoo.com, npr.org"
+    ],
+    "judged_pending": [],
+    "seconds": 93.7,
+    "n_tool_calls": 3
+  },
+  {
     "run": "results/gpt-oss_20b/t3_rep1",
     "model": "gpt-oss:20b",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 12,
     "max": 25,
     "parts": {
@@ -684,9 +1186,32 @@
     "n_tool_calls": 25
   },
   {
+    "run": "results/gpt-oss_20b/t3_rep2",
+    "model": "gpt-oss:20b",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 15,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 6,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL"
+    ],
+    "judged_pending": [],
+    "seconds": 177.9,
+    "n_tool_calls": 18
+  },
+  {
     "run": "results/gpt-oss_20b/t4_rep1",
     "model": "gpt-oss:20b",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -701,16 +1226,270 @@
       "sections 4/4 present, order ok",
       "381 words",
       "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, see judged.json)"
+      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 111.8,
     "n_tool_calls": 3
   },
   {
-    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t1_rep1",
-    "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
+    "run": "results/gpt-oss_20b/t4_rep2",
+    "model": "gpt-oss:20b",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "456 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 255.6,
+    "n_tool_calls": 15
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t1_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
+    "total": 18.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 0,
+      "d_judged": 3,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 3 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 50.9,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t1_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 17.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 0,
+      "d_judged": 2,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 2 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 43.5,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t2_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t2",
+    "rep": 1,
+    "status": "ok",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 2,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "called get_datetime, but only after searching",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: bbc.com, cnbc.com, reuters.com"
+    ],
+    "judged_pending": [],
+    "seconds": 113.7,
+    "n_tool_calls": 9
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t2_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 17.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 1,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: foxbusiness.com, sciencedaily.com, theguardian.com"
+    ],
+    "judged_pending": [],
+    "seconds": 146.8,
+    "n_tool_calls": 21
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t3_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t3",
+    "rep": 1,
+    "status": "ok",
+    "total": 12,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 6,
+      "bug_attack": 6,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 5
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t3_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 15,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 6,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 19
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t4_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t4",
+    "rep": 1,
+    "status": "ok",
+    "total": 23.8,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 4.8,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "430 words",
+      "inline citations with no source entry: [5]",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 196.0,
+    "n_tool_calls": 8
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t4_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 24.5,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 2.5
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "363 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 2.5 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 249.7,
+    "n_tool_calls": 19
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t1_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t1",
+    "rep": 1,
+    "status": "ok",
+    "total": 16.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 0.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 0/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 154.5,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t1_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -725,16 +1504,217 @@
       "(b) 255 found",
       "(c) 6 found",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 4 (manual, see judged.json)"
+      "d_judged = 4 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 68.6,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t2_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t2",
+    "rep": 1,
+    "status": "ok",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 1,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: cnbc.com, euronews.com, keyt.com"
+    ],
+    "judged_pending": [],
+    "seconds": 111.9,
+    "n_tool_calls": 11
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t2_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aol.com, apnews.com, cnbc.com"
+    ],
+    "judged_pending": [],
+    "seconds": 137.1,
+    "n_tool_calls": 13
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t3_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t3",
+    "rep": 1,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 6
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t3_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 6,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 4
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t4_rep1",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t4",
+    "rep": 1,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "586 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 19
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t4_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "575 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 11
+  },
+  {
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t1_rep1",
+    "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
+    "task": "t1",
+    "rep": 1,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 102.8,
     "n_tool_calls": 0
   },
   {
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t1_rep2",
+    "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 115.4,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t2_rep1",
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 17.0,
     "max": 25,
     "parts": {
@@ -756,9 +1736,37 @@
     "n_tool_calls": 11
   },
   {
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t2_rep2",
+    "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 16.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 2,
+      "deep_read": 1,
+      "story_count": 3.3,
+      "diversity": 2.7,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "called get_datetime, but only after searching",
+      "2 stories, 2 source URLs",
+      "2 distinct domains: investopedia.com, reuters.com"
+    ],
+    "judged_pending": [],
+    "seconds": 160.7,
+    "n_tool_calls": 11
+  },
+  {
     "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t3_rep1",
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 6,
     "max": 25,
     "parts": {
@@ -777,9 +1785,33 @@
     "n_tool_calls": 1
   },
   {
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t3_rep2",
+    "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 2
+  },
+  {
     "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t4_rep1",
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 22.8,
     "max": 25,
     "parts": {
@@ -795,16 +1827,45 @@
       "680 words",
       "inline citations with no source entry: [6, 7, 8]",
       "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, see judged.json)"
+      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 7
   },
   {
+    "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t4_rep2",
+    "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 19.0,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "469 words",
+      "no inline citations at all",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 8
+  },
+  {
     "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t1_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -819,7 +1880,33 @@
       "(b) wrong / missing",
       "(c) wrong / missing",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual, see judged.json)"
+      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t1_rep2",
+    "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 0.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 0/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -829,6 +1916,8 @@
     "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t2_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -849,9 +1938,36 @@
     "n_tool_calls": 4
   },
   {
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t2_rep2",
+    "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aljazeera.com, bbc.co.uk, reuters.com"
+    ],
+    "judged_pending": [],
+    "seconds": 140.3,
+    "n_tool_calls": 2
+  },
+  {
     "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t3_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 15,
     "max": 25,
     "parts": {
@@ -868,9 +1984,33 @@
     "n_tool_calls": 10
   },
   {
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t3_rep2",
+    "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 91.2,
+    "n_tool_calls": 4
+  },
+  {
     "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t4_rep1",
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 23.9,
     "max": 25,
     "parts": {
@@ -885,16 +2025,44 @@
       "sections 4/4 present, order ok",
       "334 words",
       "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2 (manual, see judged.json)"
+      "prose_judged = 2 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 4
   },
   {
+    "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t4_rep2",
+    "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 23.3,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 2.3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 2
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "274 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 2 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 2
+  },
+  {
     "run": "results/lfm2.5_8b/t1_rep1",
     "model": "lfm2.5:8b",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -909,16 +2077,44 @@
       "(b) wrong / missing",
       "(c) wrong / missing",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual, see judged.json)"
+      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 157.0,
     "n_tool_calls": 0
   },
   {
+    "run": "results/lfm2.5_8b/t1_rep2",
+    "model": "lfm2.5:8b",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 0.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 0/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 149.7,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/lfm2.5_8b/t2_rep1",
     "model": "lfm2.5:8b",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 17.0,
     "max": 25,
     "parts": {
@@ -940,9 +2136,38 @@
     "n_tool_calls": 2
   },
   {
+    "run": "results/lfm2.5_8b/t2_rep2",
+    "model": "lfm2.5:8b",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 0,
+      "story_count": 0.0,
+      "diversity": 0.0,
+      "grounded": 0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "0 stories, 0 source URLs",
+      "0 distinct domains: none",
+      "no source URLs at all"
+    ],
+    "judged_pending": [],
+    "seconds": 13.7,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/lfm2.5_8b/t3_rep1",
     "model": "lfm2.5:8b",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 9,
     "max": 25,
     "parts": {
@@ -960,9 +2185,33 @@
     "n_tool_calls": 11
   },
   {
+    "run": "results/lfm2.5_8b/t3_rep2",
+    "model": "lfm2.5:8b",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 198.7,
+    "n_tool_calls": 42
+  },
+  {
     "run": "results/lfm2.5_8b/t4_rep1",
     "model": "lfm2.5:8b",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -975,16 +2224,42 @@
     },
     "notes": [
       "report.md was never written",
-      "prose_judged = 0 (manual, see judged.json)"
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 159.0,
     "n_tool_calls": 1
   },
   {
+    "run": "results/lfm2.5_8b/t4_rep2",
+    "model": "lfm2.5:8b",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "written": 0,
+      "structure": 0,
+      "length": 0,
+      "citations_resolve": 0,
+      "citations_grounded": 0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "report.md was never written",
+      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 67.2,
+    "n_tool_calls": 1
+  },
+  {
     "run": "results/ornith_9b/t1_rep1",
     "model": "ornith:9b",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 0,
     "max": 25,
     "parts": {
@@ -999,16 +2274,44 @@
       "(b) wrong / missing",
       "(c) wrong / missing",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual, see judged.json)"
+      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 0
   },
   {
+    "run": "results/ornith_9b/t1_rep2",
+    "model": "ornith:9b",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 15.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 0,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 96.4,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/ornith_9b/t2_rep1",
     "model": "ornith:9b",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 19.0,
     "max": 25,
     "parts": {
@@ -1030,9 +2333,37 @@
     "n_tool_calls": 5
   },
   {
+    "run": "results/ornith_9b/t2_rep2",
+    "model": "ornith:9b",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 14.3,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 1,
+      "story_count": 5,
+      "diversity": 1.3,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "1 distinct domains: bbc.com"
+    ],
+    "judged_pending": [],
+    "seconds": 180.3,
+    "n_tool_calls": 9
+  },
+  {
     "run": "results/ornith_9b/t3_rep1",
     "model": "ornith:9b",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 6,
     "max": 25,
     "parts": {
@@ -1051,9 +2382,33 @@
     "n_tool_calls": 1
   },
   {
+    "run": "results/ornith_9b/t3_rep2",
+    "model": "ornith:9b",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 5
+  },
+  {
     "run": "results/ornith_9b/t4_rep1",
     "model": "ornith:9b",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -1068,34 +2423,260 @@
       "sections 4/4 present, order ok",
       "778 words",
       "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, see judged.json)"
+      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 8
   },
   {
+    "run": "results/ornith_9b/t4_rep2",
+    "model": "ornith:9b",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 19.0,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "493 words",
+      "no inline citations at all",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 10
+  },
+  {
+    "run": "results/qwen-heretic_latest/t1_rep1",
+    "model": "qwen-heretic:latest",
+    "task": "t1",
+    "rep": 1,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 6,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 94.2,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/qwen-heretic_latest/t1_rep2",
+    "model": "qwen-heretic:latest",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 17.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 0,
+      "c_count": 6,
+      "d_judged": 2,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) 6 found",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 2 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 166.9,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/qwen-heretic_latest/t2_rep1",
+    "model": "qwen-heretic:latest",
+    "task": "t2",
+    "rep": 1,
+    "status": "ok",
+    "total": 20.7,
+    "max": 25,
+    "parts": {
+      "datetime_first": 2,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 2.7,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "called get_datetime, but only after searching",
+      "3 stories, 3 source URLs",
+      "2 distinct domains: aljazeera.com, bbc.co.uk"
+    ],
+    "judged_pending": [],
+    "seconds": 254.3,
+    "n_tool_calls": 7
+  },
+  {
+    "run": "results/qwen-heretic_latest/t2_rep2",
+    "model": "qwen-heretic:latest",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 20.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
+    ],
+    "judged_pending": [],
+    "seconds": 101.7,
+    "n_tool_calls": 3
+  },
+  {
+    "run": "results/qwen-heretic_latest/t3_rep1",
+    "model": "qwen-heretic:latest",
+    "task": "t3",
+    "rep": 1,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "verify": 10,
+      "bug_alive": 6,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: PASS \u2014   RESULT: PASS"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 19
+  },
+  {
+    "run": "results/qwen-heretic_latest/t3_rep2",
+    "model": "qwen-heretic:latest",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "verify": 10,
+      "bug_alive": 6,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: PASS \u2014   RESULT: PASS"
+    ],
+    "judged_pending": [],
+    "seconds": 300.1,
+    "n_tool_calls": 18
+  },
+  {
+    "run": "results/qwen-heretic_latest/t4_rep1",
+    "model": "qwen-heretic:latest",
+    "task": "t4",
+    "rep": 1,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "547 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 4
+  },
+  {
+    "run": "results/qwen-heretic_latest/t4_rep2",
+    "model": "qwen-heretic:latest",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "560 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 4
+  },
+  {
     "run": "results/qwen2.5_7b/t1_rep1",
     "model": "qwen2.5:7b",
     "task": "t1",
-    "total": 9.0,
+    "rep": 1,
+    "status": "ok",
+    "total": 12.0,
     "max": 25,
     "parts": {
       "a_schedule": 9.0,
       "b_backoff": 0,
       "c_count": 0,
-      "d_judged": 0,
+      "d_judged": 3,
       "tool_penalty": 0
     },
     "notes": [
       "(a) 4/4 pairings correct",
       "(b) wrong / missing",
       "(c) wrong / missing",
-      "(d) JUDGED \u2014 max 4, fill in by hand"
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 3 (manual, judged for this rep)"
     ],
-    "judged_pending": [
-      "d_judged"
-    ],
+    "judged_pending": [],
     "seconds": 67.4,
     "n_tool_calls": 0
   },
@@ -1103,6 +2684,8 @@
     "run": "results/qwen2.5_7b/t2_rep1",
     "model": "qwen2.5:7b",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 18.7,
     "max": 25,
     "parts": {
@@ -1127,6 +2710,8 @@
     "run": "results/qwen2.5_7b/t3_rep1",
     "model": "qwen2.5:7b",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 6,
     "max": 25,
     "parts": {
@@ -1148,7 +2733,9 @@
     "run": "results/qwen2.5_7b/t4_rep1",
     "model": "qwen2.5:7b",
     "task": "t4",
-    "total": 20.2,
+    "rep": 1,
+    "status": "ok",
+    "total": 21.2,
     "max": 25,
     "parts": {
       "written": 4,
@@ -1156,16 +2743,15 @@
       "length": 1.2,
       "citations_resolve": 6.0,
       "citations_grounded": 4.0,
-      "prose_judged": 0
+      "prose_judged": 1
     },
     "notes": [
       "sections 4/4 present, order ok",
       "135 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand"
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 1 (manual, judged for this rep)"
     ],
-    "judged_pending": [
-      "prose_judged"
-    ],
+    "judged_pending": [],
     "seconds": 111.3,
     "n_tool_calls": 5
   },
@@ -1173,6 +2759,8 @@
     "run": "results/qwen3.5_4b/t1_rep1",
     "model": "qwen3.5:4b",
     "task": "t1",
+    "rep": 1,
+    "status": "ok",
     "total": 12.0,
     "max": 25,
     "parts": {
@@ -1187,16 +2775,44 @@
       "(b) wrong / missing",
       "(c) wrong / missing",
       "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 3 (manual, see judged.json)"
+      "d_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 80.5,
     "n_tool_calls": 0
   },
   {
+    "run": "results/qwen3.5_4b/t1_rep2",
+    "model": "qwen3.5:4b",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 18.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 6,
+      "c_count": 0,
+      "d_judged": 3,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) 255 found",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 57.6,
+    "n_tool_calls": 0
+  },
+  {
     "run": "results/qwen3.5_4b/t2_rep1",
     "model": "qwen3.5:4b",
     "task": "t2",
+    "rep": 1,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -1217,9 +2833,37 @@
     "n_tool_calls": 6
   },
   {
+    "run": "results/qwen3.5_4b/t2_rep2",
+    "model": "qwen3.5:4b",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 2,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "called get_datetime, but only after searching",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: bbc.co.uk, firstpost.com, science.nasa.gov"
+    ],
+    "judged_pending": [],
+    "seconds": 72.8,
+    "n_tool_calls": 6
+  },
+  {
     "run": "results/qwen3.5_4b/t3_rep1",
     "model": "qwen3.5:4b",
     "task": "t3",
+    "rep": 1,
+    "status": "ok",
     "total": 9,
     "max": 25,
     "parts": {
@@ -1237,9 +2881,33 @@
     "n_tool_calls": 13
   },
   {
+    "run": "results/qwen3.5_4b/t3_rep2",
+    "model": "qwen3.5:4b",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 6,
+      "bug_attack": 0,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 2 unfixed: KeyError on attack/attack_range"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 12
+  },
+  {
     "run": "results/qwen3.5_4b/t4_rep1",
     "model": "qwen3.5:4b",
     "task": "t4",
+    "rep": 1,
+    "status": "ok",
     "total": 23.9,
     "max": 25,
     "parts": {
@@ -1255,10 +2923,440 @@
       "437 words",
       "inline citations with no source entry: [10]",
       "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2.5 (manual, see judged.json)"
+      "prose_judged = 2.5 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
     ],
     "judged_pending": [],
     "seconds": 300.0,
     "n_tool_calls": 11
+  },
+  {
+    "run": "results/qwen3.5_4b/t4_rep2",
+    "model": "qwen3.5:4b",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 24.5,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 2.5
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "449 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 2.5 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+    ],
+    "judged_pending": [],
+    "seconds": 126.6,
+    "n_tool_calls": 5
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t1_rep1",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t1",
+    "rep": 1,
+    "status": "ok",
+    "total": 13.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 67.6,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t1_rep2",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 0.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 0/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 0 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t2_rep1",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t2",
+    "rep": 1,
+    "status": "ok",
+    "total": 4.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 0.0,
+      "diversity": 0.0,
+      "grounded": 0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "0 stories, 0 source URLs",
+      "0 distinct domains: none",
+      "no source URLs at all"
+    ],
+    "judged_pending": [],
+    "seconds": 192.6,
+    "n_tool_calls": 11
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t2_rep2",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 19.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 2,
+      "deep_read": 1,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "called get_datetime, but only after searching",
+      "3 stories, 3 source URLs",
+      "3 distinct domains: apnews.com, orlandosentinel.com, sciencedaily.com"
+    ],
+    "judged_pending": [],
+    "seconds": 81.6,
+    "n_tool_calls": 10
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t3_rep1",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t3",
+    "rep": 1,
+    "status": "ok",
+    "total": 6,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 139.6,
+    "n_tool_calls": 15
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t3_rep2",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 9,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 10
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t4_rep1",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t4",
+    "rep": 1,
+    "status": "ok",
+    "total": 18.0,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 0,
+      "citations_grounded": 4.0,
+      "prose_judged": 2
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "566 words",
+      "no inline citations at all",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 2 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 298.5,
+    "n_tool_calls": 14
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t4_rep2",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 20.8,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 2.2,
+      "length": 3,
+      "citations_resolve": 5.1,
+      "citations_grounded": 4.0,
+      "prose_judged": 2.5
+    },
+    "notes": [
+      "sections 3/4 present, order WRONG",
+      "660 words",
+      "inline citations with no source entry: [7]",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 2.5 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 98.6,
+    "n_tool_calls": 5
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t1_rep1",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t1",
+    "rep": 1,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 0.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 0,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 0/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 0 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t1_rep2",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t1",
+    "rep": 2,
+    "status": "ok",
+    "total": 13.0,
+    "max": 25,
+    "parts": {
+      "a_schedule": 9.0,
+      "b_backoff": 0,
+      "c_count": 0,
+      "d_judged": 4,
+      "tool_penalty": 0
+    },
+    "notes": [
+      "(a) 4/4 pairings correct",
+      "(b) wrong / missing",
+      "(c) wrong / missing",
+      "(d) JUDGED \u2014 max 4, fill in by hand",
+      "d_judged = 4 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 70.5,
+    "n_tool_calls": 0
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t2_rep1",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t2",
+    "rep": 1,
+    "status": "ok",
+    "total": 6.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 2,
+      "deep_read": 4,
+      "story_count": 0.0,
+      "diversity": 0.0,
+      "grounded": 0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "called get_datetime, but only after searching",
+      "0 stories, 0 source URLs",
+      "0 distinct domains: none",
+      "no source URLs at all"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 26
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t2_rep2",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 4.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 0,
+      "deep_read": 4,
+      "story_count": 0.0,
+      "diversity": 0.0,
+      "grounded": 0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
+      "0 stories, 0 source URLs",
+      "0 distinct domains: none",
+      "no source URLs at all"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 16
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t3_rep1",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t3",
+    "rep": 1,
+    "status": "ok",
+    "total": 6,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 0,
+      "bug_attack": 6,
+      "executed": 0
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL",
+      "bug 1 unfixed: KeyError 'alive'",
+      "never executed the program \u2014 the fix was asserted, not verified"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 2
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t3_rep2",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t3",
+    "rep": 2,
+    "status": "ok",
+    "total": 15,
+    "max": 25,
+    "parts": {
+      "verify": 0,
+      "bug_alive": 6,
+      "bug_attack": 6,
+      "executed": 3
+    },
+    "notes": [
+      "play_verify: FAIL \u2014   RESULT: FAIL"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 10
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t4_rep1",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t4",
+    "rep": 1,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "written": 4,
+      "structure": 5,
+      "length": 3,
+      "citations_resolve": 6.0,
+      "citations_grounded": 4.0,
+      "prose_judged": 3
+    },
+    "notes": [
+      "sections 4/4 present, order ok",
+      "490 words",
+      "prose quality: JUDGED \u2014 max 3, fill in by hand",
+      "prose_judged = 3 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 300.0,
+    "n_tool_calls": 11
+  },
+  {
+    "run": "results/qwen3.5_9b-mlx/t4_rep2",
+    "model": "qwen3.5:9b-mlx",
+    "task": "t4",
+    "rep": 2,
+    "status": "ok",
+    "total": 0,
+    "max": 25,
+    "parts": {
+      "written": 0,
+      "structure": 0,
+      "length": 0,
+      "citations_resolve": 0,
+      "citations_grounded": 0,
+      "prose_judged": 0
+    },
+    "notes": [
+      "report.md was never written",
+      "prose_judged = 0 (manual, judged for this rep)"
+    ],
+    "judged_pending": [],
+    "seconds": 298.6,
+    "n_tool_calls": 7
   }
 ]

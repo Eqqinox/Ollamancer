@@ -1,0 +1,21 @@
+{
+  "model": "qwen3.5:4b",
+  "task": "t0",
+  "status": "ok",
+  "seconds": 35.3,
+  "timeout": 300,
+  "tool_calls": [],
+  "n_tool_calls": 0,
+  "peak_rss_mb": 118.8,
+  "swap_before_mb": 4898.44,
+  "swap_after_mb": 4898.44,
+  "swap_delta_mb": 0.0,
+  "params": {
+    "SAFE_NUM_CTX": 16384,
+    "GEN_TEMPERATURE": 0.3,
+    "GEN_TOP_P": 0.9,
+    "GEN_SEED": 42,
+    "GEN_NUM_PREDICT": 2048,
+    "STREAM_FINAL": "off"
+  }
+}

@@ -250,10 +250,14 @@ history for adversarial testing over code review: the code had been read many ti
 
 ## 5. The benchmark campaign
 
-~15 models were run through four identical tasks on the same machine (Apple Silicon M4 Pro,
+18 models were run through four identical tasks on the same machine (Apple Silicon M4 Pro,
 24 GB): **factual research** (with real external fact-checking of each individual claim, not a
 re-read of the answer), **pure reasoning** (a closed-form puzzle), **code** (a real bug,
 verified objectively by `pytest` rather than by the model's say-so), and a **multi-step task**.
+
+Since 11 August 2026 the reported score is `pass^k`: **the minimum across repeats**, so a model
+counts only what it delivers *every* time. That single change is the campaign's most useful
+result, and it is written up below.
 
 ### What the campaign found
 
@@ -262,11 +266,35 @@ task. Differentiation came entirely from **tool-calling reliability and factual 
 pressure**. A model that codes and reasons as well as any other can still fabricate an entire
 answer on an open-ended research task.
 
-**Size did not buy quality on this hardware.** In the final ranking, the smallest model tested
-(`qwen3.5:4b`, 4B) produced the most reliable output, while the two largest (26B and 30B)
-gained no net advantage, one failed outright. Separately, **5 of 8 Heavy/Very-heavy models
-produced zero output in 8 minutes** on a simple tool-free question: not a quality problem, a
-pure latency problem that makes them unusable interactively regardless of competence.
+**Size did not buy quality on this hardware.** In the final ranking the two largest dense
+models (26B) gained no net advantage; one failed outright. Separately, **5 of 8 Heavy/Very-heavy
+models produced zero output in 8 minutes** on a simple tool-free question: not a quality
+problem, a pure latency problem that makes them unusable interactively regardless of competence.
+
+The `pass^2` re-run sharpened this into a mechanism rather than a slogan. The two 26B models
+**beat every other model on pure reasoning** — a perfect 25/25 against the eventual winner's
+17 — and still finished 31 points behind, because they paged **16–19 GB** and never completed
+the report task. The winner, a 9B at 7.0 GB, never touched swap once across 8 runs. On 24 GB,
+*memory headroom dominates capability*: it is not that the big models are worse, it is that
+they cannot finish. A 35B mixture-of-experts that activates ~3B per token was the control —
+it fits, swaps nothing, times out less often than the winner does, and still loses, which
+locates the remaining gap in agentic tool use rather than in memory.
+
+**One run per model is not a measurement, and this campaign proved it on itself.** Every model
+was given a second rep on 11 August. Eight of the ten re-run models scored *lower*, the worst
+by 17 points, and the ranking changed at the top: the leader had passed the agentic task on one
+run and failed it on the next (`[25, 9]`), while the new leader passed it twice (`[25, 25]`).
+The old leader still has the highest *mean* in the file. It is simply not the most dependable
+model, and for an agent that runs unattended, dependability is the property that matters.
+Two models held their score exactly across both reps — `gpt-oss:20b` and `gemma4:26b-mlx` —
+which is a stronger result than their rank suggests.
+
+One honest caveat on that story, found while auditing the write-up rather than while running
+it: for the ten models carried over from the first campaign, the two reps were executed three
+days and eight commits apart, so their rep-to-rep deltas mix model variance with harness drift.
+The five models added last ran both reps on a single build and are unaffected. The lesson
+survives — a second run moved almost everything — but the *size* of each individual drop is not
+a clean measurement, and the ranking says so.
 
 **Fact-checking changed the conclusions in both directions.** Two claims initially judged
 fabricated turned out to be **correct** on verification, and the assessment was corrected.

@@ -1,0 +1,8 @@
+{
+  "SAFE_NUM_CTX": 16384,
+  "GEN_TEMPERATURE": 0.3,
+  "GEN_TOP_P": 0.9,
+  "GEN_SEED": 42,
+  "GEN_NUM_PREDICT": 2048,
+  "STREAM_FINAL": "off"
+}

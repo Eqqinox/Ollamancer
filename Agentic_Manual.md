@@ -885,24 +885,41 @@ You → /model qwen3.5:4b
 Any tool-capable Ollama model works. Scores below are out of 100 from the ranking campaign in
 [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md): four tasks
 (reasoning, web search, agentic work, report writing) on a 24 GB Apple Silicon machine.
+**Scores are `pass^2`: the minimum across two runs**, so a model counts only what it delivers
+every time. All totals are final: the hand-judged items were completed on 2026-08-11. A score marked ²
+was never given a second run and is not comparable to the rest. ³ `qwen-heretic:latest` is a
+**local tag**, not something you can `ollama pull`: it is
+`Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-Q4_K_M.gguf` imported from a local file.
+Every other model listed here can be pulled by the name shown.
 
 | Model | Size | Score | Notes |
 |---|---|---|---|
-| `gemma4:12b-mlx` | 7.7 GB | **95** | **Recommended default.** The only model of thirteen that actually fixed the broken program rather than claiming to |
-| `gpt-oss:20b` | 13 GB | 75 | Best planner and best report prose; natively supported by Ollama; 0 timeouts, 0 swap |
-| `gemma4:e4b-mlx` | 8.8 GB | 75 | Matches a 13 GB model at 8.8 GB. Skips `get_datetime` unless told to, so say "check the date first" for date-bounded questions |
-| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 71 | Strong reasoning and reports, but timed out on 3 of 4 tasks |
-| `qwen3.5:4b` | 3.4 GB | 70 | The shipped fallback: perfect web-search score at the smallest size, zero swap |
-| `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 64 | Uncensored (Heretic); perfect search score |
-| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 18 GB | 59 | Uncensored + vision, but ~8.7 GB of swap on a 24 GB machine |
+| `qwen-heretic` ³ (Qwen3.5-9B) | 7.0 GB | **87** | Best agentic *and* best report score tested: fixed *and* verified the broken program on both runs. Zero swap |
+| `gemma4:12b-mlx` | 7.7 GB | **79** | **Recommended default.** Second-highest average, and the strongest reasoner, but it fixed the broken program on only one of two runs |
+| `gpt-oss:20b` | 13 GB | 75 | Best planner and best report prose; natively supported by Ollama; 0 timeouts, 0 swap, and the *same score on both runs* |
+| `gemma4:e4b-mlx` ² | 8.8 GB | 80 | Matches a 13 GB model at 8.8 GB. Skips `get_datetime` unless told to, so say "check the date first" for date-bounded questions |
+| `qwen3.5:4b` | 3.4 GB | 67 | The shipped fallback: strong web search at the smallest size, zero swap |
+| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 66 | Strong reasoning, but timed out on 4 of 8 runs |
+| `hf.co/HauhauCS/Qwen3.6-35B-A3B…:IQ2_M` | 12.6 GB | 70 | A 35B MoE that actually fits: zero swap, and it timed out less often than the top-scoring model |
+| `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 57 | Uncensored (Heretic); perfect search score |
+| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 18 GB | 56 | Uncensored + vision, and perfect reasoning, but ~16 GB of swap on a 24 GB machine |
+
+> **Do not use the nvfp4 MLX builds.** `qwen3.5:9b-mlx` scored **10** and `qwen3.5:4b-mlx`
+> scored **28**, against 87 and 67 for the same base models in Q4. Neither swaps; the 9B one
+> simply fails to finish, timing out on 6 of 8 runs. Suspected runtime issue (both require
+> Ollama 0.19.0), not yet isolated.
 
 > Note: **Buy memory headroom before precision.** `gemma4:e4b-mlx` (4-bit, 8.8 GB) beat its
 > own unquantised twin `gemma4:e4b-mlx-bf16` (16 GB) by 29 points. The extra 7.2 GB bought
 > swap, not quality: 2.7x slower search for an identical result, and no report at all.
 >
-> Note: **On 24 GB, models above ~13 GB are a poor trade.** `gemma4:26b-mlx` pushed **13.2 GB into
-> swap** and still scored below a 7.7 GB model. A 27B+ model at q8 may not load at all, Ollama
-> refused one outright with *"requires 26.6 GiB but only 17.3 GiB are available"*.
+> Note: **On 24 GB, dense models above ~13 GB are a poor trade.** `gemma4:26b-mlx` pushed
+> **18.9 GB into swap** across 8 runs and still scored below a 7.0 GB model. A 27B+ model at q8
+> may not load at all, Ollama refused one outright with *"requires 26.6 GiB but only 17.3 GiB
+> are available"*. The 26B models are not stupid — they score a **perfect 25/25 on reasoning**,
+> beating every smaller model — they just page so heavily that they never finish the longer
+> tasks. A **mixture-of-experts is the exception**: `Qwen3.6-35B-A3B` activates ~3B parameters
+> per token, so at 12.6 GB it fits, swaps nothing, and times out less than the top-ranked model.
 
 > Note: Models that do not support tool calling are not compatible, and `/model` blocks selecting
 > them. Models "uncensored" via classic abliteration (`huihui_ai/*`) showed repeated factual

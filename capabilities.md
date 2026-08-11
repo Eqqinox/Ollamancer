@@ -370,31 +370,76 @@ Since v2.9.15, `DEFAULT_MODEL` in the code is no longer the only source of the s
 What the agent can actually do depends on the model driving it. Two benchmark campaigns
 are reported below. They are kept apart on purpose: they measured different things, so
 their results are not comparable and no combined ranking is offered. Only four models
-appear in both.
+appear in both. The ranking in §11.1 is `pass^2`; the reliability campaign in §11.2 is
+single-run and its numbers have not been re-measured under `pass^k`.
 
-### 11.1 Current ranking (2026-08-08, extended 2026-08-10, four tasks)
+### 11.1 Current ranking (2026-08-11, `pass^2`, four tasks)
 
 **Battery:** reasoning with no tools, web search, an agentic fix-and-verify task, and
-report writing. 100 points, 25 per task, one run per model per task, five-minute cap per
-run, identical generation parameters throughout. Full protocol, per-run evidence and
-stated limits in
-[`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md).
+report writing. 100 points, 25 per task, five-minute cap per run, identical generation
+parameters throughout. **Two runs per model per task, scored `pass^k`: the reported number
+is the *minimum* across reps**, so a model counts only what it produces every time. Full
+protocol, per-run evidence and stated limits in
+[`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md) §10.
 
-| Model | Size | Reasoning | Search | Agentic | Report | Total | Note |
+| Model | Size | Reasoning | Search | Agentic | Report | pass^2 | Note |
 |---|---|---|---|---|---|---|---|
-| `gemma4:12b-mlx` | 7.7 GB | 25 | 20.7 | 25 | 24.5 | **95.2** | Current default. The only model of thirteen that actually fixed the broken program |
-| `gpt-oss:20b` | 13 GB | 19 | 19 | 12 | 25 | **75.0** | Current architect model. Best planner and best report prose, 0 timeouts, 0 swap |
-| `gemma4:e4b-mlx` | 8.8 GB | 21 | 20 | 12 | 22 | **75.0** | Added 2026-08-10. Matches a 13 GB model at 8.8 GB, but never calls `get_datetime` unprompted (0 of 4 runs) |
-| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 25 | 17 | 6 | 22.8 | **70.8** | Strong reasoning, but timed out on 3 of 4 tasks |
-| `qwen3.5:4b` | 3.4 GB | 12 | 25 | 9 | 23.9 | **69.9** | Shipped fallback. Perfect search score at the smallest size, zero swap |
-| `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 0 | 25 | 15 | 23.9 | **63.9** | Best uncensored option. Timed out 3 of 4 |
-| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 17 GB | 25 | 25 | 9 | 0 | **59.0** | Uncensored + vision, but 8.7 GB of swap and never finished the report |
-| `gemma4:26b-mlx` | 17 GB | 25 | 22 | 9 | 0 | **56.0** | Pushed **13.2 GB into swap** on a 24 GB machine, for a score below a 7.7 GB model |
-| `qwen2.5:7b` | 4.7 GB | 9 | 18.7 | 6 | 20.2 | **53.9** | Added 2026-08-10. Fastest model scoring above 34 (397 s), but no standout task and no `thinking` capability |
-| `ornith:9b` | 5.6 GB | 0 | 19 | 6 | 25 | **50.0** | Best report prose, but timed out 3 of 4 |
-| `gemma4:e4b-mlx-bf16` | 16 GB | 15 | 25 | 6 | 0 | **46.0** | Added and removed 2026-08-10. Full-precision twin of `gemma4:e4b-mlx`, and 29 points worse. See below |
-| `gamy316/aileen1.0` | 4.9 GB | 13.8 | 14.3 | 6 | 0 | **34.1** | Fastest overall (189 s), weakest answers, made zero tool calls on the agentic task |
-| `lfm2.5:8b` | 5.2 GB | 0 | 17 | 9 | 0 | **26.0** | Never wrote the report file |
+| `qwen-heretic` ³ (Qwen3.5-9B) | 7.0 GB | 17 | 20 | 25 | 25 | **87.0** | Added 2026-08-11. Best agentic *and* best report score tested, both perfect on both reps. 0 swap across 8 runs |
+| `gemma4:e4b-mlx` ² | 8.8 GB | 25 | 18.7 | 12 | 24 | **79.7** | Matches a 13 GB model at 8.8 GB, but never calls `get_datetime` unprompted (0 of 4 runs). Single-run: not a real 2nd place |
+| `gemma4:12b-mlx` | 7.7 GB | 25 | 20.7 | 9 | 24.5 | **79.2** | Current default. Second-highest mean (89.3), but passed the agentic task only once of two |
+| `gpt-oss:20b` | 13 GB | 19 | 19 | 12 | 25 | **75.0** | Current architect model. Best planner. **Identical score on both reps**, 0 timeouts, 0 swap: the most repeatable model here |
+| `hf.co/HauhauCS/Qwen3.6-35B-A3B…:IQ2_M` | 12.6 GB | 17 | 17 | 12 | 23.8 | **69.8** | Added 2026-08-11. 35B MoE (~3B active): fits in RAM, 0 swap, and timed out less than the winner (2 of 8 vs 4 of 8) |
+| `hf.co/HauhauCS/Qwen3.6-35B-A3B…:IQ3_M` | 16.3 GB | 16 | 22 | 6 | 25 | **69.0** | Added 2026-08-11. **Higher mean than IQ2_M (76.5 vs 74.7) but lower pass^2** — better on a good run, less dependable, and it swaps |
+| `qwen3.5:4b` | 3.4 GB | 12 | 22 | 9 | 23.9 | **66.9** | Shipped fallback. Strong search at the smallest size, zero swap |
+| `hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M` | 5.6 GB | 25 | 16 | 6 | 19 | **66.0** | Strong reasoning, but timed out on 4 of 8 runs |
+| `qwen2.5:7b` ² | 4.7 GB | 12 | 18.7 | 6 | 21.2 | **57.9** | No standout task, no `thinking` capability |
+| `jikepjikep_16HEX/gemma-4-12b-nightshift-heretic…` | 7.4 GB | 0 | 25 | 9 | 23.3 | **57.3** | Best uncensored option. Timed out 5 of 8 |
+| `Agen/gemma-4-26B-A4B-it-uncensored-heretic` | 17 GB | 25 | 22 | 9 | 0 | **56.0** | Uncensored + vision. Perfect reasoning, but **+16.2 GB of swap** and never finished the report |
+| `gemma4:26b-mlx` | 17 GB | 25 | 22 | 9 | 0 | **56.0** | Perfect reasoning, **+18.9 GB into swap** on a 24 GB machine, for a score below a 7.0 GB model |
+| `gemma4:e4b-mlx-bf16` ² | 16 GB | 18 | 25 | 6 | 0 | **49.0** | Removed 2026-08-10. Full-precision twin of `gemma4:e4b-mlx`, and 31 points worse. See below |
+| `ornith:9b` | 5.6 GB | 0 | 14.3 | 6 | 19 | **39.3** | Removed 2026-08-11. Timed out 5 of 8 |
+| `qwen3.5:4b-mlx` | 4.0 GB | 0 | 4 | 6 | 18 | **28.0** | Added 2026-08-11. nvfp4 twin of `qwen3.5:4b`, and 39 points worse. See §11.1.1 |
+| `gamy316/aileen1.0` | 4.9 GB | 1 | 14.3 | 6 | 0 | **21.3** | Removed 2026-08-11. Fastest overall, weakest answers, zero tool calls on the agentic task |
+| `qwen3.5:9b-mlx` | 8.9 GB | 0 | 4 | 6 | 0 | **10.0** | Added 2026-08-11. nvfp4 twin of `qwen-heretic`, and 77 points worse. Timed out 6 of 8 runs |
+| `lfm2.5:8b` | 5.2 GB | 0 | 0 | 9 | 0 | **9.0** | Removed 2026-08-11. Never wrote the report file |
+
+**All totals are final** — the 26 outstanding hand judgements were completed on 2026-08-11, so
+no row is provisional. ² **Not `pass^2`**, never given a second rep: `qwen2.5:7b` and
+`gemma4:e4b-mlx-bf16` are single runs throughout, and `gemma4:e4b-mlx` is single-run except on
+search, where it has four. Not comparable to the `pass^2` rows, so rank 2 is not a real second
+place.
+³ **`qwen-heretic:latest` is a local Ollama tag, not a pullable name.** The build is
+`Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-Q4_K_M.gguf`, imported from a local file;
+`ollama show --modelfile` resolves only to a blob hash with no upstream repository. Every other
+model in this table can be pulled by the name shown — the top-ranked one cannot.
+
+> **Caveat on ranks 1–3.** The ten models carried over from the earlier campaign had their
+> two reps run on *different builds of the harness* (8 August vs 10–11 August, eight commits
+> apart, including a new tool and a change to three generation defaults). The five added on
+> 11 August ran both reps on one build. So `qwen-heretic`'s score is sound, but its margin over
+> `gemma4:12b-mlx` mixes model variance with harness drift. See RESULTS.md §10.6.
+>
+> **The top two were checked before being trusted.** While the judged items were outstanding
+> the gap was 2.8 points, inside the margin those items could move, so it was published as
+> provisional. Completing them *widened* it to 7.8. **The default model has still not been
+> changed:** one campaign on one machine is not grounds to re-point the docs, and
+> `gemma4:12b-mlx` is the stronger reasoner (25 vs 17).
+
+#### 11.1.1 The nvfp4 MLX builds
+
+Two of the models added on 2026-08-11 are nvfp4 MLX re-quantisations of models already in the
+table, and both collapse:
+
+| Base model | Q4 build | nvfp4 build |
+|---|---|---|
+| Qwen3.5-9B | `qwen-heretic` **87.0** | `qwen3.5:9b-mlx` **10.0** |
+| Qwen3.5-4B | `qwen3.5:4b` **66.9** | `qwen3.5:4b-mlx` **28.0** |
+
+Neither nvfp4 build touched swap, so this is **not** the memory story of §11.1's 26B rows.
+`qwen3.5:9b-mlx` timed out on 6 of 8 runs — it does not finish. Both declare `requires 0.19.0`.
+Treat this as a **suspected runtime problem, not a verdict on the weights**: it has not been
+isolated to a root cause, and until it is, the honest claim is that these builds do not work
+in this harness on this machine.
 
 Four findings that generalise beyond the ranking:
 
@@ -414,8 +459,10 @@ Four findings that generalise beyond the ranking:
   failure is invisible to every check except `datetime_first`. For date-bounded questions
   prefer `qwen3.5:4b`, or say "check the date first", which works.
 
-Read the limits section of `RESULTS.md` before treating any of this as settled: one run
-per model per task separates 95 from 26, not 4th place from 5th.
+Read the limits section of `RESULTS.md` before treating any of this as settled. Two runs
+per model per task is enough to separate 87 from 9; it is not enough to separate 1st from
+3rd, especially since the ten models carried over from the earlier campaign had their two
+runs executed on different builds of the harness.
 
 ### 11.2 Earlier code-focused campaign (2026-08-02, archival)
 

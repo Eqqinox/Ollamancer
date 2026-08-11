@@ -1,9 +1,19 @@
 # Ollamancer: Local Model Ranking
 
-**Machine:** MacBook, Apple Silicon, 24 GB unified memory · **Date:** 8 August 2026
+**Machine:** MacBook, Apple Silicon, 24 GB unified memory · **Date:** 8 August 2026, extended 10 and 11 August
 **Harness:** Ollamancer OSS, 34 native tools, MCP disabled, `--private` mode
 **Parameters (identical for every model):** temp 0.35 · top_p 0.95 · top_k 40 · **repeat_penalty 1.15** · num_ctx 32768 · num_predict 4096
-**Scale:** 100 points = 4 tasks x 25 · 1 run per model per task · 5-minute hard cap per run
+**Scale:** 100 points = 4 tasks x 25 · 5-minute hard cap per run
+
+> ### Read [section 10](#10-pass2-the-authoritative-ranking-11-august-2026) first
+>
+> **Sections 1–9 are `pass^1`: one run per model per task.** On 11 August every model in the
+> ranking was re-run for a second rep and scored under `pass^k`, the minimum across reps. Eight
+> of the ten re-run models scored *lower*, one by 17 points, and the ranking changed at the top.
+>
+> Those sections are kept unedited because they are what a single run actually said, and the
+> gap between them and section 10 is the most useful result in this file. **But they overstate
+> every model in them.** Where the two disagree, section 10 is correct.
 
 ---
 
@@ -28,6 +38,9 @@
 
 > Three models were added on 10 August and are **not** in the table above, which is left as
 > it ran. See [section 9](#9-additions-10-august-2026) for the combined ranking.
+>
+> **This table is `pass^1` and is superseded.** Under `pass^2`, `gemma4:12b-mlx` falls to 79.2
+> and second place. See [section 10](#10-pass2-the-authoritative-ranking-11-august-2026).
 
 ### Reliability, the column that decides daily use
 
@@ -239,12 +252,20 @@ Max tool rounds      45                    (from 25, which truncated a model mid
 **Kept:** `bge-m3`, the RAG embedder rather than a chat model, and `translategemma:27b`, which
 has no tool support and is therefore out of this ranking, but which works for translation.
 
+**Also removed, 11 August:** `gamy316/aileen1.0`, `lfm2.5:8b` and `ornith:9b`. All three scored
+in the bottom five under `pass^2` (21.3, 9.0 and 39.3). They were temporarily re-pulled that day
+purely to give them a second rep, then deleted again — their run directories and scores remain,
+so they stay in the ranking without occupying 15.7 GB.
+
 ---
 
 ## 8. How Much to Trust This
 
 - **One run per model per task.** Enough to separate 95 from 26. **Not** enough to separate
   4th from 5th. Treat gaps under about 6 points as ties.
+  **Superseded on 11 August:** this caution turned out to be understated. A second rep moved
+  eight of ten models, the largest by 17 points — more than the 6-point tie band suggested was
+  possible. See [section 10](#10-pass2-the-authoritative-ranking-11-august-2026).
 - **The 5-minute cap shapes the results.** 19 of 40 runs hit it. A model scoring 0 on the
   report might well have finished given 15 minutes, but that is not a workflow anyone wants.
 - **This benchmark was wrong twice before it was right.** A `repeat_penalty` of 1.1
@@ -339,3 +360,207 @@ Grounding itself was flawless: **7.0/7.0 across all four reruns, zero fabricated
 
 > **Practical guidance.** For date-bounded questions, either use `qwen3.5:4b` (25/25 on
 > search, 3.4 GB) or tell `gemma4:e4b-mlx` to check the date explicitly, which it then does.
+
+---
+
+## 10. `pass^2`: the authoritative ranking (11 August 2026)
+
+Five models were added and, more importantly, **every model in the ranking was given a second
+rep**. The reported score is now the **minimum across reps** (`pass^k`, PLAN.md §1.3): a model
+scores only what it can produce *every* time. Same harness, same pinned parameters, same cap.
+
+| # | Model | Size | Reas. | Search | Agentic | Report | **pass^2** | mean | was pass^1 |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | **qwen-heretic** ⁴ (Qwen3.5-9B) | 7.0 GB | 17.0 | 20.0 | **25** | **25** | **87.0** | 91.3 | *new* |
+| 2 | gemma4:e4b-mlx ² | 8.8 GB | **25** | 18.7 | 12 | 24.0 | 79.7 | 80.7 | 75.0 ³ |
+| 3 | **gemma4:12b-mlx** | 7.7 GB | **25** | 20.7 | 9 | 24.5 | **79.2** | 89.3 | 95.2 (−16.0) |
+| 4 | **gpt-oss:20b** | 13 GB | 19.0 | 19.0 | 12 | **25** | **75.0** | 80.0 | 75.0 (=) |
+| 5 | Qwen3.6-35B-A3B **IQ2_M** | 12.6 GB | 17.0 | 17.0 | 12 | 23.8 | 69.8 | 74.7 | *new* |
+| 6 | Qwen3.6-35B-A3B **IQ3_M** | 16.3 GB | 16.0 | 22.0 | 6 | **25** | 69.0 | 76.5 | *new* |
+| 7 | qwen3.5:4b | 3.4 GB | 12.0 | 22.0 | 9 | 23.9 | 66.9 | 71.7 | 69.9 (−3.0) |
+| 8 | Ornith-1.0-9B-GGUF | 5.6 GB | **25** | 16.0 | 6 | 19.0 | 66.0 | 69.9 | 70.8 (−4.8) |
+| 9 | qwen2.5:7b ² | 4.7 GB | 12.0 | 18.7 | 6 | 21.2 | 57.9 | 57.9 | 53.9 ³ |
+| 10 | gemma-4-12b-nightshift-heretic | 7.4 GB | 0 | **25** | 9 | 23.3 | 57.3 | 60.6 | 63.9 (−6.6) |
+| 11 | Agen/gemma-4-26B-heretic | 17 GB | **25** | 22.0 | 9 | 0 | 56.0 | 68.5 | 59.0 (−3.0) |
+| 12 | gemma4:26b-mlx | 17 GB | **25** | 22.0 | 9 | 0 | 56.0 | 57.5 | 56.0 (=) |
+| 13 | gemma4:e4b-mlx-bf16 ² | 16 GB | 18.0 | **25** | 6 | 0 | 49.0 | 49.0 | 46.0 ³ |
+| 14 | ornith:9b | 5.6 GB | 0 | 14.3 | 6 | 19.0 | 39.3 | 53.6 | 50.0 (−10.7) |
+| 15 | **qwen3.5:4b-mlx** | 4.0 GB | 0 | 4.0 | 6 | 18.0 | 28.0 | 44.9 | *new* |
+| 16 | gamy316/aileen1.0 | 4.9 GB | 1.0 | 14.3 | 6 | 0 | 21.3 | 30.5 | 34.1 (−12.8) |
+| 17 | **qwen3.5:9b-mlx** | 8.9 GB | 0 | 4.0 | 6 | 0 | 10.0 | 34.5 | *new* |
+| 18 | lfm2.5:8b | 5.2 GB | 0 | 0 | 9 | 0 | 9.0 | 17.5 | 26.0 (−17.0) |
+
+**Every total above is final.** All 26 outstanding hand judgements were completed on 11 August,
+so no row is provisional and `score.py --all` reports an empty worklist.
+
+² **Not `pass^2`** — never in the rep-2 scope. `qwen2.5:7b` and `gemma4:e4b-mlx-bf16` are single
+observations throughout. `gemma4:e4b-mlx` is single-run on reasoning, agentic and report, but
+has **four** reps on search from the §9.2 seed investigation, so its rep count is inconsistent
+even within its own row. None of the three is comparable to the rest of the table; the scorer
+marks them `◆`. **Rank 2 is therefore not a real second place** — it is a single run sitting in
+a table of minimums.
+³ These three rose (+4.7, +4.0, +3.0) purely because their hand judgements were completed, not
+because they were re-run. Judging can only raise a score; reps can only lower it.
+⁴ **`qwen-heretic:latest` is a local tag, not a pullable name.** The underlying build is
+`Qwen3.5-9B-The-Defiant-Fable-Uncnr-Heretic-NEO-MAX-Q4_K_M.gguf`, imported into Ollama from a
+local file: `ollama show --modelfile` resolves only to a blob hash, with no upstream repository
+recorded. Everything else in this table can be pulled by the name given; **the top-ranked model
+cannot**, so this row is the one result here that a reader cannot independently reproduce
+without sourcing that GGUF themselves. `ollama show` confirms what it is — architecture
+`qwen35`, 9.2B parameters, Q4_K_M, 262144 context — but not where it came from.
+
+### 10.1 A second rep costs almost everyone points
+
+Of the ten models re-run, **eight scored lower and two held exactly**:
+
+| Held | Dropped a little | Dropped hard |
+|---|---|---|
+| `gpt-oss:20b` (=) | `qwen3.5:4b` −3.0 | `lfm2.5:8b` **−17.0** |
+| `gemma4:26b-mlx` (=) | `Agen/gemma-4-26B` −3.0 | `gemma4:12b-mlx` **−16.0** |
+| | `Ornith-1.0-9B` −4.8 | `gamy316/aileen1.0` **−12.8** |
+| | `nightshift-heretic` −6.6 | `ornith:9b` **−10.7** |
+
+The pass^1 table was flattering nearly everyone. `gpt-oss:20b` holding its 75.0 exactly across
+both reps is, in this light, a stronger result than its rank suggests: **it is the most
+repeatable model in the set**, with 0 timeouts and 0 swap across all 8 runs.
+
+### 10.2 The top of the table changed, and why
+
+`gemma4:12b-mlx` lost first place on **one task**:
+
+```
+gemma4:12b-mlx   agentic   [25, 9]    spread 16   ← passed the playthrough once, not twice
+qwen-heretic     agentic   [25, 25]   spread  0   ← passed it both times
+```
+
+`gemma4:12b-mlx` remains the better model on a good day — its mean of 89.3 is second only to
+`qwen-heretic`'s 91.3. It is not the more *dependable* one. That is the entire content of
+`pass^k`, and it is why the metric exists.
+
+> **The ordering was checked before it was trusted.** When the judged items were still
+> outstanding the gap was only 2.8 points, smaller than the 7 points each model could still
+> gain, so the result was published as provisional and the default was left alone. Completing
+> the judgements *widened* the gap to 7.8: `qwen-heretic` gained 5.0 (a perfect 25/25 report on
+> both reps) while `gemma4:12b-mlx`, already fully judged, could not move.
+>
+> **The default model has still not been changed.** One campaign on one machine is not grounds
+> to re-point the documentation, and `gemma4:12b-mlx` is stronger on reasoning (25 vs 17).
+>
+> **And the comparison is confounded.** `gemma4:12b-mlx`'s two reps ran on *different builds of
+> the harness* (see §10.6): rep 1 on 8 August, rep 2 after eight commits including a new tool
+> and a change to three generation defaults. Its `[25, 9]` may be model variance, harness
+> change, or both. `qwen-heretic` ran both reps on one build, so its own score is sound — but
+> **the gap between them is not a clean measurement**, and no default should move on it.
+
+### 10.3 Three controlled quantisation pairs
+
+| Pair | Lower / smaller | Higher / larger | Result |
+|---|---|---|---|
+| Qwen3.5-**9B** | `qwen-heretic` Q4_K_M, 7.0 GB → **87.0** | `qwen3.5:9b-mlx` nvfp4, 8.9 GB → **10.0** | 8.7× gap, same base weights |
+| Qwen3.5-**4B** | `qwen3.5:4b` Q4, 3.4 GB → **66.9** | `qwen3.5:4b-mlx` nvfp4, 4.0 GB → **28.0** | same direction |
+| Qwen3.6-**35B-A3B** | `IQ2_M`, 12.6 GB → **69.8** | `IQ3_M`, 16.3 GB → **69.0** | +3.7 GB buys nothing |
+
+The 9B pair is the cleanest controlled result in this campaign: **identical base model,
+differing only in quantisation and runtime, and an 87.0 against a 10.0.** Neither nvfp4 build
+touched swap, so this is not the memory story of §9.1. `qwen3.5:9b-mlx` timed out on **6 of 8
+runs** — it simply does not finish. `qwen3.5:4b-mlx` timed out only 2 of 8 and still scored
+28.0, so its weakness is genuine, not just slowness.
+
+Both nvfp4 builds declare `requires 0.19.0`. **Treat this as a suspected runtime problem, not
+a verdict on the weights** — it has not been isolated the way `repeat_penalty` was in §6.
+
+The 35B pair repeats §9.1's lesson with the sign flipped, and it is the sharpest illustration
+of `pass^k` in the file: **IQ3_M has the higher mean (76.5 vs 74.7) but the lower pass^2 (69.0
+vs 69.8).** The larger quantisation is better on a good run and less dependable across runs —
+its reasoning spread is 9.0 against IQ2_M's 1.0. It also touched swap where IQ2_M never did.
+On any best-of or average-of metric IQ3_M wins and you buy the extra 3.7 GB; on the metric that
+asks what you get *every* time, it loses.
+
+### 10.4 Size still does not buy quality, but memory headroom explains most of it
+
+| Model | Timeouts | Swap caused | pass^2 |
+|---|---|---|---|
+| `gemma4:26b-mlx` | 4/8 | **+18.9 GB** | 56.0 |
+| `Agen/gemma-4-26B` | 4/8 | **+16.2 GB** | 56.0 |
+| `gemma4:12b-mlx` | 3/8 | +7.9 GB | 79.2 |
+| Qwen3.6-35B-A3B IQ2_M | **2/8** | **0 MB** | 69.8 |
+| `qwen-heretic` | 4/8 | **0 MB** | 87.0 |
+
+The two 26B models **beat every other model on pure reasoning** (25.0, a perfect score, against
+`qwen-heretic`'s 15.0) and still finish 26 points behind, because they page 16–19 GB and never
+complete the report task. Per PLAN.md §7, that is evidence about **this machine**, not about
+those models.
+
+The 35B A3B pair is the control that proves the point: as a mixture-of-experts activating ~3B
+parameters per token, it **fits** — zero swap, and it timed out *less* than the winner did
+(2 of 8 against 4 of 8) — and it still loses to `qwen-heretic` by 17.2 points. The gap there is
+entirely agentic (12 and 6 against 25), not memory.
+
+(Fewest timeouts overall belongs to `gpt-oss:20b`, `gamy316/aileen1.0` and `lfm2.5:8b`, all at
+**0 of 8** — though for the latter two that reflects giving up quickly rather than working fast.)
+
+> **The honest one-line summary.** On 24 GB, `qwen-heretic` is the best *agentic* model tested
+> and the best all-rounder that never swaps. It does **not** out-reason the 26B models, which
+> beat it 25 to 17 on the one task that isolates reasoning — they just cannot finish a job on
+> this hardware.
+
+### 10.5 What changed in the harness
+
+- `score.py` now implements `pass^k`. It was previously documented in PLAN.md but not coded:
+  N reps produced N unlinked rows and nothing compared them. It now emits a `(model, task)`
+  roll-up (`pass_k_total`, `mean_total`, `spread`, `status_all_ok`) and a ranked per-model
+  roll-up, to `results/scores_rollup.json` alongside the unchanged per-run `results/scores.json`.
+- Rows whose rep count differs from the rest of the table are marked `◆` and excluded from
+  comparison by the printed legend.
+- `judged.json` accepts a per-rep key (`<model>#rep<n>`). It was keyed by model alone, so
+  rep 2 silently inherited rep 1's hand score for the two judged items — the two items that
+  could therefore never vary across reps, defeating the point of running them. Legacy
+  model-only keys still resolve and are flagged as inherited in the run notes.
+- A total with an unjudged item is reported `PROVISIONAL`, and `--all` prints a worklist of
+  every `(task, item, model, rep)` still owed, so the debt cannot be quietly forgotten.
+- `rank.sh` now defaults to `--reps 2`.
+
+### 10.6 Additional limits, on top of section 8
+
+- **Two reps is the floor for a `pass^k` claim, not a comfortable margin.** τ-bench uses more.
+  Two reps catch a model that fails half the time; they do not catch one that fails 1 in 5.
+- **The hand judgements are complete.** All 26 were scored on 11 August against the existing
+  2026-08-08 judgements as calibration (rubric recorded in `judged.json` under
+  `_schema.judged_2026_08_11`), so no total is a floor. They remain a *judgement*: two items,
+  7 of the 100 points, rest on a human reading rather than on a deterministic check.
+- **Three models are not `pass^2`** (`gemma4:e4b-mlx`, `qwen2.5:7b`, `gemma4:e4b-mlx-bf16`) and
+  are marked `◆` by the scorer. Do not compare them across the line.
+- **The 5-minute cap binds harder than in section 8.** 48 of 135 scored runs hit it, 36%. For
+  the slowest models the ranking is measuring what fits in five minutes, which is the intended
+  question but is not the same as model quality.
+- **The two reps of the ten older models did not run on the same harness, and this is the
+  most serious limitation on this page.** PLAN.md §1.2 makes "hold the harness constant so
+  failures attribute to the model" a design principle, and for those ten it was not held:
+
+  The ten older survivors ran **rep 1 on 8 August (14:52–17:14)** and **rep 2 on 10–11 August**.
+  The five models added on 11 August ran **both reps on 11 August**, on one build.
+
+  Eight commits landed on `agentic/` in between, including a **new tool** (`repo_map`, so the
+  tool schema in every prompt grew), a change to **three generation defaults** described at the
+  time as "quietly costing tool-call reliability", and two bug fixes. The effect is measurable
+  rather than hypothetical: on `t1`, the zero-tool task where the prompt is just system +
+  schema + question, **every** model whose rep 1 ran on 8 August shows a rep-2 prompt **195 to
+  356 tokens larger**, while models with both reps on 11 August show a delta of 0.
+
+  So for those ten, a rep-1-to-rep-2 difference is *model variance plus harness change*, and the
+  two cannot be separated after the fact. **This directly touches the headline result:**
+  `gemma4:12b-mlx` lost first place on a single task going `[25, 9]`, and those two runs were
+  on different harnesses. The five models added on 11 August are unaffected — both of their
+  reps ran on one build — so `qwen-heretic`'s 87.0 is clean, but the comparison *against*
+  `gemma4:12b-mlx` inherits the problem.
+
+  **This will not be fixed.** The remedy is to re-run rep 1 for those ten on the current build:
+  40 runs, ~2.1 h of model time, ~3 h in practice once the memory interruptions and the re-pull
+  of three since-deleted models are counted. That was judged not worth the machine time, so it
+  is recorded here as a known limitation rather than a pending task. **Treat the ordering of
+  ranks 1–3 as unresolved rather than as measured**, and do not quote the gap between
+  `qwen-heretic` and `gemma4:12b-mlx` as a clean result.
+- **The campaign was interrupted four times by memory exhaustion.** `gemma4:12b-mlx` on the
+  report task spikes **+1.58 GB of swap** and repeatedly killed the driver process; the runs
+  were completed after unloading resident models between attempts. No run in the table was
+  produced under those degraded conditions — `rank.sh` re-runs anything without a `meta.json`.
