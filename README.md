@@ -158,7 +158,7 @@ that way so upgrades do not orphan an existing install.
 
 ## Tests
 
-The agent ships with 34 deterministic tests that run **fully offline**, no Ollama, no
+The agent ships with 36 deterministic tests that run **fully offline**, no Ollama, no
 network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
@@ -214,7 +214,7 @@ agentic/              # the implementation
 launch.sh             # venv setup + launcher
 skills/               # bundled SKILL.md workflows (14)
 benchmarks/           # model-reliability fixtures + playthrough harness
-tests/                # deterministic offline test suite (34 tests)
+tests/                # deterministic offline test suite (36 tests)
 imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)
 ```
 
