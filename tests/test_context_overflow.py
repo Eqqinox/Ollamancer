@@ -52,20 +52,38 @@ def _fake_compact(messages, model, forced=False):
 
 
 try:
-    models.get_num_ctx = lambda model: 4096          # 4096 tokens ≈ 16384 chars
+    # A realistic window: the schemas alone cost ~5,800 tokens, so a fixture smaller than
+    # that cannot express 'content fits but content+schemas does not'.
+    models.get_num_ctx = lambda model: 32768         # 70% ceiling = 22,937 tokens
     loop._compact_now = _fake_compact
     loop.ui.console = _Sink()
 
     # ── 1. Comfortably inside the window: the guard must not fire ────────────
     compacted["n"] = 0
-    assert loop._guard_context_overflow(_msgs(1000), "m") is False
+    assert loop._guard_context_overflow(_msgs(4000), "m") is False
     assert compacted["n"] == 0, "guard compacted a prompt that fits"
 
-    # ── 2. Over the 85% ceiling: it compacts ────────────────────────────────
+    # ── 2. Over the ceiling: it compacts ────────────────────────────────────
     compacted["n"] = 0
-    big = _msgs(20000)                                # ~5000 tokens > 4096
+    big = _msgs(92000)                                # ~23,000 tok + schemas > ceiling
     assert loop._guard_context_overflow(big, "m") is True
     assert compacted["n"] == 1, "guard did not compact an overflowing prompt"
+
+    # ── 2b. The tool schemas count toward the budget ─────────────────────────
+    # The first version of this guard measured only message content and missed by 18% of a
+    # 32K window. A real turn (10 searches, 70 KB of results) sat at 82% once schemas were
+    # included and at 64% without them, so the schema-blind version never fired.
+    assert loop._tool_schema_tokens() > 4000, "the full belt should cost thousands of tokens"
+    from agentic import tools as _tools
+    assert loop._tool_schema_tokens(_tools._read_only_tools()) < loop._tool_schema_tokens(), \
+        "the read-only set must be cheaper than the full belt"
+    compacted["n"] = 0
+    # content alone is under the ceiling; content + schemas is over it
+    under_alone = _msgs(76000)                        # ~19,000 tok: under 22,937 on its own
+    assert loop._estimate_tokens(under_alone) < int(32768 * 0.70), "fixture no longer isolates the effect"
+    assert loop._guard_context_overflow(under_alone, "m") is True, \
+        "content fits but content+schemas does not — the guard must still fire"
+    assert compacted["n"] == 1
 
     # ── 3. The guard is NOT gated on AUTO_COMPACT ───────────────────────────
     # This is the whole point: auto-compaction is a convenience and ships off, but
@@ -74,22 +92,38 @@ try:
     try:
         config.AUTO_COMPACT = "off"
         compacted["n"] = 0
-        assert loop._guard_context_overflow(_msgs(20000), "m") is True, \
+        assert loop._guard_context_overflow(_msgs(92000), "m") is True, \
             "guard must run even with AUTO_COMPACT off"
         assert compacted["n"] == 1
         # …whereas the convenience path stays off, so the two cannot be confused.
-        assert loop._maybe_compact(_msgs(20000), "m") is False
+        assert loop._maybe_compact(_msgs(92000), "m") is False
     finally:
         config.AUTO_COMPACT = _saved
 
-    # ── 4. The boundary is the 85% ceiling, not 100% ─────────────────────────
-    # The estimate excludes the tool schemas, so it understates the real prompt; sending at
-    # 99% of num_ctx would still overflow once ~35 schemas are prepended.
-    compacted["n"] = 0
-    just_under = _msgs(int(4096 * 4 * 0.80) - 40)     # ~80% of the window
-    assert loop._guard_context_overflow(just_under, "m") is False, "fired below the ceiling"
-    just_over = _msgs(int(4096 * 4 * 0.90))           # ~90%
-    assert loop._guard_context_overflow(just_over, "m") is True, "did not fire above the ceiling"
+    # ── 4. Single-turn overflow must still be trimmed ───────────────────────
+    # The reported failure: /clear, then one turn making ten web searches. _compact_now used
+    # to refuse outright ("not enough conversation to compact"), because the turn-count check
+    # guarded step 1 as well as step 2 — even though truncating oversized tool results needs
+    # no turn boundaries at all. The cheap lossless fix was unreachable exactly when it was
+    # the only thing that could help.
+    loop._compact_now = _real_compact_now              # exercise the real implementation
+    single = [{"role": "system", "content": "sys"},
+              {"role": "user", "content": "one question"}]
+    for _ in range(10):
+        single.append({"role": "assistant", "content": ""})
+        single.append({"role": "tool", "content": "y" * 5000})
+    before = sum(len(m["content"]) for m in single)
+    loop._compact_now(single, "m", forced=True)
+    after = sum(len(m["content"]) for m in single)
+    assert after < before, "single-turn compaction saved nothing"
+    kept = [len(m["content"]) for m in single if m["role"] == "tool"]
+    assert kept[-1] == 5000 and kept[-2] == 5000, "the two most recent results must stay verbatim"
+    assert max(kept[:-2]) <= config.COMPACT_TOOL_TRUNC + 80, "older results were not truncated"
+    # …and with nothing worth trimming it still declines rather than pretending to work.
+    tiny = [{"role": "system", "content": "s"}, {"role": "user", "content": "q"},
+            {"role": "tool", "content": "short"}]
+    assert loop._compact_now(tiny, "m", forced=True) == loop.t("compact_too_few")
+    loop._compact_now = _fake_compact
 
     # ── 5. The error signature is recognised, in the exact shape Ollama sends ─
     # e.error is a dict whose "message" carries the Jinja traceback; the handler lowercases

@@ -472,10 +472,23 @@ def _compact_now(messages: list, model: str, forced: bool = False) -> str:
     Structure-safe: cuts only at user-turn boundaries. Keeps the system prompt + the last
     COMPACT_KEEP_TURNS turns verbatim."""
     bounds = _turn_boundaries(messages)
-    if len(bounds) <= config.COMPACT_KEEP_TURNS:
-        return t("compact_too_few")
-    keep_from = bounds[-config.COMPACT_KEEP_TURNS]
     before_est = _estimate_tokens(messages)
+    if len(bounds) <= config.COMPACT_KEEP_TURNS:
+        # Too few turns to summarise — but step 1 is lossless and turn-independent, and
+        # refusing to run it here was a real bug: a single turn that made ten web searches
+        # (~70 KB of tool results) overflowed a 32K window, and compaction declined to touch
+        # any of it because the conversation was "too short". The expensive step needs turn
+        # boundaries; truncating oversized tool results does not. Keep the last two results
+        # verbatim, since those are what the model is actively reasoning over.
+        tool_idx = [i for i, m in enumerate(messages) if m.get("role") == "tool"]
+        if len(tool_idx) <= 2:
+            return t("compact_too_few")
+        saved = _cleanup_old_tool_results(messages, tool_idx[-2])
+        if not saved:
+            return t("compact_too_few")
+        safety._audit("COMPACT_CLEANUP_SINGLE_TURN", {"chars_saved": saved, "tool_results": len(tool_idx)})
+        return t("compact_cleanup_only", saved=saved)
+    keep_from = bounds[-config.COMPACT_KEEP_TURNS]
     # Step 1: deterministic lossless cleanup.
     saved = _cleanup_old_tool_results(messages, keep_from)
     trigger_tokens = int(config.COMPACT_THRESHOLD_PCT / 100 * models.get_num_ctx(model))
@@ -509,7 +522,31 @@ def _maybe_compact(messages: list, model: str) -> bool:
     return True
 
 
-def _guard_context_overflow(messages: list, model: str) -> bool:
+_SCHEMA_TOKEN_CACHE: dict = {}
+
+
+def _tool_schema_tokens(tool_schemas=None) -> int:
+    """Token cost of the tool definitions, which ride on every single request.
+
+    Invisible to `_estimate_tokens`, which only reads message content, yet the full belt is
+    ~5,800 tokens — 18% of a 32K window before the conversation starts. Any budget that
+    ignores it is wrong by that much. Cached per schema-set size: the schemas are static.
+    """
+    key = "all" if tool_schemas is None else len(tool_schemas)
+    if key in _SCHEMA_TOKEN_CACHE:
+        return _SCHEMA_TOKEN_CACHE[key]
+    try:
+        from ollama._utils import convert_function_to_tool
+        fns = tool_schemas if tool_schemas is not None else tools.TOOLS
+        raw = json.dumps([convert_function_to_tool(f).model_dump() if callable(f) else f for f in fns])
+        n = len(raw) // 4
+    except Exception:            # never let a budgeting estimate break the turn
+        n = 6000 if tool_schemas is None else 3000
+    _SCHEMA_TOKEN_CACHE[key] = n
+    return n
+
+
+def _guard_context_overflow(messages: list, model: str, tool_schemas=None) -> bool:
     """Compact before sending if the prompt would overflow num_ctx. Returns True if it did.
 
     Deliberately separate from `_maybe_compact`, and deliberately not gated on AUTO_COMPACT.
@@ -524,14 +561,25 @@ def _guard_context_overflow(messages: list, model: str) -> bool:
     silently removed from. The refusal is the good case: it is visible. So the guard fires for
     every model, not just the ones that would complain.
 
-    The estimate is characters/4 and excludes the tool schemas, so it understates the real
-    prompt; the 85% ceiling is the margin for that, not timidity.
+    Two things this got wrong on the first attempt, both found in real use:
+
+    The tool schemas are part of the prompt and were not counted. All 35 of them are ~5,800
+    tokens, **18% of a 32K window before a single message exists**, so an 85% ceiling on a
+    schema-blind estimate could not fire in time. They are measured now.
+
+    And characters/4 is optimistic for the text this agent actually accumulates: search
+    results are dense with URLs and punctuation, which tokenise closer to 3 characters each.
+    The divisor stays at 4 in `_estimate_tokens` (it is used elsewhere for reporting), so the
+    shortfall is absorbed here by budgeting against a lower ceiling.
     """
     num_ctx = models.get_num_ctx(model)
-    if _estimate_tokens(messages) <= int(num_ctx * 0.85):
+    schema_tokens = _tool_schema_tokens(tool_schemas)
+    if _estimate_tokens(messages) + schema_tokens <= int(num_ctx * 0.70):
         return False
     ui.console.print(f"[yellow]{t('context_overflow_note')}[/yellow]")
-    safety._audit("CONTEXT_OVERFLOW_GUARD", {"num_ctx": num_ctx, "estimate": _estimate_tokens(messages)})
+    safety._audit("CONTEXT_OVERFLOW_GUARD", {"num_ctx": num_ctx,
+                                            "messages_est": _estimate_tokens(messages),
+                                            "schema_est": schema_tokens})
     status = _compact_now(messages, model, forced=True)
     ui.console.print(f"[dim]{status}[/dim]")
     return True
@@ -696,7 +744,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             ui.console.print(f"[red]{t('max_rounds_hit', n=config.MAX_TOOL_ROUNDS)}[/red]")
             return t("max_rounds_hit", n=config.MAX_TOOL_ROUNDS)
 
-        if not context_overflow_compacted and _guard_context_overflow(messages, model):
+        if not context_overflow_compacted and _guard_context_overflow(messages, model, tool_schemas):
             context_overflow_compacted = True   # once per turn; a second pass cannot shrink it further
 
         try:
