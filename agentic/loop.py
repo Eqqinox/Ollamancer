@@ -4,10 +4,11 @@
 it can answer without a tool. Everything else in this module exists because that loop meets
 small local models, which fail in specific, repeatable ways.
 
-**Plumbing retries.** Four distinct upstream failure signatures, each needing its own branch
+**Plumbing retries.** Five distinct upstream failure signatures, each needing its own branch
 because a generic "retry on error" would mask what is happening: a bad auto-generated parser
 (ollama#16988), the model drifting from its own tool-call format (#14834/#16383/#16810), the
-argument JSON truncated mid-generation, and a pseudo tool call emitted as plain text. Three of
+argument JSON truncated mid-generation, a pseudo tool call emitted as plain text, and a prompt
+that overflows num_ctx so the user's own instruction is trimmed away before the model sees it. Three of
 these were first mistaken for model incompetence — the task was never attempted at all. When
 retries are exhausted, a one-time model failover takes over rather than losing the turn.
 
@@ -508,6 +509,34 @@ def _maybe_compact(messages: list, model: str) -> bool:
     return True
 
 
+def _guard_context_overflow(messages: list, model: str) -> bool:
+    """Compact before sending if the prompt would overflow num_ctx. Returns True if it did.
+
+    Deliberately separate from `_maybe_compact`, and deliberately not gated on AUTO_COMPACT.
+    That one is a convenience: keep the context tidy once it passes a threshold, off by
+    default. This one is a correctness guard, because overflowing does not merely slow things
+    down — Ollama makes room by dropping the OLDEST messages, and after the system prompt the
+    oldest thing is the user's own instruction. It is the first thing deleted.
+
+    What happens next depends only on the model's chat template. Two of the models tested here
+    assert that a user message is present and refuse outright ("No user query found in
+    messages"); every other one answers normally, from a conversation the request has been
+    silently removed from. The refusal is the good case: it is visible. So the guard fires for
+    every model, not just the ones that would complain.
+
+    The estimate is characters/4 and excludes the tool schemas, so it understates the real
+    prompt; the 85% ceiling is the margin for that, not timidity.
+    """
+    num_ctx = models.get_num_ctx(model)
+    if _estimate_tokens(messages) <= int(num_ctx * 0.85):
+        return False
+    ui.console.print(f"[yellow]{t('context_overflow_note')}[/yellow]")
+    safety._audit("CONTEXT_OVERFLOW_GUARD", {"num_ctx": num_ctx, "estimate": _estimate_tokens(messages)})
+    status = _compact_now(messages, model, forced=True)
+    ui.console.print(f"[dim]{status}[/dim]")
+    return True
+
+
 # ── The model call: spinner, streaming, and the buffered fallback ────────────
 def _start_ram_spinner():
     """Start a console spinner with a live-RAM readout (same look as _chat_with_live_ram) and
@@ -648,6 +677,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     template_parser_retries = 0
     xml_parse_retries = 0
     json_truncation_retries = 0
+    context_overflow_compacted = False   # one forced compaction per turn on a num_ctx overflow
     last_failure_signature = None
     stuck_search_nudges_used = 0
     plumbing_failover_used = False   # A7: a single switch to a backup model per turn
@@ -665,6 +695,9 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
         if rounds > config.MAX_TOOL_ROUNDS:
             ui.console.print(f"[red]{t('max_rounds_hit', n=config.MAX_TOOL_ROUNDS)}[/red]")
             return t("max_rounds_hit", n=config.MAX_TOOL_ROUNDS)
+
+        if not context_overflow_compacted and _guard_context_overflow(messages, model):
+            context_overflow_compacted = True   # once per turn; a second pass cannot shrink it further
 
         try:
             resp = _stream_or_buffer_chat(model, messages, tool_schemas)
@@ -766,6 +799,32 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[red]{t('json_truncation_fallback', error=err_text[:200])}[/red]")
                 safety._audit("JSON_TRUNCATION_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("json_truncation_fallback", error=err_text[:200])
+            if "no user query found in messages" in err_text.lower():
+                # A fourth signature, and the only one where retrying the identical request is
+                # provably useless: the prompt no longer fits num_ctx, so Ollama drops messages
+                # from the FRONT to make room and the user's own instruction is the first thing
+                # discarded. Templates that assert a user message is present then refuse.
+                #
+                # Reproduced deterministically: the same message list succeeds at num_ctx 8192
+                # and raises at num_ctx 1024, with nothing else changed. It surfaces mostly in
+                # /architect, where one user instruction sits in front of whole files read into
+                # tool results (59 KB + 14 KB in the reported case).
+                #
+                # Only two models here carry the assertion, both hf.co GGUFs shipping their own
+                # template. The others answer anyway — from a conversation whose instruction has
+                # been silently deleted, which is worse. So the fix is to make the prompt smaller
+                # rather than to route around the model that reports the problem honestly.
+                if not context_overflow_compacted:
+                    context_overflow_compacted = True
+                    ui.console.print(f"[yellow]{t('context_overflow_note')}[/yellow]")
+                    safety._audit("CONTEXT_OVERFLOW_COMPACT", {"round": rounds, "num_ctx": models.get_num_ctx(model)})
+                    status = _compact_now(messages, model, forced=True)
+                    ui.console.print(f"[dim]{status}[/dim]")
+                    rounds -= 1  # this attempt never reached the model
+                    continue
+                ui.console.print(f"[red]{t('context_overflow_fallback', num_ctx=models.get_num_ctx(model))}[/red]")
+                safety._audit("CONTEXT_OVERFLOW_GIVEUP", {"round": rounds, "num_ctx": models.get_num_ctx(model)})
+                return t("context_overflow_fallback", num_ctx=models.get_num_ctx(model))
             raise
 
         msg = resp.message

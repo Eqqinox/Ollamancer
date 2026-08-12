@@ -451,7 +451,10 @@ def main():
                 ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
                 continue
             except ollama.ResponseError as e:
-                ui.console.print(f"\n[red]{t('model_error', model=model)}[/red] {e.error}\n")
+                # In a two-model pass the failure belongs to the architect or the editor,
+                # never to the session model; _run_phase tags it with the one that raised.
+                failed = getattr(e, "ollamancer_model", model)
+                ui.console.print(f"\n[red]{t('model_error', model=failed)}[/red] {e.error}\n")
                 continue
             except Exception as e:
                 ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")

@@ -53,7 +53,7 @@ Model reasons → calls tool(s) → gets results → reasons again … → final
   manual JSON schemas.
 - **Streaming** final answers (buffered on tool rounds), with a live RAM readout while the
   model works.
-- **Safety rails**: a max-rounds guard, retry+fallback for three confirmed Ollama tool-call
+- **Safety rails**: a max-rounds guard, retry+fallback for five confirmed Ollama tool-call
   plumbing bugs, and a one-time **model failover** to a backup model when those retries exhaust.
 
 ---
@@ -115,8 +115,9 @@ Ollamancer treats the failure modes of small local models as first-class problem
   anti-structural-fabrication rule set, and citation nudges.
 - **Anti-false-success:** the claim-vs-action nudge, and `run_command` counting as *real*
   verification (a clean lint is not proof of correctness).
-- **Ollama plumbing bugs:** retry+fallback for three confirmed upstream bugs (#16988, #16383/#16810,
-  and mid-JSON truncation), plus a configurable **model failover**.
+- **Ollama plumbing bugs:** retry+fallback for five confirmed upstream failure signatures (#16988,
+  #16383/#16810, mid-JSON truncation, plain-text pseudo tool calls, and a num_ctx overflow that
+  silently deletes the user's request), plus a configurable **model failover**.
 - **A documented benchmark campaign** (`benchmarks/`, `DESIGN.md`) comparing 18 models
   on factual, reasoning, code, and multi-step tasks, with a repeat-action playthrough harness.
   Scored `pass^k`: the **minimum** across repeats, so a model counts only what it delivers

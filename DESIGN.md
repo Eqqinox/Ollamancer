@@ -104,7 +104,7 @@ failure mode instead of surfacing it, and would make the agent's behaviour unaud
 ## 3. Reliability engineering, part 1: the plumbing
 
 Before you can study whether a model is *honest*, you have to eliminate the cases where the
-model never got a fair chance. Four distinct **upstream failure signatures** were found by
+model never got a fair chance. Five distinct **upstream failure signatures** were found by
 running real workloads, each requiring its own retry branch. They are not interchangeable,
 and a single generic "retry on error" would have masked what was actually happening.
 
@@ -114,8 +114,11 @@ and a single generic "retry on error" would have masked what was actually happen
 | `XML syntax error` while parsing a tool call | Ollama generated a parser correctly, but the **model** drifts from its own documented tool-call format (Qwen3.5/3.6 family, [#14834](https://github.com/ollama/ollama/issues/14834), [#16383](https://github.com/ollama/ollama/issues/16383), [#16810](https://github.com/ollama/ollama/issues/16810)). Registry maps these models to the Hermes-JSON parser while they were trained on Qwen3-Coder's XML format | `MAX_XML_PARSE_RETRIES`, no upstream fix exists; a retry is the only client-side option |
 | `unexpected end of JSON input` | The raw JSON of a tool call's arguments is **truncated mid-generation** by llama-server before the closing braces. Found on a `write_file` of a ~14 KB file in one call | `MAX_JSON_TRUNCATION_RETRIES`, plus the `append_file` tool and a system-prompt rule to write large files in ≤80-line chunks, attacking the cause, not just the symptom |
 | A pseudo tool call emitted as **plain text** | The model writes `<function=search_in_files> <parameter=…> … </tool_call>` as its answer instead of invoking the tool-calling API. Confirmed on two unrelated model families | `_looks_like_fake_tool_call()` detects the pattern and retries; previously it slipped through entirely, because `msg.content` was not empty |
+| `No user query found in messages` | **Not an Ollama bug — a context overflow.** When the prompt exceeds `num_ctx`, Ollama makes room by dropping the *oldest* messages, and after the system prompt the oldest thing is the user's own instruction. Templates that assert a user message is present then refuse. Reproduced deterministically: identical messages succeed at `num_ctx 8192` and raise at `1024` | A retry cannot help, the prompt has to shrink: one forced compaction, then a message naming the real cause. `_guard_context_overflow` also compacts *before* sending, for every model |
 
-**Why this matters beyond this project:** three of these four were initially mistaken for
+**The fifth one is the one worth reading twice.** Only two of the eighteen models benchmarked carry the assertion, both hf.co GGUFs shipping their own chat template. Every other model answers the question normally — from a conversation the request has been silently deleted from. The refusal is the *good* outcome, because it is the only visible one, and it was initially misdiagnosed as "this model is broken in architect mode". The honest model looked like the faulty one. That is why the guard now runs for every model rather than routing around the ones that complain.
+
+**Why this matters beyond this project:** three of these five were initially mistaken for
 model incompetence. In the benchmark campaign (§5), two models "failed" tasks purely because
 of the plain-text pseudo-tool-call bug, the task was never attempted, the file never touched.
 Attributing that to the model would have been wrong. Measuring local models honestly requires

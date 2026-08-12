@@ -105,6 +105,21 @@ def _unseen_urls(plan: str, tool_results: list) -> list[str]:
     return out
 
 
+def _run_phase(msgs: list, model: str, **kw) -> str:
+    """Run one architect/editor phase, tagging any model error with the model that raised it.
+
+    Without this the caller reports the *session* model, which in a two-model pass is neither
+    of the models that ran. That mislabelling sent a real investigation after an uninvolved
+    model: a template error raised by the architect was reported against the default model,
+    which had not been loaded at any point in the turn.
+    """
+    try:
+        return loop.run_agent(msgs, model, **kw)
+    except ollama.ResponseError as e:
+        e.ollamancer_model = model
+        raise
+
+
 def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, str]:
     """Two-model plan-then-execute pass. Model A (architect) plans with read-only tools;
     model B (editor) executes the plan with full tools. STRICTLY sequential loading — the
@@ -145,8 +160,8 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
         models._unload_model(current_model)   # never two models resident at once
     ui.console.print(f"\n[bold magenta]{t('architect_planning', model=architect_model)}[/bold magenta]")
     arch_messages = list(messages) + [{"role": "user", "content": arch_instr}]
-    plan = loop.run_agent(arch_messages, architect_model,
-                     tool_schemas=tools._read_only_tools(), allowed_tools=tools._READ_ONLY_TOOL_NAMES)
+    plan = _run_phase(arch_messages, architect_model,
+                      tool_schemas=tools._read_only_tools(), allowed_tools=tools._READ_ONLY_TOOL_NAMES)
     ui.console.print()
     ui.console.print(Rule(f"[bold magenta] {t('architect_plan_title', model=architect_model)} [/bold magenta]", style="magenta"))
     ui.console.print(Markdown(plan))
@@ -185,7 +200,7 @@ def cmd_architect(task: str, messages: list, current_model: str) -> tuple[str, s
             f"Plan:\n{plan_for_editor}\n\nOriginal task: {task}")
     ui.console.print(f"\n[bold green]{t('architect_executing', model=editor_model)}[/bold green]")
     editor_messages = list(messages) + [{"role": "user", "content": editor_instr}]
-    result = loop.run_agent(editor_messages, editor_model)
+    result = _run_phase(editor_messages, editor_model)
     safety._audit("ARCHITECT_DONE", {"architect": architect_model, "editor": editor_model})
     return plan, result
 
