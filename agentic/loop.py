@@ -755,6 +755,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     had_successful_edit = False         # a write/edit succeeded this turn (persists, unlike edited_since_verify)
     had_verification = False            # a verification tool ran this turn
     grounding_check_nudges_used = 0
+    grounding_recheck_done = False   # the post-correction re-check runs at most once
     claim_action_nudges_used = 0
 
     while True:
@@ -983,6 +984,27 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     messages.append({"role": "assistant", "content": msg.content or ""})
                     messages.append(_nudge(t("grounding_check_nudge", values=shown)))
                     continue
+            elif turn_tool_results and grounding_check_nudges_used and not grounding_recheck_done:
+                # The correction was never checked. The nudge above fires once, so a
+                # fabrication introduced *in response to it* reaches the user unexamined —
+                # and the model's confidence goes up, not down, because it believes it has
+                # just verified itself. Observed live: asked to justify
+                # "ethereum/build-your-own-x", a model replaced it with
+                # "jvns/build-your-own-x ... by Julia Evans", equally invented, and signed
+                # off with "all other values are accurate and sourced from that page". The
+                # real owner was in the very table it had fetched.
+                #
+                # So the check runs once more on the correction, and WARNS instead of
+                # nudging again. A second nudge is what stacks up and talks a small model
+                # into an empty answer; a warning costs the model nothing and tells the
+                # person reading exactly which values to distrust. Nudge, never gate — and
+                # when out of nudges, say so out loud rather than going quiet.
+                grounding_recheck_done = True
+                still = _grounding_check(msg.content, turn_tool_results)
+                if still:
+                    shown = ", ".join(still[:8])
+                    ui.console.print(f"[yellow]{t('grounding_recheck_warning', values=shown)}[/yellow]")
+                    safety._audit("GROUNDING_RECHECK_FAILED", {"round": rounds, "unsupported": still[:12]})
             # Same event reported twice as if it were two. Every check above compares the
             # answer to its sources; this one compares the answer to itself.
             if dupe_nudges_used < 1:
