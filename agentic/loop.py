@@ -546,6 +546,25 @@ def _tool_schema_tokens(tool_schemas=None) -> int:
     return n
 
 
+def _failover_to(current: str, target: str, trigger: str, rounds: int) -> str:
+    """Switch to the backup model after a plumbing bug, **unloading the failed one first**.
+
+    The unload is the whole point of this helper existing. `cmd_architect` and `cmd_review_by`
+    unload at four separate call sites because two resident models do not fit in 24 GB —
+    models.py calls that an invariant — but the three failover branches each did a bare
+    `model = target` and left the old one loaded. Nobody noticed because failover ships
+    disabled (`PLUMBING_FAILOVER_MODEL = ""`), so the branch is unreachable until a backup
+    model is configured; the first real failover after one was set stalled a turn for ten
+    minutes, paging 17.4 GB of two co-resident models on a 24 GB machine.
+
+    Three copies of the same three lines is how the omission survived, so there is one copy now.
+    """
+    ui.console.print(f"[yellow]{t('model_failover_note', frm=current, to=target)}[/yellow]")
+    safety._audit("MODEL_FAILOVER", {"round": rounds, "from": current, "to": target, "trigger": trigger})
+    models._unload_model(current)      # never two models resident at once
+    return target
+
+
 def _guard_context_overflow(messages: list, model: str, tool_schemas=None) -> bool:
     """Compact before sending if the prompt would overflow num_ctx. Returns True if it did.
 
@@ -779,9 +798,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
-                    ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
-                    safety._audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "template_parser"})
-                    model = target
+                    model = _failover_to(model, target, "template_parser", rounds)
                     template_parser_retries = 0
                     rounds -= 1
                     continue
@@ -812,9 +829,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
-                    ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
-                    safety._audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "xml_parse"})
-                    model = target
+                    model = _failover_to(model, target, "xml_parse", rounds)
                     xml_parse_retries = 0
                     rounds -= 1
                     continue
@@ -838,9 +853,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 target = None if plumbing_failover_used else models._plumbing_failover_target(model)
                 if target:
                     plumbing_failover_used = True
-                    ui.console.print(f"[yellow]{t('model_failover_note', frm=model, to=target)}[/yellow]")
-                    safety._audit("MODEL_FAILOVER", {"round": rounds, "from": model, "to": target, "trigger": "json_truncation"})
-                    model = target
+                    model = _failover_to(model, target, "json_truncation", rounds)
                     json_truncation_retries = 0
                     rounds -= 1
                     continue
