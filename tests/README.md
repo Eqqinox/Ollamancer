@@ -19,7 +19,7 @@ it, since a name imported elsewhere is a separate binding.
 Either runner works, and both run each test in its **own process**.
 
 ```bash
-pytest                         # 29 scripts plus a collection guard
+pytest                         # 40 scripts plus a collection guard
 pytest -k skills               # one script
 pytest -x                      # stop at the first failure
 bash tests/run_all.sh          # no pytest needed
@@ -35,7 +35,7 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root, "tests: 34 passed, 0 failed"
+bash tests/run_all.sh          # from the project root, "tests: 40 passed, 0 failed"
 ```
 
 Or a single test:
@@ -83,6 +83,7 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_source_diversity` | one page per outlet in search results, rather than several from the same domain |
 | `test_duplicate_items` | flag the same event reported twice in one answer, without firing on a shared live-blog URL |
 | `test_grounding_recheck` | the answer a grounding nudge produces is itself checked once, and **warned** about rather than nudged again. The nudge is capped at 1, so a fabrication introduced *by* the correction used to ship unexamined — observed live, a model replaced one invented repo owner with another and declared it verified. Also pins the known blind spot: a bare `owner/repo` slug in prose is not a token class and is not detectable, deliberately, since `agentic/loop.py` has the same shape |
+| `test_claim_action_research` | the "you claim to have verified" nudge must not fire on a research turn. `had_verification` is set only by `lint_file`/`run_tests`/`run_command`, so on a search-and-read turn it is structurally False and every answer saying "verified" was accused of claiming a test it never ran — reported on a `gemma-4-26b-heretic` search turn, where the model complied and replaced a sound answer with a paragraph about not having run `run_tests`. Pins the three shapes whose premise still holds (edited-but-unverified, no-tools-at-all, and the fix half), and that the flag can only ever *silence* a nudge, never raise one |
 | `test_failover_unload` | a plumbing failover unloads the model it fails away from. Two resident models do not fit in 24 GB — the architect path enforces that at four call sites, the three failover branches did not, and the omission survived because the same three lines were written three times. Pins the unload, the audit record, and that no branch switches models inline |
 | `test_context_overflow` | the fifth plumbing signature. A prompt over `num_ctx` makes Ollama drop the *oldest* messages, which deletes the user's own instruction; two models refuse outright and the rest answer from a conversation missing the request. Pins that the pre-send guard fires above the 85% ceiling, that it runs even with `AUTO_COMPACT` off (it is a correctness guard, not the convenience path), and that the handler's match string still appears in the real Ollama error |
 | `test_ram_units` | the `/model` header shows memory in binary GiB (a "24 GB" Mac reports 25.77 decimal GB and used to print **26**), while `usage_tier` keeps the decimal value so it still matches the model sizes Ollama reports. Pins both halves, and the 16.3 GB boundary model that the two divisors disagree about |

@@ -166,7 +166,7 @@ Cases 4 and 5 motivated moving from *asking the model to behave* to *checking th
 without a model*:
 
 - **`_grounding_check`**: after the final answer, extract its **hard tokens** (numbers with ≥2 digits, ISO dates, URLs, quoted proper nouns) and substring-search each one in the raw tool results **from that turn**. Anything present in the answer but in no tool result gets flagged and the model is re-prompted once.
-- **The claim-vs-action nudge**: if the answer claims "fixed"/"verified" but the turn contains no successful edit (`write_file`/`append_file`/`edit_file` returning its success prefix) and no verification (`lint_file`/`run_tests`/`run_command`), re-prompt once.
+- **The claim-vs-action nudge**: if the answer claims "fixed"/"verified" but the turn contains no successful edit (`write_file`/`append_file`/`edit_file` returning its success prefix) and no verification (`lint_file`/`run_tests`/`run_command`), re-prompt once. The "verified" half stands down on a turn made of research tools alone — see [4.2b](#42b-a-nudge-is-only-as-good-as-its-premise).
 - **`_duplicate_items`**: two list items describing the *same event* as if they were two. Every other check compares the answer to its **sources**; this one compares the answer to **itself**, a gap the others structurally cannot cover. Observed from `gpt-oss:20b`: item 1 said "seven people were killed" at a named school and item 5 said "nine people were killed, including the shooter" at the same school, one event, two death tolls, four rows apart. Both passed `_grounding_check`, because both figures genuinely appeared in tool results (one from BBC, one from a Wikipedia portal). Detection is a shared **rare multi-word proper noun** between two items.
 
 Both run without an LLM, both are capped at 1 re-prompt, and **both are honest about their
@@ -203,6 +203,65 @@ The claim-vs-action nudge exists because of two specific measured events: a mode
 declared a bug fixed on a file that was **bit-for-bit identical to the original** (confirmed by
 `diff` and by running it), and another that reported "citations added" having performed no
 write at all.
+
+### 4.2b A nudge is only as good as its premise
+
+The claim-vs-action nudge shipped with a false premise in one of its three shapes, and it took
+a user report to find it. `had_verification` is set only by `_VERIFY_TOOLS`, so on a turn made
+of `search_web` and `read_file` it is **structurally False** — nothing was executable, so
+nothing could have been executed. Any research answer containing "verified" or "confirmed
+that" therefore tripped the check, and was told it had claimed to run tests it never ran.
+
+Reported on `gemma-4-26B-A4B-it-uncensored-heretic`, on a `search_web` / `search_web_deep`
+turn. The model obeyed, and answered the nudge instead of the user:
+
+> I have not run any automated verification tools (such as `run_tests` or `lint_file`) during
+> this turn to verify the accuracy of my answer. The "verification" I referred to was a manual
+> comparison of my generated response against the text contained in the search results…
+
+True, cooperative, and useless. The model had not lied, the check had: "verified against the
+sources" is the correct use of the word on a search turn. What the user lost was the research
+answer the retraction replaced.
+
+**Why this is worse than a missed catch.** §4.2 sets the rule that a silent miss costs nothing
+while a false alarm costs trust. This one cost more than trust: correct-to-incorrect flips
+outnumber the reverse under self-correction, and a prompt that *asserts* the error before
+asking ("You state this was verified, but…") drives the flip rather than prompting a check
+— "prompt bias" in [Understanding the Dark Side of LLMs' Intrinsic Self-Correction
+(ACL 2025)](https://aclanthology.org/2025.acl-long.1314.pdf). The same survey work that
+justifies this whole layer says why: self-correction helps when there is **reliable external
+feedback**, and [degrades output without it](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00713/125177/When-Can-LLMs-Actually-Correct-Their-Own-Mistakes).
+An edit turn has that oracle. A research turn asked the same question has none, so the nudge
+degenerates into exactly the intrinsic self-correction the design set out to avoid. Nudge
+pressure is also the documented route to an empty answer here (four nudges in one turn emptied
+`qwen-heretic` twice), so a nudge on a false premise spends the budget that a true one needs.
+
+The fix is one clause: the verification half stands down when research tools ran and nothing
+was edited. Gating on `had_edit` alone was the first shape considered and **rejected**, because
+it loses the most brazen case of the three — a turn with no tool calls whatsoever that says "I
+tested it". The premise is true there, and the nudge belongs. Three shapes, all with a premise
+that holds:
+
+| Turn | Claim | Behaviour |
+|---|---|---|
+| edited, no `run_tests` | "tested it" | **nudge** — the oracle exists and went unused |
+| no tool calls at all | "I tested it" | **nudge** — nothing happened |
+| search/read only, no edit | "verified against the sources" | **silent** — `_grounding_check` covers provenance here, and names the specific unsupported values instead of asking for a wholesale recant |
+
+`test_claim_action_research` pins all three, and pins that the flag can only ever *silence* a
+nudge: it subtracts a firing condition, so it cannot cost anyone an answer they would otherwise
+have received. The `fix` and `both` branches are untouched — a fix claimed with no edit is
+unbacked whether or not the turn did research.
+
+Worth recording as a general lesson, since the same trap is set for every check in this module:
+a deterministic signal is only deterministic about *what it measures*. `had_verification`
+faithfully measured "no verification tool ran" and was never wrong about that; the error was
+reading it as "the model did not check its work". Keyword matching a **speech act** while
+proving a **fact** is a splice, and the splice is where the false premise hides. The
+[Heretic](https://github.com/p-e-w/heretic) project's own refusal detector has the same shape
+and, by a published comparison, roughly 11% precision — it counts an answer that complies with
+a disclaimer attached as a refusal, because it matches on the phrase rather than the outcome.
+The tool that produced the model which surfaced this bug carries a version of the same bug.
 
 ### 4.3 "A clean lint is not proof"
 

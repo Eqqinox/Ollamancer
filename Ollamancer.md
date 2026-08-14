@@ -97,7 +97,8 @@ Plus **`run_command`** exposes the entire shell, and **MCP** adds any third-part
   Code/Cursor/Codex), with progressive disclosure and a bundled 14-skill library.
 - **Honesty layers**: `_grounding_check` (flags numbers/dates/URLs/names in the answer that
   appear in no tool result this turn) and a claim-vs-action nudge ("fixed"/"verified" with no
-  real edit/verification), both deterministic.
+  real edit/verification), both deterministic. The "verified" half stands down on a turn built
+  from search and read calls, where the word means checked against the sources.
 - **Headless / batch**: `--run "prompt"` and `--recipe file.md` (exit code = success) for
   cron/scripts.
 - **Privacy**: `--private` ephemeral session; safe mode (`--safe`) approves risky calls; Docker
@@ -161,7 +162,7 @@ Ollamancer.md             # this file, detailed presentation
 Agentic_Manual.md         # full user manual
 capabilities.md           # exhaustive capability list
 DESIGN.md                 # design rationale & engineering history
-tests/                    # deterministic offline test suite (36 tests)
+tests/                    # deterministic offline test suite (40 tests)
 ```
 
 ---

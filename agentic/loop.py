@@ -23,7 +23,9 @@ panel without explanation.
     present in the answer but in no result gets flagged. No LLM, no semantics.
   * `_claim_without_action` — the answer claims "fixed"/"verified" but no edit and no
     verification happened this turn. This one exists because a model declared a bug fixed on
-    a file that was bit-for-bit identical to the original.
+    a file that was bit-for-bit identical to the original. The "verified" half stands down on
+    a turn built from research tools alone, where the word means checked against the sources
+    and no verification tool could ever have run.
   * thin-search and deep-search circuit breakers, the citation reminder, and the
     stuck-verification nudge that pushes toward searching when the same error repeats.
 
@@ -167,6 +169,16 @@ _THIN_SEARCH_MARKERS = ("No results.", "essentially empty")
 _CITATION_ARMING_TOOLS = {"search_web", "search_web_deep", "fetch_url", "fetch_url_rendered"}
 
 
+# Tools whose results are evidence to read, not a program to run. On a turn built only from
+# these, "verified" means the model cross-checked its answer against the sources, which is
+# the correct sense of the word there, and _VERIFY_TOOLS can never have run because there was
+# nothing to execute. See _claim_without_action for why that distinction has to be made.
+_RESEARCH_TOOLS = _CITATION_ARMING_TOOLS | {
+    "read_file", "read_file_lines", "search_semantic",
+    "search_in_files", "find_files", "find_references", "repo_map",
+}
+
+
 _FAILURE_SIGNATURE_RE = re.compile(r'(\w+(?:Error|Exception))(?::\s*([^\n]*))?')
 
 
@@ -267,14 +279,30 @@ _VERIFIED_CLAIM_RE = re.compile(
     re.IGNORECASE)
 
 
-def _claim_without_action(answer: str, had_edit: bool, had_verification: bool) -> str | None:
+def _claim_without_action(answer: str, had_edit: bool, had_verification: bool,
+                          had_research: bool = False) -> str | None:
     """If the final answer claims a fix but no successful write/edit happened this turn, or
     claims verification but no verification tool ran this turn, return which kind of claim is
     unbacked (for the nudge). Deterministic, uses per-turn tracking the loop already keeps.
-    Nudge, never a gate — a false positive just prompts the model to restate honestly."""
+    Nudge, never a gate — a false positive just prompts the model to restate honestly.
+
+    The verification half only fires when its premise is actually true. On a turn made of
+    research tools alone, "verified" means checked against the sources, and `had_verification`
+    is structurally False because there was never anything to run — so the nudge accused the
+    model of a lie it had not told, and told it to run `run_tests` on a web search. Seen live
+    on a gemma-4-26b-heretic search turn: the model complied, retracted a sound answer, and
+    replaced it with a paragraph explaining that it had not run `run_tests` or `lint_file`. A
+    correct answer was spent on a false premise. `_grounding_check` already covers provenance
+    on those turns, and covers it better, naming the specific unsupported values instead of
+    asking for a wholesale recant.
+
+    Both other shapes still nudge, because there the premise holds: a turn that edited without
+    verifying, and a turn that claims a test with no tool call of any kind behind it — that
+    second one is the most brazen version and gating on `had_edit` alone would have lost it."""
     ans = answer or ""
+    research_only = had_research and not had_edit
     fix_unbacked = bool(_FIX_CLAIM_RE.search(ans)) and not had_edit
-    verif_unbacked = bool(_VERIFIED_CLAIM_RE.search(ans)) and not had_verification
+    verif_unbacked = bool(_VERIFIED_CLAIM_RE.search(ans)) and not had_verification and not research_only
     if fix_unbacked and verif_unbacked:
         return "both"
     if fix_unbacked:
@@ -754,6 +782,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     turn_tool_results: list[str] = []   # raw tool results from THIS turn -> _grounding_check
     had_successful_edit = False         # a write/edit succeeded this turn (persists, unlike edited_since_verify)
     had_verification = False            # a verification tool ran this turn
+    had_research = False                # a read/search tool ran this turn (evidence, not execution)
     grounding_check_nudges_used = 0
     grounding_recheck_done = False   # the post-correction re-check runs at most once
     claim_action_nudges_used = 0
@@ -957,7 +986,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
 
             # Claim-vs-action nudge (A6, deterministic): "fixed"/"verified" without
             # a real edit/verification this turn. Placed before _grounding_check.
-            claim_kind = _claim_without_action(msg.content, had_successful_edit, had_verification)
+            claim_kind = _claim_without_action(msg.content, had_successful_edit, had_verification, had_research)
             # Never in a read-only phase. The architect (B4) is *forbidden* to write, so
             # had_successful_edit can never become True there: the nudge would demand an action
             # the model is structurally unable to take, and it fires on any plan that merely
@@ -1106,6 +1135,12 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
 
             # Self-correction tracking: a successful edit arms the verification,
             # and a lint/test disarms it.
+            if name in _RESEARCH_TOOLS:
+                # Not exclusive with the two below, and deliberately not gated on success:
+                # a failed read is still an attempt to check rather than to execute, and the
+                # claim-vs-action nudge only asks what kind of turn this was.
+                had_research = True
+
             if name in _EDIT_TOOLS and str(result).startswith(_EDIT_SUCCESS_PREFIX.get(name, "\0")):
                 edited_since_verify = True
                 had_successful_edit = True
