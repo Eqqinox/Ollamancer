@@ -28,7 +28,7 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 
 The local-agent space is crowded (Aider, OpenCode, Goose…). Ollamancer is different where it counts: it takes seriously the three things the [2026 local-first market analysis](https://nimbalyst.com/blog/best-local-first-ai-coding-tools-2026/) says the field is *missing*:
 
--  **Deterministic honesty controls**: it flags numbers/dates/URLs/names in an answer that appear in *no* tool result this turn, and nudges when the model claims "fixed/verified" without a real edit or verification. Hallucination is treated as a first-class, *deterministic* problem, not left to the model.
+-  **Deterministic honesty controls**: it flags numbers/dates/URLs/names in an answer that appear in *no* tool result this turn, and nudges when the model claims "fixed/verified" without a real edit or verification (with the scope, and the coverage it deliberately gives up, set out in [`DESIGN.md` §4.2b](./DESIGN.md#42b-a-nudge-is-only-as-good-as-its-premise)). Hallucination is treated as a first-class, *deterministic* problem, not left to the model.
 -  **Small-model reliability engineering**: retries + fallback for five confirmed Ollama tool-call and context failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across 18 models, scored `pass^k` (the *minimum* across repeats, so a model counts only what it delivers every time).
 -  **Privacy by design**: fully offline, plus a `--private` ephemeral mode that writes *nothing* to disk.
 

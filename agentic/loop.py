@@ -33,6 +33,15 @@ They **nudge, never gate**: each adds a message and re-runs the loop. None rewri
 suppresses what the model produced — a censoring layer would hide the failure instead of
 surfacing it.
 
+Say that precisely, though, because the slogan is kinder than the mechanism. A nudge re-runs
+the loop, so the answer that reaches the screen is the *second* one; the first is appended to
+`messages` and superseded, with nothing on screen marking that it existed. It survives in the
+conversation and in the saved session JSON (not under `--private`), but no command prints it —
+`/details` records tool calls, not answers. Nothing is censored and something can still be lost
+from view, which is why a nudge firing on a false premise is expensive rather than merely
+noisy: it spends a correct answer. See `_claim_without_action` for the case where that
+happened, and DESIGN.md §4.2b for the general rule it produced.
+
 **Compaction** runs in two stages on the real `prompt_eval_count`, not an estimate: lossless
 truncation of old tool results first (free), then a structured summary of older turns, cutting
 only at turn boundaries so a tool message is never orphaned from its assistant(tool_calls).

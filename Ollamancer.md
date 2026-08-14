@@ -29,8 +29,13 @@ models, and privacy.**
 - **From scratch, no framework.** ~6,700 lines of readable Python across fourteen focused modules, auditable end-to-end.
   The decision was validated repeatedly: many fixes required line-level control a framework
   would have hidden.
-- **Nudge, never gate.** The agent warns and re-prompts the model; it never silently rewrites
-  or blocks the model's output. Honesty checks are *nudges*, not censors.
+- **Nudge, never gate.** The agent warns and re-prompts the model; no code path rewrites,
+  filters or blocks what the model produced. Honesty checks are *nudges*, not censors. Stated
+  precisely, because the shorthand flatters it: a nudge re-prompts, and it is the **second**
+  answer you see. The first is superseded on screen with nothing announcing it went. It is kept
+  in the conversation and in the session JSON (not under `--private`, which writes nothing), but
+  no command surfaces it — `/details` records tool calls, not answers. So nothing is censored,
+  and something can still be lost from view. That is the cost of the design, not a bug in it.
 - **Reliability over cleverness.** Small, quantized local models are fragile; the agent is
   engineered around their real failure modes (documented in a long benchmark campaign).
 - **Verify, don't trust.** Every feature ships with a deterministic test; the docs never claim

@@ -253,6 +253,26 @@ nudge: it subtracts a firing condition, so it cannot cost anyone an answer they 
 have received. The `fix` and `both` branches are untouched — a fix claimed with no edit is
 unbacked whether or not the turn did research.
 
+**What this costs, stated rather than buried.** The change removes coverage, and the honest
+description is not "the layer got stronger". A model that writes *"I verified this against the
+sources"* on a search turn without having compared anything is no longer caught by this check.
+`_grounding_check` catches such an answer only where the fabrication surfaces as a hard token —
+a number, date, URL or quote. A purely paraphrased claim of diligence now passes both. That is
+the same class of hole as the bare `owner/repo` slug in §4.2, and it is a real one.
+
+The defence is that it was never coverage. The check fired on *every* research answer using the
+word, whether or not the model had cross-checked anything, so its output carried no information
+about the thing it claimed to measure. A detector with no precision does not detect; it emits.
+What was lost is a signal that was already noise — but strictly fewer answers are flagged than
+before, and the docs should not imply otherwise.
+
+**And the cost is asymmetric in a way the "nudge, never gate" slogan hides.** A nudge does not
+suppress an answer, but it re-runs the loop, so what reaches the screen is the second answer;
+the first is superseded with nothing announcing it. It survives in the conversation and the
+session JSON (not under `--private`), yet no command prints it — `/details` records tool calls,
+not answers. So a false-positive nudge does not merely add noise, it *spends a correct answer*,
+which is why §4.2's "a silent miss costs nothing" applies here with more force than usual.
+
 Worth recording as a general lesson, since the same trap is set for every check in this module:
 a deterministic signal is only deterministic about *what it measures*. `had_verification`
 faithfully measured "no verification tool ran" and was never wrong about that; the error was
@@ -463,6 +483,8 @@ Cursor and Codex.
 - **Structure fabrication around a thin result, not solved, probably not solvable by prompt rules alone.** An active 2026 research area; confabulation is a structural property of probabilistic generation, not a deliberate lie. The real but unimplemented lead is a second verification pass comparing the final answer literally against raw tool output, rather than relying on the model to self-censor.
 - **End-to-end multi-bug fixing, not solved** (§6).
 - **Semantic citation verification is out of scope.** `_grounding_check` verifies that cited tokens *appear* in a tool result. Whether a claim faithfully reflects its source is not checked; `/review-by` is the partial mitigation.
+- **An unbacked claim of having checked the sources is not caught on a research turn.** The claim-vs-action nudge stands down there deliberately (§4.2b), because `had_verification` cannot be true on a turn with nothing to execute, so the check was firing on every research answer that used the word "verified". `_grounding_check` still covers such a turn wherever the fabrication surfaces as a number, date, URL or quote; a purely paraphrased claim of diligence passes both.
+- **A superseded answer is not shown anywhere.** Nudges never rewrite or block output, but they re-prompt, so the answer you read is the one after the nudge. The one before it is kept in the conversation and the session JSON (not under `--private`) and no command prints it — `/details` records tool calls, not answers.
 - **MCP `taskSupport` capability negotiation is not implemented.** Tools requiring it fail cleanly rather than crashing.
 - **macOS-centric.** `termios`, `ollama stop`, and several paths assume Unix/macOS.
 - **Ollama-only, by design, permanently.** This is the one entry here that is not a gap. The
