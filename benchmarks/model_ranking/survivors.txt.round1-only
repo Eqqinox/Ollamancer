@@ -1,0 +1,21 @@
+# ROUND 1 ONLY — NOT a full backup, despite the name this file used to carry.
+#
+# Renamed 2026-08-15. It was `survivors.txt.full-backup`, which is exactly backwards: it holds
+# the TEN round-1 survivors, while the live survivors.txt holds FIFTEEN. Restoring this over
+# survivors.txt would silently drop the five models added 2026-08-11 (qwen3.5:4b-mlx,
+# qwen-heretic, qwen3.5:9b-mlx, and both HauhauCS quants) and the campaign would quietly
+# re-rank on a smaller roster with nothing announcing it.
+#
+# Kept because it is the record of what round 1 actually selected. Do not restore it blindly.
+#
+# Round 1 survivors: confirmed by the user 2026-08-08.
+qwen3.5:4b
+gamy316/aileen1.0:latest
+lfm2.5:8b
+ornith:9b
+hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M
+jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest
+gemma4:12b-mlx
+gpt-oss:20b
+gemma4:26b-mlx
+Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest
