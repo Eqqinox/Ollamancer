@@ -354,10 +354,29 @@ def score_run(run: Path) -> dict:
     rep = _rep_of(run)
     status = meta.get("status")
 
-    if status != "ok":
+    # A run that produced no answer did not complete, whatever `status` says. Trusting the
+    # field alone was wrong for 50 of the 135 scored runs in the banked campaign.
+    #
+    # `run_one.py` arms SIGALRM to raise RunTimeout, but `agentic/cli.py` catches bare
+    # `Exception` around run_agent — a deliberate guard so one bad turn cannot kill a session —
+    # so the timeout never reaches the harness. `status` stays "ok", `answer.txt` holds the six
+    # characters "ERROR:", and this function used to score it as a completed run. It is scored
+    # on the artifact, so a model that wrote report.md and then ran out of clock collected up to
+    # 25/25: t4 blanks averaged 20.1 against 12.1 for runs that actually finished, which inverts
+    # what the task measures. Under pass^k — the minimum across reps — that silently propped up
+    # the ranking in §10.
+    #
+    # The root cause is fixed in run_one.py (RunTimeout now derives from BaseException, so the
+    # catch-all cannot swallow it). This stays as well, and not merely as belt-and-braces: the
+    # 168 banked runs are already on disk with `status: "ok"` and re-running them costs hours,
+    # so the only way to re-score the existing campaign correctly is to detect the blank here.
+    blank = not (answer or "").strip() or (answer or "").strip().startswith("ERROR")
+    if status != "ok" or blank:
+        why = status if status != "ok" else "timed out or crashed: no answer was produced"
         return {"run": _rel(run), "model": meta.get("model"), "task": task, "rep": rep,
-                "status": status, "total": 0, "max": MAX.get(task, 25), "parts": {},
-                "notes": [f"run did not complete: {status}"],
+                "status": "timeout" if blank and status == "ok" else status,
+                "total": 0, "max": MAX.get(task, 25), "parts": {},
+                "notes": [f"run did not complete: {why}"],
                 "judged_pending": [], "seconds": meta.get("seconds"),
                 "n_tool_calls": meta.get("n_tool_calls")}
 

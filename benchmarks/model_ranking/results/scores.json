@@ -106,18 +106,12 @@
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.1,
@@ -128,18 +122,12 @@
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -150,20 +138,12 @@
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "written": 0,
-      "structure": 0,
-      "length": 0,
-      "citations_resolve": 0,
-      "citations_grounded": 0,
-      "prose_judged": 0
-    },
+    "parts": {},
     "notes": [
-      "report.md was never written",
-      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.1,
@@ -174,22 +154,12 @@
     "model": "Agen/gemma-4-26B-A4B-it-uncensored-heretic:latest",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
-    "total": 22.0,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 0
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "446 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.1,
@@ -521,18 +491,12 @@
     "model": "gemma4:12b-mlx",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -543,22 +507,12 @@
     "model": "gemma4:12b-mlx",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 24.5,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 2.5
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "389 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2.5 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -569,22 +523,12 @@
     "model": "gemma4:12b-mlx",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
-    "total": 24.5,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 2.5
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "434 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2.5 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -697,18 +641,12 @@
     "model": "gemma4:26b-mlx",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.1,
@@ -719,18 +657,12 @@
     "model": "gemma4:26b-mlx",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -741,20 +673,12 @@
     "model": "gemma4:26b-mlx",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "written": 0,
-      "structure": 0,
-      "length": 0,
-      "citations_resolve": 0,
-      "citations_grounded": 0,
-      "prose_judged": 0
-    },
+    "parts": {},
     "notes": [
-      "report.md was never written",
-      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -765,20 +689,12 @@
     "model": "gemma4:26b-mlx",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "written": 0,
-      "structure": 0,
-      "length": 0,
-      "citations_resolve": 0,
-      "citations_grounded": 0,
-      "prose_judged": 0
-    },
+    "parts": {},
     "notes": [
-      "report.md was never written",
-      "prose_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -919,18 +835,12 @@
     "model": "gemma4:e4b-mlx",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 12,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 6,
-      "bug_attack": 6,
-      "executed": 0
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "never executed the program \u2014 the fix was asserted, not verified"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -941,22 +851,12 @@
     "model": "gemma4:e4b-mlx",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 24.0,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 2
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "411 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1018,19 +918,12 @@
     "model": "gemma4:e4b-mlx-bf16",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 6,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 6,
-      "bug_attack": 0,
-      "executed": 0
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 2 unfixed: KeyError on attack/attack_range",
-      "never executed the program \u2014 the fix was asserted, not verified"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1211,22 +1104,12 @@
     "model": "gpt-oss:20b",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "381 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 111.8,
@@ -1367,18 +1250,12 @@
     "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 12,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 6,
-      "bug_attack": 6,
-      "executed": 0
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "never executed the program \u2014 the fix was asserted, not verified"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1389,17 +1266,12 @@
     "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 15,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 6,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1565,18 +1437,12 @@
     "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1587,19 +1453,12 @@
     "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 6,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 0
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'",
-      "never executed the program \u2014 the fix was asserted, not verified"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1610,22 +1469,12 @@
     "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "586 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1636,22 +1485,12 @@
     "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ3_M",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "575 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1766,19 +1605,12 @@
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 6,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 0
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'",
-      "never executed the program \u2014 the fix was asserted, not verified"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1789,18 +1621,12 @@
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1811,23 +1637,12 @@
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 22.8,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 3.8,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "680 words",
-      "inline citations with no source entry: [6, 7, 8]",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1838,23 +1653,12 @@
     "model": "hf.co/deepreinforce-ai/Ornith-1.0-9B-GGUF:Q4_K_M",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
-    "total": 19.0,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "469 words",
-      "no inline citations at all",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1865,22 +1669,12 @@
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t1",
     "rep": 1,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "a_schedule": 0.0,
-      "b_backoff": 0,
-      "c_count": 0,
-      "d_judged": 0,
-      "tool_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "(a) 0/4 pairings correct",
-      "(b) wrong / missing",
-      "(c) wrong / missing",
-      "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1891,22 +1685,12 @@
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t1",
     "rep": 2,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "a_schedule": 0.0,
-      "b_backoff": 0,
-      "c_count": 0,
-      "d_judged": 0,
-      "tool_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "(a) 0/4 pairings correct",
-      "(b) wrong / missing",
-      "(c) wrong / missing",
-      "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -1967,17 +1751,12 @@
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 15,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 6,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2010,22 +1789,12 @@
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 23.9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 2.9,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 2
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "334 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2036,22 +1805,12 @@
     "model": "jikepjikep_16HEX/gemma-4-12b-nightshift-heretic-uncensored-qat-q4:latest",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
-    "total": 23.3,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 2.3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 2
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "274 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2259,22 +2018,12 @@
     "model": "ornith:9b",
     "task": "t1",
     "rep": 1,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "a_schedule": 0.0,
-      "b_backoff": 0,
-      "c_count": 0,
-      "d_judged": 0,
-      "tool_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "(a) 0/4 pairings correct",
-      "(b) wrong / missing",
-      "(c) wrong / missing",
-      "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2363,19 +2112,12 @@
     "model": "ornith:9b",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 6,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 0
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'",
-      "never executed the program \u2014 the fix was asserted, not verified"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2386,18 +2128,12 @@
     "model": "ornith:9b",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2408,22 +2144,12 @@
     "model": "ornith:9b",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "778 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2434,23 +2160,12 @@
     "model": "ornith:9b",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
-    "total": 19.0,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "493 words",
-      "no inline citations at all",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2565,17 +2280,12 @@
     "model": "qwen-heretic:latest",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 10,
-      "bug_alive": 6,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: PASS \u2014   RESULT: PASS"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2586,17 +2296,12 @@
     "model": "qwen-heretic:latest",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 10,
-      "bug_alive": 6,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: PASS \u2014   RESULT: PASS"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.1,
@@ -2607,22 +2312,12 @@
     "model": "qwen-heretic:latest",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "547 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2633,22 +2328,12 @@
     "model": "qwen-heretic:latest",
     "task": "t4",
     "rep": 2,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "560 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2885,18 +2570,12 @@
     "model": "qwen3.5:4b",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 6,
-      "bug_attack": 0,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 2 unfixed: KeyError on attack/attack_range"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2907,23 +2586,12 @@
     "model": "qwen3.5:4b",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 23.9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 5.4,
-      "citations_grounded": 4.0,
-      "prose_judged": 2.5
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "437 words",
-      "inline citations with no source entry: [10]",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 2.5 (manual) \u2014 judged score inherited from legacy model-level key, not judged for this rep specifically"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -2986,22 +2654,12 @@
     "model": "qwen3.5:4b-mlx",
     "task": "t1",
     "rep": 2,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "a_schedule": 0.0,
-      "b_backoff": 0,
-      "c_count": 0,
-      "d_judged": 0,
-      "tool_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "(a) 0/4 pairings correct",
-      "(b) wrong / missing",
-      "(c) wrong / missing",
-      "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -3012,23 +2670,12 @@
     "model": "qwen3.5:4b-mlx",
     "task": "t2",
     "rep": 1,
-    "status": "ok",
-    "total": 4.0,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 0.0,
-      "diversity": 0.0,
-      "grounded": 0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "0 stories, 0 source URLs",
-      "0 distinct domains: none",
-      "no source URLs at all"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 192.6,
@@ -3088,18 +2735,12 @@
     "model": "qwen3.5:4b-mlx",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 9,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -3164,22 +2805,12 @@
     "model": "qwen3.5:9b-mlx",
     "task": "t1",
     "rep": 1,
-    "status": "ok",
+    "status": "timeout",
     "total": 0,
     "max": 25,
-    "parts": {
-      "a_schedule": 0.0,
-      "b_backoff": 0,
-      "c_count": 0,
-      "d_judged": 0,
-      "tool_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "(a) 0/4 pairings correct",
-      "(b) wrong / missing",
-      "(c) wrong / missing",
-      "(d) JUDGED \u2014 max 4, fill in by hand",
-      "d_judged = 0 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -3216,23 +2847,12 @@
     "model": "qwen3.5:9b-mlx",
     "task": "t2",
     "rep": 1,
-    "status": "ok",
-    "total": 6.0,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "datetime_first": 2,
-      "deep_read": 4,
-      "story_count": 0.0,
-      "diversity": 0.0,
-      "grounded": 0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "called get_datetime, but only after searching",
-      "0 stories, 0 source URLs",
-      "0 distinct domains: none",
-      "no source URLs at all"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -3243,23 +2863,12 @@
     "model": "qwen3.5:9b-mlx",
     "task": "t2",
     "rep": 2,
-    "status": "ok",
-    "total": 4.0,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 0.0,
-      "diversity": 0.0,
-      "grounded": 0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
+    "parts": {},
     "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "0 stories, 0 source URLs",
-      "0 distinct domains: none",
-      "no source URLs at all"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -3270,19 +2879,12 @@
     "model": "qwen3.5:9b-mlx",
     "task": "t3",
     "rep": 1,
-    "status": "ok",
-    "total": 6,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 0,
-      "bug_attack": 6,
-      "executed": 0
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL",
-      "bug 1 unfixed: KeyError 'alive'",
-      "never executed the program \u2014 the fix was asserted, not verified"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -3293,17 +2895,12 @@
     "model": "qwen3.5:9b-mlx",
     "task": "t3",
     "rep": 2,
-    "status": "ok",
-    "total": 15,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "verify": 0,
-      "bug_alive": 6,
-      "bug_attack": 6,
-      "executed": 3
-    },
+    "parts": {},
     "notes": [
-      "play_verify: FAIL \u2014   RESULT: FAIL"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,
@@ -3314,22 +2911,12 @@
     "model": "qwen3.5:9b-mlx",
     "task": "t4",
     "rep": 1,
-    "status": "ok",
-    "total": 25,
+    "status": "timeout",
+    "total": 0,
     "max": 25,
-    "parts": {
-      "written": 4,
-      "structure": 5,
-      "length": 3,
-      "citations_resolve": 6.0,
-      "citations_grounded": 4.0,
-      "prose_judged": 3
-    },
+    "parts": {},
     "notes": [
-      "sections 4/4 present, order ok",
-      "490 words",
-      "prose quality: JUDGED \u2014 max 3, fill in by hand",
-      "prose_judged = 3 (manual, judged for this rep)"
+      "run did not complete: timed out or crashed: no answer was produced"
     ],
     "judged_pending": [],
     "seconds": 300.0,

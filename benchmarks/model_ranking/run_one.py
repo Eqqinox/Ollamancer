@@ -36,8 +36,23 @@ REPO = HERE.parent.parent
 sys.path.insert(0, str(REPO))
 
 
-class RunTimeout(Exception):
-    pass
+class RunTimeout(BaseException):
+    """Derived from BaseException, not Exception, and that is the whole point.
+
+    `agentic/cli.py` wraps `run_agent` in a bare `except Exception` so that one bad turn cannot
+    kill an interactive session. That guard is correct for its purpose and swallowed this
+    timeout whole: the SIGALRM handler raised, the agent caught it, printed its generic
+    "Unexpected error:" (with an empty message, since this class carries none), and returned
+    normally. The harness then recorded `status: "ok"` on a run that had produced nothing.
+
+    50 of the 135 scored runs in the banked campaign are blank for exactly this reason, and
+    score.py scored them as completed — up to 25/25, because T3 and T4 grade the artifact left
+    behind rather than the answer.
+
+    `BaseException` is how Python already spells "control flow that a catch-all must not
+    intercept", which is why KeyboardInterrupt and SystemExit live there. A benchmark deadline
+    is the same kind of thing: it is the harness stopping the run, not the run failing.
+    """
 
 
 def _swap_mb() -> float:
