@@ -201,7 +201,7 @@ def main():
 
     ui.console.print()
     _print_banner()
-    ui.console.print(Rule("[bold blue]  Ollamancer v3.0  [/bold blue]", style="blue"))
+    ui.console.print(Rule(f"[bold blue]  Ollamancer v{config.VERSION}  [/bold blue]", style="blue"))
     labels = [t("label_project"), t("label_model"), t("label_tools"), t("label_audit"), t("label_help")]
     w = max(len(l) for l in labels)
     ui.console.print(f"  [dim]{t('label_project').ljust(w)} :[/dim] [bold white]{project_root}[/bold white]")

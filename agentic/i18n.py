@@ -459,7 +459,7 @@ Réponds en français sauf si l'utilisateur écrit dans une autre langue. Cela s
 
 HELP_TEXT = {
     "en": """
-[bold]Available commands — Ollamancer v3.0[/bold]
+[bold]Available commands — Ollamancer v{version}[/bold]
 
   [bold cyan]Session[/bold cyan]
   [yellow]/exit[/yellow]                  Quit
@@ -519,7 +519,7 @@ HELP_TEXT = {
   [dim]Headless: agent.py --run \"prompt\"  ·  agent.py --recipe file.md  (exit code = success)[/dim]
 """,
     "fr": """
-[bold]Commandes disponibles — Ollamancer v3.0[/bold]
+[bold]Commandes disponibles — Ollamancer v{version}[/bold]
 
   [bold cyan]Session[/bold cyan]
   [yellow]/exit[/yellow]                  Quitter
@@ -582,4 +582,10 @@ HELP_TEXT = {
 
 
 def get_help_text() -> str:
-    return HELP_TEXT.get(config.LANG, HELP_TEXT["en"])
+    """The /help screen, with the version filled in from the single source in config.
+
+    `{version}` is the only placeholder in these blocks; everything else in them is literal
+    text containing braces the model never sees, so `.replace` is used rather than `.format`,
+    which would choke on the JSON-ish examples elsewhere in the help.
+    """
+    return HELP_TEXT.get(config.LANG, HELP_TEXT["en"]).replace("{version}", config.VERSION)

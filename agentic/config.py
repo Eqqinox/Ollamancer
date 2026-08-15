@@ -19,6 +19,14 @@ Non-persisted runtime state (project folder, safe mode, current session…) live
 
 from pathlib import Path
 
+# The one place the version is written. The banner and both /help headers read it from here.
+#
+# It used to be typed into three separate strings — cli.py's banner and the EN and FR help
+# texts — so bumping pyproject.toml to 3.1.0 left the running agent introducing itself as
+# v3.0, which is what a user saw on launch. `tests/test_structure.py` asserts this matches
+# pyproject.toml, so the two cannot drift apart again.
+VERSION = "3.1.0"
+
 # ── Paths & configuration files ──────────────────────────────────────────────
 # Skills (the open SKILL.md format, compatible with Claude Code/Cursor/Codex…). Three
 # sources, most specific wins: shipped with the agent (<repo>/skills/), user-global

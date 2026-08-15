@@ -335,6 +335,49 @@ def test_docs_count_tests_and_the_coverage_table_is_complete():
         f"missing {sorted(actual - listed)}, stale {sorted(listed - actual)}")
 
 
+def test_version_is_single_sourced():
+    """config.VERSION, pyproject.toml and the docs must agree, and nothing may hard-code it.
+
+    Added 2026-08-15 because bumping pyproject.toml to 3.1.0 left the running agent still
+    introducing itself as "Ollamancer v3.0" — the version was typed into three separate
+    strings (the startup banner and both /help headers) and none of them moved. The user saw
+    it on the very next launch, which is the most visible possible place for this class of
+    drift and the one the .md-only checks above could never catch.
+    """
+    pyproject = _read("pyproject.toml")
+    declared = re.search(r'^version = "([^"]+)"', pyproject, re.M).group(1)
+    assert config.VERSION == declared, (
+        f"config.VERSION is {config.VERSION}, pyproject.toml says {declared}")
+
+    # The short form the docs advertise, e.g. "v3.1" for 3.1.0.
+    short = ".".join(declared.split(".")[:2])
+    for doc, pattern in (("README.md", r"Status: \*\*v([\d.]+)\*\*"),
+                         ("Ollamancer.md", r"Version \*\*v([\d.]+)\*\*"),
+                         ("Agentic_Manual.md", r"Local terminal AI agent · v([\d.]+)")):
+        for found in re.findall(pattern, _read(doc)):
+            assert found == short, f"{doc} advertises v{found}; pyproject says {declared}"
+
+    # Nothing may hard-code it: every user-visible mention must read config.VERSION.
+    for mod in ("agentic/cli.py", "agentic/i18n.py"):
+        src = _read(mod)
+        hard = re.findall(r"Ollamancer v(\d+\.\d+)", src)
+        assert not hard, (
+            f"{mod} hard-codes the version {hard}; use config.VERSION or the "
+            "{version} placeholder so a bump cannot leave it behind")
+
+    # And the placeholder must actually be substituted, in both languages.
+    for lang in ("en", "fr"):
+        saved = config.LANG
+        try:
+            config.LANG = lang
+            rendered = i18n.get_help_text()
+        finally:
+            config.LANG = saved
+        assert "{version}" not in rendered, f"/help leaks the raw placeholder in {lang}"
+        assert f"Ollamancer v{config.VERSION}" in rendered, \
+            f"/help does not show the current version in {lang}"
+
+
 def test_docs_count_modules_and_lines():
     """Module and line counts, which must share a counting basis to mean anything.
 
