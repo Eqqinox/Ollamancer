@@ -85,7 +85,38 @@ no duplicated events.*
 | 10 | gamy316/aileen1.0 | 14.3 | Never dated, all stories from one outlet |
 
 > **Zero fabricated URLs across all ten models.** Every citation matched real retrieved
-> content. The honesty layer is doing its job.
+> content.
+>
+> **This measures the models, not the honesty layer** — corrected 2026-08-15. This block used
+> to end "the honesty layer is doing its job", which does not follow. `_grounding_check` fired
+> **zero times across all 168 runs** of this campaign, and zero times again across a separate
+> 96-run A/B on the same battery. A check that never fires cannot be *why* nothing was
+> fabricated: on this battery the models simply did not fabricate URLs.
+>
+> **It never fired, and we know it works anyway.** That is the useful claim, and it is now
+> measured rather than assumed — because silence is the same observation for a check that is
+> perfectly calibrated and for one that is dead, and the second reading is the one that should
+> worry anyone. Three things had to be true, and `tests/test_grounding_sensitivity.py` plus
+> `tests/test_a56.py` establish all three:
+>
+> | | |
+> |---|---|
+> | **Reachable at runtime**, not dead code | `test_a56` drives a fabricated number and date through the real `run_agent` and asserts both the injected nudge and the `AUTO_GROUNDING_CHECK_NUDGE` audit record |
+> | **Not defeated by volume** | an invented URL and figure injected into real banked answers, against their real tool results: **caught 91 of 91**. The worry was that a 10-16 KB haystack matches anything by coincidence; a random 4-digit value collides with the concatenated digit-soup only **~3%** of the time, 5 digits 0.3%, 6+ never |
+> | **Sensitive to a realistic fabrication** | not a straw-man fake domain but a plausible one-digit change to a figure the model genuinely retrieved: **71 of 78 (91%) would have nudged**, 7 stayed silent |
+>
+> So the correct reading of the zero is *"nothing needed flagging"*, not *"the check is
+> broken"*, and not *"the check is why."*
+>
+> **Still not verified:** every positive above is synthetic. No model has yet been observed
+> fabricating and being caught in the wild, so this measures the detector, never the deterrent.
+> Paraphrase remains uncovered by construction (`test_grounding_recheck` pins that blind spot),
+> and the 9% that slip silently are unanalysed.
+>
+> Worth stating plainly, because the original error is the one this project exists to
+> criticise: a true observation ("zero fabricated URLs") was attributed to the wrong cause. The
+> same shape appears in `PLAN.md` §3 (`status: "ok"` read as "the run answered") and
+> `DESIGN.md` §4.2b (`had_verification` read as "the model did not check its work").
 >
 > **Best value:** `qwen3.5:4b`, a perfect search score from a **3.4 GB** model with zero swap.
 
@@ -266,8 +297,16 @@ so they stay in the ranking without occupying 15.7 GB.
   **Superseded on 11 August:** this caution turned out to be understated. A second rep moved
   eight of ten models, the largest by 17 points — more than the 6-point tie band suggested was
   possible. See [section 10](#10-pass2-the-authoritative-ranking-11-august-2026).
-- **The 5-minute cap shapes the results.** 19 of 40 runs hit it. A model scoring 0 on the
+- **The 5-minute cap shapes the results.** **14** of 40 runs hit it. A model scoring 0 on the
   report might well have finished given 15 minutes, but that is not a workflow anyone wants.
+  *(Corrected 2026-08-15: this said 19, which contradicted §1's own per-model timeout column on
+  the same page — that column reads 0+0+0+1+1+2+2+2+3+3 and sums to 14. Recomputed from
+  `scores.json`: 14 of the 40 rep-1 runs reached the 300 s cap. No threshold reproduces 19
+  (≥250 s gives 18, ≥298 s gives 14), so 19 appears to have been a miscount rather than a
+  different definition. §1 was right.)*
+  **And "hit the cap" understates what happens**, which is the more important correction: a
+  capped run does not merely score badly, it returns the six characters `ERROR:` and is recorded
+  as `status: "ok"`. See the warning under [`PLAN.md` §3](./PLAN.md).
 - **This benchmark was wrong twice before it was right.** A `repeat_penalty` of 1.1
   manufactured four false "this model cannot call tools" verdicts. A parsing bug scored a
   *perfect* reasoning answer 2.2 out of 25. A third bug read grounding evidence from only the

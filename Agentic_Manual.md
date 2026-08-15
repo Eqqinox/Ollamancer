@@ -403,12 +403,14 @@ used to be hard-coded. Navigate with **↑/↓** between rows, **←/→** to ad
 **`r`** to reset the selected one to its default, **`q`**/Enter to exit. A help line at the
 bottom explains the currently selected parameter.
 
-**30 parameters, 3 sections:**
+**32 parameters, 3 sections:**
 
-- **Model Generation (7)**: Temperature, Top P, Top K, Repeat Penalty, Max Output Tokens,
+- **Model Generation (8)**: Temperature, Top P, Top K, Repeat Penalty, Max Output Tokens,
   Seed, and **Stream Final Answer** (stream the final answer live; can be disabled if a model
   regresses on tool-calling while streaming).
-- **Context & Safety Limits (15)**: context cap (**64K**), max tool rounds, max background
+- **Context & Safety Limits (16)**: context cap (**64K**), max tool rounds, **turn time
+  budget** (`TURN_BUDGET_SECONDS`, 0 = off: when set and reached, the agent answers from what
+  it already gathered instead of returning nothing), max background
   processes, max self-check re-prompts, max fake-tool-call retries, max citation reminders,
   max anti-hypothetical-fabrication nudges, max unsupported-values nudges
   (`_grounding_check`), max claimed-without-action nudges, tolerated tool refusals during the
@@ -992,8 +994,30 @@ when one is configured, see the MCP section of [`capabilities.md`](./capabilitie
 
 ### The agent doesn't answer / is very slow
 - The model is thinking, the "Thinking…" spinner with the live RAM readout is normal.
-- Press **Esc** to stop it and get back to the prompt.
+- Press **Esc** to stop it and get back to the prompt. Note that what the model had gathered
+  so far is discarded — Esc is a cancel, not a "wrap up now".
 - For faster answers, switch to a smaller model with `/model`.
+- **There is no time limit by default.** A local model on a busy machine can take many minutes;
+  nothing cuts it off. If you would rather have a partial answer than a long wait, set
+  **Turn Time Budget** in `/parameters` (e.g. 600 seconds). When it trips, the agent stops
+  calling tools and spends one last generation answering from what it already found, clearly
+  marked incomplete — it does not return empty.
+- The same now applies to the **tool-round limit**. Hitting it used to end the turn with
+  "Stopped after N tool-call rounds" and nothing else; it now produces a partial answer the
+  same way.
+
+### The turn ended with "Unexpected error:"
+
+Something raised inside the turn. The session is fine and your earlier messages are intact —
+only that one turn is lost.
+
+- The message names the exception type. If it also has a description, that is the model's or
+  Ollama's own wording.
+- The **full traceback is in `.agentic/audit.log`** (not written under `--private`). That is the
+  thing to read, or to paste into an issue.
+- If it repeats on the same request: narrow the request, `/clear` for a fresh turn, or `/model`
+  to switch. A repeating failure on one specific model is usually an Ollama tool-call parsing
+  bug — the agent retries those automatically, and reports when the retries are exhausted.
 
 ### Python import error
 ```bash

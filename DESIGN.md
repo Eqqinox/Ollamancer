@@ -283,6 +283,55 @@ and, by a published comparison, roughly 11% precision — it counts an answer th
 a disclaimer attached as a refusal, because it matches on the phrase rather than the outcome.
 The tool that produced the model which surfaced this bug carries a version of the same bug.
 
+### 4.2c A check that never fires: calibrated, or dead?
+
+`_grounding_check` fired **zero times in 264 benchmark runs** — 168 in the model ranking, 96 in
+the honesty A/B. `RESULTS.md` §2 originally read that as the layer "doing its job." It does not
+follow. But neither does the opposite, and the opposite is the one worth worrying about:
+**silence is the same observation for a check that is perfectly calibrated and for one that is
+broken.** A deterministic honesty layer that has never been shown to work is a claim, not a
+control.
+
+Distinguishing them needs three separate facts, and only the first was covered:
+
+1. **Reachable at runtime.** `test_a56` already drove a fabricated number and date through the
+   real `run_agent` and asserted both the injected nudge and the audit record. Not dead code.
+2. **Not defeated by volume.** The live hypothesis was that the check is *effectively* dead
+   where it matters: it substring-matches against every tool result of the turn concatenated,
+   and a real search turn produces 10–16 KB of that, so perhaps a haystack that large matches
+   anything by coincidence. **False, and by a wide margin.** Injecting an invented URL and
+   figure into real banked answers, against their real tool results, was caught **91 of 91**. A
+   random 4-digit value collides with the concatenated digit-soup only ~3% of the time; five
+   digits 0.3%; six or more, never.
+3. **Sensitive to a *realistic* fabrication.** Appending an obviously fake domain is a straw
+   man. The failure that actually occurs is a plausible one-digit change to a figure the model
+   really did retrieve. On answers verified clean first: **71 of 78 (91%) would have nudged**,
+   7 stayed silent.
+
+So the zero means *nothing needed flagging* — not that the check is broken, and not that the
+check is why. `tests/test_grounding_sensitivity.py` pins all of it.
+
+Two methodological notes worth keeping, since both nearly produced a wrong answer:
+
+**The measurement instrument was wrong before the code was.** An early sweep reported that 20
+real answers "would already have been flagged", which implied a wiring bug — the function
+working in unit tests but starved of data in the loop. It was reading `answer.txt`, which is a
+run's whole **stdout**: the agent's own XML-fallback warning (carrying Ollama issue numbers
+14834/16383/16810), echoed tool-call JSON, banner. The runtime check sees only `msg.content`.
+No bug. When a measurement says the code is broken, check the measurement first.
+
+**A synthetic fixture can flatter or frame the thing it tests.** The first haystack built for
+the sensitivity test was almost entirely numbers and showed a **17.8%** four-digit collision
+rate against the real corpus's **2.8%**. It would have "demonstrated" that the matcher is
+vacuous, by testing a haystack no search turn produces. The fixture is now matched to the
+corpus on size *and* digit density, and asserts its own density so it cannot drift — the prose
+padding is the control, not filler.
+
+**What remains unverified, and is not hidden by the above:** every positive is synthetic. No
+model has been observed fabricating and being caught in the wild, so this measures the
+detector, never the deterrent. Paraphrase is uncovered by construction (§4.2, and the blind
+spot pinned in `test_grounding_recheck`), and the 9% that slip silently are unanalysed.
+
 ### 4.3 "A clean lint is not proof"
 
 A controlled comparison of four models on one real bug: **all three that attempted a fix

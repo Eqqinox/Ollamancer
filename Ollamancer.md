@@ -26,9 +26,13 @@ models, and privacy.**
 
 - **Local and private first.** Everything runs offline via Ollama. A `--private` mode makes a
   session fully ephemeral (nothing written to disk).
-- **From scratch, no framework.** ~6,700 lines of readable Python across fourteen focused modules, auditable end-to-end.
+- **From scratch, no framework.** ~7,700 lines of readable Python across 21 focused modules —
+  12 in `agentic/` plus 9 tool modules in `agentic/tools/` — auditable end-to-end.
   The decision was validated repeatedly: many fixes required line-level control a framework
-  would have hidden.
+  would have hidden. *(Corrected 2026-08-15: this read "~6,700 lines across fourteen focused
+  modules". The line count had drifted with the code; "fourteen" counted the 12 `agentic/`
+  modules plus `agent.py` and `imessage_bridge.py`, a basis that excluded the tool modules the
+  line count included. The counting basis is now stated so the pair can be checked.)*
 - **Nudge, never gate.** The agent warns and re-prompts the model; no code path rewrites,
   filters or blocks what the model produced. Honesty checks are *nudges*, not censors. Stated
   precisely, because the shorthand flatters it: a nudge re-prompts, and it is the **second**
@@ -104,6 +108,11 @@ Plus **`run_command`** exposes the entire shell, and **MCP** adds any third-part
   appear in no tool result this turn) and a claim-vs-action nudge ("fixed"/"verified" with no
   real edit/verification), both deterministic. The "verified" half stands down on a turn built
   from search and read calls, where the word means checked against the sources.
+- **Graceful exhaustion**: hitting the tool-round limit, or an optional `TURN_BUDGET_SECONDS`
+  wall clock, no longer discards the turn. The loop stops calling tools and spends one final
+  generation answering from the evidence already gathered, labelled incomplete, with the
+  grounding check still applied as a warning. Off by default for the timer; a slow local model
+  is not misbehaving.
 - **Headless / batch**: `--run "prompt"` and `--recipe file.md` (exit code = success) for
   cron/scripts.
 - **Privacy**: `--private` ephemeral session; safe mode (`--safe`) approves risky calls; Docker
@@ -133,7 +142,7 @@ Ollamancer treats the failure modes of small local models as first-class problem
 
 ## 7. Configuration & control
 
-- **`/parameters`**: a full-screen curses menu, **31 live-tunable settings** (generation params,
+- **`/parameters`**: a full-screen curses menu, **32 live-tunable settings** (generation params,
   context cap, safety/nudge limits, search tuning, streaming, compaction), persisted to
   `~/.agentic_1a_params.json`.
 - **Models**: `/model` (session), `/default-model` (persisted), `/failover-model`,
@@ -167,7 +176,7 @@ Ollamancer.md             # this file, detailed presentation
 Agentic_Manual.md         # full user manual
 capabilities.md           # exhaustive capability list
 DESIGN.md                 # design rationale & engineering history
-tests/                    # deterministic offline test suite (40 tests)
+tests/                    # deterministic offline test suite (42 tests)
 ```
 
 ---

@@ -19,7 +19,7 @@ it, since a name imported elsewhere is a separate binding.
 Either runner works, and both run each test in its **own process**.
 
 ```bash
-pytest                         # 40 scripts plus a collection guard
+pytest                         # 42 scripts plus a collection guard
 pytest -k skills               # one script
 pytest -x                      # stop at the first failure
 bash tests/run_all.sh          # no pytest needed
@@ -35,7 +35,7 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root, "tests: 40 passed, 0 failed"
+bash tests/run_all.sh          # from the project root, "tests: 42 passed, 0 failed"
 ```
 
 Or a single test:
@@ -44,7 +44,7 @@ Or a single test:
 PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 ```
 
-## Coverage (24 files)
+## Coverage (42 files)
 
 | File | Feature under test |
 |---|---|
@@ -70,7 +70,7 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_ctrlc` | Ctrl+C at prompt cancels (doesn't quit) |
 | `test_private` | `--private` writes nothing to disk |
 | `test_skills` | skills discovery / `load_skill` |
-| `test_structure` | golden master: tool registry, slash commands, EN/FR parity, params schema |
+| `test_structure` | golden master: tool registry, slash commands, EN/FR parity, params schema, **and every count the docs advertise about the repo's own shape** — tools, live settings, skills, tests, modules, lines, plus that the coverage table below lists every test file. Added after an audit found four had drifted at once (test count 36 vs 40, coverage header 24 vs 41, ~6,700 lines vs 7,727, "fourteen" modules vs 21). All seven assertions were mutation-tested: each fails with the actual figure when its doc is edited |
 | `test_import_rules` | live-module import rules, no globals() across modules, no shadowing, no undefined names |
 | `test_ram_readout` | the live RAM figure comes from `ollama.ps()`, not process RSS, which undercounts the MLX engine |
 | `test_packaging` | the 14 bundled skills are findable in a checkout and shipped by the wheel; requirements.txt and pyproject stay in step |
@@ -83,6 +83,8 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_source_diversity` | one page per outlet in search results, rather than several from the same domain |
 | `test_duplicate_items` | flag the same event reported twice in one answer, without firing on a shared live-blog URL |
 | `test_grounding_recheck` | the answer a grounding nudge produces is itself checked once, and **warned** about rather than nudged again. The nudge is capped at 1, so a fabrication introduced *by* the correction used to ship unexamined — observed live, a model replaced one invented repo owner with another and declared it verified. Also pins the known blind spot: a bare `owner/repo` slug in prose is not a token class and is not detectable, deliberately, since `agentic/loop.py` has the same shape |
+| `test_deadline_salvage` | running out of budget must produce an answer, not a status line. Both exhaustion paths — the round limit and a wall-clock budget — used to discard everything gathered; in the ranking campaign that hit 50 of 135 runs, one after 35 successful tool calls. Pins that the salvage call passes an **empty** tool list (`None` means *all* tools in `_stream_or_buffer_chat`, and the first version passed None, handing the model the full toolset with no budget left — it failed silently because the model just called another tool), that the salvaged text is what the caller receives, that a failed salvage still reports honestly, and that the time budget ships off by default |
+| `test_grounding_sensitivity` | **`_grounding_check` never fired in 264 benchmark runs — this measures whether it *would* have.** Silence is the same observation for a check that is perfectly calibrated and one that is dead, and only the second is alarming. Pins that an invented URL and figure are caught inside a haystack matched to the real corpus on *both* size and digit density (an early fixture was 17.8% four-digit-collision against the corpus's 2.8% and would have "proved" the matcher vacuous), that a grounded answer stays silent, and that a one-digit change to a cited figure does not pass. Sweeps the banked runs when present — 91/91 injected fabrications caught — and skips cleanly in CI, where `results/` is gitignored |
 | `test_claim_action_research` | the "you claim to have verified" nudge must not fire on a research turn. `had_verification` is set only by `lint_file`/`run_tests`/`run_command`, so on a search-and-read turn it is structurally False and every answer saying "verified" was accused of claiming a test it never ran — reported on a `gemma-4-26b-heretic` search turn, where the model complied and replaced a sound answer with a paragraph about not having run `run_tests`. Pins the three shapes whose premise still holds (edited-but-unverified, no-tools-at-all, and the fix half), and that the flag can only ever *silence* a nudge, never raise one |
 | `test_failover_unload` | a plumbing failover unloads the model it fails away from. Two resident models do not fit in 24 GB — the architect path enforces that at four call sites, the three failover branches did not, and the omission survived because the same three lines were written three times. Pins the unload, the audit record, and that no branch switches models inline |
 | `test_context_overflow` | the fifth plumbing signature. A prompt over `num_ctx` makes Ollama drop the *oldest* messages, which deletes the user's own instruction; two models refuse outright and the rest answer from a conversation missing the request. Pins that the pre-send guard fires above the 85% ceiling, that it runs even with `AUTO_COMPACT` off (it is a correctness guard, not the convenience path), and that the handler's match string still appears in the real Ollama error |

@@ -16,6 +16,7 @@ the `agentic/` package:
 
 Runs offline: importing agent has no side effects that need Ollama or the network.
 """
+import collections
 import pathlib
 import re
 import tempfile
@@ -62,7 +63,8 @@ EXPECTED_SLASH_COMMANDS = {
 EXPECTED_PARAM_VARS = {
     "GEN_TEMPERATURE", "GEN_TOP_P", "GEN_TOP_K", "GEN_REPEAT_PENALTY", "GEN_NUM_PREDICT",
     "GEN_SEED", "TOOL_DISPLAY", "STREAM_FINAL",
-    "SAFE_NUM_CTX", "MAX_TOOL_ROUNDS", "MAX_BACKGROUND_PROCESSES", "MAX_VERIFY_NUDGES",
+    "SAFE_NUM_CTX", "MAX_TOOL_ROUNDS", "TURN_BUDGET_SECONDS", "MAX_BACKGROUND_PROCESSES",
+    "MAX_VERIFY_NUDGES",
     "MAX_FAKE_TOOLCALL_RETRIES", "MAX_CITATION_NUDGES", "MAX_GROUNDING_NUDGES",
     "MAX_GROUNDING_CHECK_NUDGES", "MAX_CLAIM_ACTION_NUDGES", "MAX_READONLY_REFUSALS",
     "SEMANTIC_TOP_K", "SEMANTIC_CHUNK_LINES", "AUTO_COMPACT", "COMPACT_THRESHOLD_PCT",
@@ -174,7 +176,7 @@ def test_param_schema():
     assert variables == EXPECTED_PARAM_VARS, (
         f"tunables changed\n  missing: {sorted(EXPECTED_PARAM_VARS - variables)}"
         f"\n  unexpected: {sorted(variables - EXPECTED_PARAM_VARS)}")
-    assert len(params) == 31, f"expected 31 tunables, got {len(params)}"
+    assert len(params) == 32, f"expected 32 tunables, got {len(params)}"
     for p in params:
         assert p["kind"] in ("int", "float", "enum"), f"{p['var']}: bad kind {p['kind']!r}"
         assert p.get("help"), f"{p['var']} has no help text"
@@ -234,6 +236,116 @@ def test_no_duplicate_tool_docstrings():
         assert fn.__doc__ and fn.__doc__.strip(), f"{fn.__name__} has no docstring"
     docs = [fn.__doc__.strip()[:120] for fn in tools.TOOLS]
     assert len(set(docs)) == len(docs), "two tools share an identical description"
+
+
+def test_advertised_counts_match_reality():
+    """Every number the docs quote about the repo's own shape must be the repo's own shape.
+
+    Added 2026-08-15 after an audit found **four** of these had drifted at once: the test count
+    (advertised 36 against an actual 40, having already been corrected once before), the
+    coverage header in `tests/README.md` (24 against 41), the line count in `Ollamancer.md`
+    (~6,700 against 7,727) and the module count in the same sentence ("fourteen", which counted
+    the 12 `agentic/` modules plus two root files — a basis that excluded the nine tool modules
+    the line count in the same breath included).
+
+    None of these is interesting on its own. Together they are: a project whose front page says
+    "the docs never claim something works from reading the code alone" was carrying six
+    hand-maintained numbers that nothing checked. Every one of them is something the repo can
+    count about itself, so from here it does.
+
+    The line count carries a tolerance because it moves with every commit and precision there
+    would be noise; the rest are exact, because they change only when something is genuinely
+    added or removed, and that is exactly when a doc should be updated too.
+    """
+    root = pathlib.Path(__file__).resolve().parent.parent
+    read = lambda p: (root / p).read_text()                                  # noqa: E731
+
+    def claims(path, pattern):
+        return [m for m in re.findall(pattern, read(path))]
+
+    # ── tools ────────────────────────────────────────────────────────────────
+    n_tools = len(tools.TOOL_MAP)
+    for doc in ("README.md", "Ollamancer.md"):
+        for found in claims(doc, r"(\d+) native tools"):
+            assert int(found) == n_tools, (
+                f"{doc} advertises {found} native tools; the registry has {n_tools}")
+
+    # ── live-tunable settings ───────────────────────────────────────────────
+    n_params = len(ui._all_params())
+    for doc in ("README.md", "Ollamancer.md"):
+        for found in claims(doc, r"(\d+) live-tunable settings"):
+            assert int(found) == n_params, (
+                f"{doc} advertises {found} live-tunable settings; /parameters has {n_params}")
+
+    # The manual counts the same settings in its own words, and per section. Both were stale
+    # (30 against 32, and "Model Generation (7)" against 8) within an hour of this test being
+    # written, which is the argument for checking the phrasings rather than one canonical one.
+    for found in claims("Agentic_Manual.md", r"\*\*(\d+) parameters, 3 sections:\*\*"):
+        assert int(found) == n_params, (
+            f"Agentic_Manual.md says {found} parameters; /parameters has {n_params}")
+    per_section = collections.Counter()
+    section = None
+    for kind, entry in ui._flatten_schema():
+        if kind == "header":
+            section = entry
+        else:
+            per_section[section] += 1
+    for label, count in re.findall(r"- \*\*([A-Za-z &]+) \((\d+)\)\*\*:", read("Agentic_Manual.md")):
+        if label in per_section:
+            assert int(count) == per_section[label], (
+                f"Agentic_Manual.md says {label} has {count} settings; it has "
+                f"{per_section[label]}")
+
+    # ── bundled skills ──────────────────────────────────────────────────────
+    n_skills = len(list((root / "skills").glob("*/SKILL.md")))
+    for doc in ("README.md", "Ollamancer.md", "Agentic_Manual.md"):
+        for found in claims(doc, r"(\d+)-skill library"):
+            assert int(found) == n_skills, (
+                f"{doc} advertises a {found}-skill library; skills/ holds {n_skills}")
+
+    # ── tests ───────────────────────────────────────────────────────────────
+    # test_scripts.py is the pytest runner for the others, not a test, and run_all.sh skips it.
+    n_tests = len([p for p in (root / "tests").glob("test_*.py") if p.stem != "test_scripts"])
+    for doc, pattern in (("README.md", r"(\d+) deterministic tests"),
+                         ("README.md", r"test suite \((\d+) tests\)"),
+                         ("Ollamancer.md", r"test suite \((\d+) tests\)"),
+                         ("tests/README.md", r"(\d+) scripts plus a collection guard"),
+                         ("tests/README.md", r"tests: (\d+) passed"),
+                         ("tests/README.md", r"## Coverage \((\d+) files\)")):
+        for found in claims(doc, pattern):
+            assert int(found) == n_tests, (
+                f"{doc} advertises {found} tests; tests/ holds {n_tests}")
+
+    # Every test must also appear in the coverage table, or the table is decorative.
+    listed = set(re.findall(r"^\| `(test_[a-z0-9_]+)`", read("tests/README.md"), re.M))
+    actual = {p.stem for p in (root / "tests").glob("test_*.py")} - {"test_scripts"}
+    assert listed == actual, (
+        f"tests/README.md coverage table out of step: "
+        f"missing {sorted(actual - listed)}, stale {sorted(listed - actual)}")
+
+    # ── modules and lines ───────────────────────────────────────────────────
+    pkg = [p for p in (root / "agentic").glob("*.py") if p.name != "__init__.py"]
+    tool_mods = [p for p in (root / "agentic/tools").glob("*.py") if p.name != "__init__.py"]
+    n_modules = len(pkg) + len(tool_mods)
+    n_lines = sum(len(p.read_text().splitlines()) for p in pkg + tool_mods)
+
+    for found in claims("Ollamancer.md", r"across (\d+) focused modules"):
+        assert int(found) == n_modules, (
+            f"Ollamancer.md says {found} focused modules; agentic/ has {len(pkg)} plus "
+            f"{len(tool_mods)} tool modules = {n_modules}")
+    for a, b in re.findall(r"(\d+) in `agentic/` plus (\d+) tool modules", read("Ollamancer.md")):
+        assert (int(a), int(b)) == (len(pkg), len(tool_mods)), (
+            f"Ollamancer.md splits the module count as {a}+{b}; actual is "
+            f"{len(pkg)}+{len(tool_mods)}")
+
+    for found in claims("Ollamancer.md", r"~([\d,]+) lines of readable Python"):
+        claimed = int(found.replace(",", ""))
+        # 10%: the count moves with every commit, so demanding precision would just
+        # produce a test that fails on unrelated work. It still catches real drift —
+        # the 6,700 this replaced was 13% low and would have failed here.
+        assert abs(claimed - n_lines) / n_lines < 0.10, (
+            f"Ollamancer.md says ~{found} lines of Python; agentic/ is {n_lines}. "
+            f"Round to the nearest hundred and update the doc.")
 
 
 if __name__ == "__main__":

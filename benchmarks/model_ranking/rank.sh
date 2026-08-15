@@ -98,6 +98,14 @@ is_heavy() {
 
 # ── one-model-at-a-time guard ────────────────────────────────────────────────
 unload_all() {
+  # `local` is load-bearing. Both driver loops below iterate with `m`, and unload_all is
+  # reached from inside them via assert_none_resident, so without this the loop variable is
+  # left pointing at the last array element and the rest of that model's runs are performed
+  # by a different model. Nothing is mislabelled when it happens (run_one.py derives both the
+  # outdir and meta.json from the same variable) — the symptom is a roster model silently
+  # getting zero runs. Not triggered in the banked campaign: all 15 survivors are at 8/8.
+  # Found when it did trigger in ab_honesty.sh, which inherited this function.
+  local m
   for m in "${ALL_MODELS[@]}" "${HEAVY_MODELS[@]}"; do ollama stop "$m" >/dev/null 2>&1; done
 }
 

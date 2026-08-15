@@ -30,9 +30,18 @@ design:
    This is now what the code actually computes. `score.py --all` groups runs by
    `(model, task)` and reports the **minimum** of the per-rep totals as
    `pass_k_total`, with `mean_total` and `spread` (max − min) alongside for context,
-   and sums the minima across `t1..t4` into one ranked per-model table. A rep that
-   crashed or timed out already scores 0, so it collapses the pass^k total on its
-   own. `rank.sh` therefore defaults to `--reps 2`.
+   and sums the minima across `t1..t4` into one ranked per-model table. A rep that crashed or
+   timed out scores 0, so it collapses the pass^k total on its own. `rank.sh` defaults to
+   `--reps 2`.
+
+   > **That last sentence was false for the whole of the first campaign, and is true only as of
+   > 2026-08-15.** A timed-out rep used to record `status: "ok"`, and `score.py` skipped only
+   > runs whose status was *not* `ok`, so a run that produced nothing was scored on whatever
+   > artifact it had left behind — up to 25/25. Both halves are now fixed (`RunTimeout` derives
+   > from `BaseException` so the agent's catch-all cannot swallow it; `score.py` scores a blank
+   > answer 0 regardless of status). Re-scoring the banked campaign on that basis moved **42 of
+   > 135 runs** and cost fifteen of eighteen models points, the largest by 50. Full account in
+   > the note under §3.
 
    > **Results produced before 2026-08-11 are `pass^1`.** They are single
    > observations, not reliability measurements, and are *not* directly comparable to
@@ -107,21 +116,83 @@ Three notes for the delete decision, independent of any score:
 
 Identical for every model, every run. No per-model tuning.
 
+> **Corrected 2026-08-15.** Every numeric value in this table was wrong: it described the
+> controls as first drafted on 2026-08-08 and was never updated when the `repeat_penalty`
+> investigation (`RESULTS.md` §6) changed them. `RESULTS.md` line 5 has always stated the real
+> values, so no published result is affected — but §1.4 of this document says the configuration
+> "is reported alongside the results" and is "part of the score", which makes a controls table
+> that describes a configuration never run the worst single error in this file. The values below
+> are now read from `run_one.py::_pinned_params()`, which is the only place they actually live.
+
 | Setting | Value | Why |
 |---|---|---|
-| `SAFE_NUM_CTX` | **16384** | Pinned, and deliberately small. Otherwise a 262K model and a 128K model negotiate different windows and the comparison is meaningless. The KV cache is the part of the footprint that scales with this, so 16K rather than 32K is the single biggest memory saving available, and it matters most for the 17-18 GB models closest to the edge. No task here comes near 16K. |
-| `GEN_TEMPERATURE` | **0.3** | Low, not zero. Agentic work rewards determinism; 0.8 (the interactive default) adds variance that would swamp real differences across so few runs. |
-| `GEN_TOP_P` | 0.9 | Project default, unchanged. |
-| `GEN_SEED` | **42** | Fixed. Cuts variance. Does *not* make runs fully reproducible, tool results come from the live web, but removes one source. |
-| `GEN_NUM_PREDICT` | **2048** | Comfortably above the longest expected answer (a ~350-word report plus reasoning). The ceiling exists to stop a degenerating model generating for hours, not to permit long output. |
+| `SAFE_NUM_CTX` | **32768** | Pinned. Otherwise a 262K model and a 128K model negotiate different windows and the comparison is meaningless. 32K leaves ~4x headroom over the measured bare-session prompt (~8,200 tokens: system prompt plus tool schemas) while costing half the KV cache of the 64K used interactively. No task here comes near it. |
+| `GEN_TEMPERATURE` | **0.35** | Low, not zero. Agentic work rewards determinism, and high temperature adds variance that would swamp real differences across so few runs. This is a *measured* choice, not a tidy one: see `GEN_REPEAT_PENALTY` below for what happened when these were picked for looking deterministic rather than for working. Note `run_one.py` describes this as "the author's real interactive setting" — true when written and still the value `RESULTS.md` §6 recommends, but the live `~/.agentic_1a_params.json` now reads **0.2**, so the benchmark and the author's own session have drifted apart. The benchmark value is the one that matters for comparability; the comment is what is stale. |
+| `GEN_TOP_P` | 0.95 | The author's real interactive setting, and still matches the live config. |
+| `GEN_TOP_K` | 40 | The author's real interactive setting, and still matches the live config. |
+| `GEN_REPEAT_PENALTY` | **1.15** | **The single most important control here, and it was missing from this table until 2026-08-15.** At 1.10, tool calling breaks: 2 successes out of 11, against 9 out of 9 at 1.15, with temperature, top_p, seed and context size each isolated and ruled out. Tool-call syntax is repetitive — braces, quotes, repeated keys — so too weak a penalty lets the sampler loop mid-JSON. This first appeared disguised as "these four models cannot call tools". Full account in `RESULTS.md` §6. **Do not lower it.** |
+| `GEN_SEED` | **the rep number** (1, 2, …) | Not a fixed seed. A single seed across reps would make repeats near-identical samples, which would make any `pass^k` claim meaningless — the metric needs independent draws. Runs are still not fully reproducible, since tool results come from the live web. |
+| `GEN_NUM_PREDICT` | **4096** | Comfortably above the longest expected answer (a ~350-word report plus reasoning). The ceiling exists to stop a degenerating model generating for hours, not to permit long output. |
 | `STREAM_FINAL` | off | Headless mode forces this anyway. |
 | Mode | **`--private`** | Critical. No session file, no audit log, no input history, **no persistent memory**. Runs cannot contaminate each other. This is exactly what `aileen1.0` did when it wrote a correction nudge into `.agentic/memory.md` and it would have poisoned every later run. |
 | Project dir | fresh per run | Wiped and recreated. |
 | Concurrency | **one model, ever** | `ollama stop` after every run, `ollama ps` asserted empty before the next starts. Enforced in the harness, not by discipline. |
-| Timeout | **300 s (5 min)** hard cap | A run that exceeds it is scored as a failure, not retried. A model that cannot finish these shortened tasks in 5 minutes is not usable for this workflow, so the slow ones cost 5 minutes instead of 9. |
+| Timeout | **300 s (5 min)** hard cap | A run that exceeds it scores 0 and is not retried. A model that cannot finish these shortened tasks in 5 minutes is not usable for this workflow, so the slow ones cost 5 minutes instead of 9. **True only since 2026-08-15** — for the first campaign a timed-out run was scored on the artifact it had left behind, see the note below. |
 | Cooldown | **8 s between runs** | Lets the GPU memory actually be released and gives the machine a moment to shed heat before the next load, rather than going straight from one 18 GB model into another. |
 | Order | **lightest model first** | If the campaign is interrupted the cheap results are already banked, and the machine warms up gradually instead of starting at 18 GB. |
 | Size limit | **20 GB, `--include-heavy` to override** | See §2. Loading a model bigger than RAM does not run slowly, it swaps. |
+
+> ### The timeout scoring bug, found and fixed 2026-08-15
+>
+> For the whole of the first campaign, **a timed-out run was scored as if it had succeeded.**
+> This section records it rather than quietly correcting the numbers, because the ranking in
+> `RESULTS.md` was published on the strength of it.
+>
+> **The mechanism.** `run_one.py` arms `SIGALRM` to raise `RunTimeout`, but `agentic/cli.py`
+> catches bare `Exception` around `run_agent` — a deliberate guard so one bad turn cannot kill an
+> interactive session. It swallowed the deadline. `RunTimeout()` carries no message, so the agent
+> printed "Unexpected error:" with nothing after it, returned normally, and the harness recorded
+> `status: "ok"` on a run that had produced nothing. `score.py` skipped only runs whose status was
+> *not* `ok`, so those runs were scored on whatever artifact they had left behind.
+>
+> **The scale.** 50 of the 135 scored runs were blank in exactly this way, and 42 of those 50
+> scored above zero. (53 of all 168 run directories are blank; the other three are `t0` gate
+> probes, which are pass/fail screens and never scored.)
+>
+> **Why it was not obviously wrong.** T3 and T4 are graded on the *artifact* — `game.py`,
+> `report.md` — not on the answer text. A model that wrote the report and then ran out of clock
+> really had produced the deliverable. The scoring was defensible; it just was not what this
+> document said, and not what `pass^k` needs in order to mean anything. As measured before the fix:
+>
+> | task | blank runs | mean score when blank | mean when answered |
+> |---|---|---|---|
+> | T1 | 5 | **0.0** | 18.0 |
+> | T2 | 3 | 4.7 | 20.0 |
+> | T3 | 22 | 10.9 | 10.2 |
+> | T4 | 20 | **20.1** | **12.1** |
+>
+> T1 behaved as documented. T4 inverted: a run that timed out scored nearly twice what a run that
+> finished scored, because writing the report early and never returning beat returning with a weak
+> one.
+>
+> **The fix, both halves.** `RunTimeout` now derives from `BaseException`, so no catch-all
+> intercepts it — the same reason `KeyboardInterrupt` and `SystemExit` live there. And `score.py`
+> scores a blank or `ERROR:` answer 0 regardless of `status`, which is what makes the *already
+> banked* runs re-scorable: re-running 168 runs costs hours, and the fix to `run_one.py` cannot
+> retroactively change what is on disk.
+>
+> **What it cost.** Re-scoring moved 42 of 135 runs; runs scoring zero went from 17 to 59;
+> fifteen of eighteen models lost points. `qwen-heretic`, ranked first at 87.0 and described as
+> "best agentic *and* best report score tested, both perfect on both reps", **timed out on all
+> four of its T3 and T4 runs** — every one at exactly 300.0 s. Both of its 25/25s came from
+> artifacts left by runs that never finished. It is now eleventh.
+>
+> **The shape of the error, which is the part worth keeping.** `status` honestly measured "the
+> harness caught no exception" and was read as "the run produced an answer". `_grounding_check`'s
+> "zero fabrications" was read as "the layer works" (`RESULTS.md` §2). `had_verification`'s "no
+> verification tool ran" was read as "the model did not check its work" (`DESIGN.md` §4.2b). Three
+> files, one habit: a signal that is honest about what it measures, read as a proxy for something
+> adjacent. None of the three was a wrong measurement. All three were wrong readings.
 
 **Config safety.** The harness never touches `~/.agentic_1a_params.json` or
 `~/.agentic_1a_default_model.txt`. It writes a scratch params file inside the run
@@ -166,7 +237,7 @@ Almost entirely auto-gradeable, because the agent already instruments what is ne
 | **Citations grounded**, every URL really appears in a tool result | `state._last_turn_tool_results` |
 | Duplicate event reported twice | the existing `_duplicate_items` check |
 | Aggregator used as a primary source | domain blocklist |
-| Honesty nudges fired | stderr trace |
+| Honesty nudges fired | stderr trace — **not in `meta.json`**, see the note under §6 |
 
 This is the task where the current default model has repeatedly failed by skipping
 `get_datetime` and searching the wrong year, so it discriminates well.
@@ -213,8 +284,10 @@ them? A model that fails this cannot be scored on T2, T4 and is eliminated. With
 candidates and several untested newcomers, and this is where most of the saving comes
 from. *≈25-35 min.*
 
-**Round 2, Battery.** Survivors only, all four tasks, **1 rep by default**.
-- `--reps 1`: **≈1.5-2 h, the default now.** The shorter tasks and the 5-minute cap
+**Round 2, Battery.** Survivors only, all four tasks, **2 reps by default** (`rank.sh` sets
+`REPS=2`; this paragraph said "1 rep by default" until 2026-08-15, contradicting §1.3 on the
+same page — §1.3 was the correct one, since `pass^k` cannot be computed from a single rep).
+- `--reps 1`: **≈1.5-2 h.** No longer the default. The shorter tasks and the 5-minute cap
   make a single pass affordable enough to be the normal choice.
 - `--reps 2`: ≈3-4 h. Worth it only for the models still in contention at the end.
 
@@ -245,10 +318,17 @@ reps (`pass^k`), and the mean is recorded alongside so flakiness is visible rath
 than hidden. At `--reps 1` no `pass^k` claim can be made at all; that is the price of
 the cheaper campaign, and it is why every pre-2026-08-11 row is `pass^1`.
 
-Also recorded per run, unscored but reported: wall-clock seconds, tool-call count,
-nudges fired, peak RSS. Speed does not enter the score. It is a separate axis the
-size column already hints at, but a model that is twice as good and four times
-slower is a different recommendation, and the table should show that.
+Also recorded per run, unscored but reported: wall-clock seconds, tool-call count and
+peak RSS (plus swap delta either side of the run). Speed does not enter the score. It is a
+separate axis the size column already hints at, but a model that is twice as good and four
+times slower is a different recommendation, and the table should show that.
+
+> **"Nudges fired" is not recorded, despite this paragraph and the §4 T2 table both listing
+> it** — corrected 2026-08-15. `meta.json` carries no such field, so the only way to count a
+> nudge after the fact is to grep `trace.log` for the exact UI string, which is what had to be
+> done to establish that `_grounding_check` never fired (`RESULTS.md` §2). It is a genuinely
+> useful signal and cheap to add — `run_agent` already increments a counter per nudge type —
+> but until it is in `meta.json` this document should not claim it is captured.
 
 ---
 
