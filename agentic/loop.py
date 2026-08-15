@@ -114,6 +114,65 @@ def _compact_call_suffix(result: str, seconds: float, blocked: bool) -> str:
     return f"{mark} [dim]{seconds:.1f}s[/dim]"
 
 
+def _salvage(messages: list, model: str, reason: str, turn_tool_results: list[str],
+             rounds: int) -> str:
+    """Out of budget: spend one last generation turning what was gathered into an answer.
+
+    Both ways a turn can run out used to discard everything. The round limit returned the string
+    "maximum tool rounds reached"; a benchmark timeout returned six characters. In the model
+    ranking that happened to 50 of 135 runs — one of them after 35 successful tool calls, whose
+    results were read, useful, and thrown away. The user waited eight minutes for a sentence
+    explaining that there would be no answer.
+
+    Graceful degradation is the standard shape here, and the phrasing in the literature is
+    exact: the difference is between a useful 80% answer and a useless 0% one. So instead of
+    returning a status line, the model is asked once more — with **no tools**, so it cannot
+    start another search it has no budget for — to answer from the evidence already in the
+    conversation and to be explicit about what is missing.
+
+    Two things this deliberately does not do:
+
+    * **It does not hide that the turn was cut short.** The answer is framed as incomplete, in
+      the prompt and on screen. An 80% answer presented as a whole one is worse than the status
+      line it replaces, because the reader cannot tell which parts are thin.
+    * **It does not skip the honesty layer.** Forcing an answer out of partial evidence is
+      precisely the condition that produces fabrication — retrieval failures, not model
+      failures, are what most hallucination traces back to — so this is the *last* place to stop
+      checking. `_grounding_check` is pure string matching and costs nothing, so it still runs.
+      What it cannot do is nudge: a nudge is another full generation and the budget is gone.
+      So it **warns**, which is the same trade already made for the post-correction re-check.
+
+    Returns the salvaged answer, or "" if even this fails — in which case the caller falls back
+    to the status line, which is still better than a traceback.
+    """
+    ui.console.print(f"[yellow]{t('salvage_note', reason=reason)}[/yellow]")
+    safety._audit("SALVAGE_ATTEMPT", {"reason": reason, "round": rounds,
+                                      "tool_results": len(turn_tool_results)})
+    messages.append(_nudge(t("salvage_prompt", reason=reason)))
+    try:
+        # An EMPTY list, not None: `_stream_or_buffer_chat` reads None as "use every native and
+        # MCP tool", so passing it here would hand the model the full toolset at the exact
+        # moment the budget is gone — the opposite of the intent, and it fails quietly because
+        # the model simply makes another tool call and the salvage returns nothing.
+        resp = _stream_or_buffer_chat(model, messages, [])
+        answer = (resp.message.content or "").strip()
+    except Exception as exc:                                       # noqa: BLE001
+        safety._audit("SALVAGE_FAILED", {"reason": reason, "error": str(exc)[:200]})
+        return ""
+    if not answer:
+        safety._audit("SALVAGE_FAILED", {"reason": reason, "error": "empty response"})
+        return ""
+
+    if turn_tool_results:
+        unsupported = _grounding_check(answer, turn_tool_results)
+        if unsupported:
+            shown = ", ".join(unsupported[:8])
+            ui.console.print(f"[yellow]{t('grounding_recheck_warning', values=shown)}[/yellow]")
+            safety._audit("SALVAGE_UNGROUNDED", {"unsupported": unsupported[:12]})
+    safety._audit("SALVAGE_OK", {"reason": reason, "chars": len(answer)})
+    return answer
+
+
 def _nudge(body: str) -> dict:
     """Wrap an automatic nudge so a model cannot mistake it for a new user request.
 
@@ -796,9 +855,22 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     grounding_recheck_done = False   # the post-correction re-check runs at most once
     claim_action_nudges_used = 0
 
+    turn_started = time.monotonic()
+
     while True:
         rounds += 1
-        if rounds > config.MAX_TOOL_ROUNDS:
+
+        # The two ways a turn runs out. Both used to return a status line and bin the work;
+        # both now spend one final generation converting it into an answer. See _salvage.
+        over_budget = (config.TURN_BUDGET_SECONDS > 0
+                       and time.monotonic() - turn_started > config.TURN_BUDGET_SECONDS)
+        if rounds > config.MAX_TOOL_ROUNDS or over_budget:
+            reason = (t("salvage_reason_time", minutes=round(config.TURN_BUDGET_SECONDS / 60))
+                      if over_budget else t("salvage_reason_rounds", n=config.MAX_TOOL_ROUNDS))
+            salvaged = _salvage(messages, model, reason, turn_tool_results, rounds)
+            if salvaged:
+                return salvaged
+            # Salvage itself failed — say so plainly rather than pretending nothing happened.
             ui.console.print(f"[red]{t('max_rounds_hit', n=config.MAX_TOOL_ROUNDS)}[/red]")
             return t("max_rounds_hit", n=config.MAX_TOOL_ROUNDS)
 

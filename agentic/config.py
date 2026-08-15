@@ -170,6 +170,15 @@ SEMANTIC_CHUNK_LINES = 60      # B5: size of the indexed chunks (lines)
 SEMANTIC_TOP_K = 5             # B5: number of nearest chunks returned
 
 # ── Loop guardrails & retry budgets ──────────────────────────────────────────
+TURN_BUDGET_SECONDS = 0   # wall-clock ceiling for one turn; 0 = off (the default).
+                          # When it trips the turn does NOT return empty: the loop stops calling
+                          # tools and spends one last generation answering from what it already
+                          # gathered, marked incomplete (see loop._salvage). Off by default
+                          # because a local model on a slow machine is not misbehaving, it is
+                          # just slow, and the round limit already bounds a runaway loop.
+                          # Worth setting if you would rather have a partial answer at ten
+                          # minutes than a complete one at twenty-five.
+
 MAX_TOOL_ROUNDS   = 45  # guardrail: prevents an endless tool-call loop. Raised from 25 on
                         # 2026-08-08: in benchmarks/model_ranking, gpt-oss:20b hit the old
                         # ceiling on a single-file bugfix, it had already found both bugs and

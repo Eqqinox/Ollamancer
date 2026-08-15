@@ -360,7 +360,16 @@ _PARAM_SCHEMA = [
         {"var": "MAX_TOOL_ROUNDS", "label": "Max Tool-Call Rounds", "kind": "int",
          "min": 5, "max": 50, "step": 5, "default": 25,
          "help": "Safety limit: how many tool-call rounds the agent can run in a single turn "
-                 "before stopping automatically, to prevent an infinite loop."},
+                 "before stopping automatically, to prevent an infinite loop. Hitting it no "
+                 "longer discards the turn: the agent answers from what it already gathered, "
+                 "marked incomplete."},
+        {"var": "TURN_BUDGET_SECONDS", "label": "Turn Time Budget (s)", "kind": "int",
+         "min": 0, "max": 1800, "step": 60, "default": 0,
+         "help": "Wall-clock ceiling for one turn. 0 = off (default): a slow local model is "
+                 "left to finish. When set and reached, the agent stops calling tools and "
+                 "spends one last generation answering from what it already found, clearly "
+                 "marked incomplete, rather than returning nothing. Set it if you would rather "
+                 "have a partial answer at 10 minutes than a full one at 25."},
         {"var": "MAX_BACKGROUND_PROCESSES", "label": "Max Background Processes", "kind": "int",
          "min": 1, "max": 10, "step": 1, "default": 5,
          "help": "How many run_background processes can be active at once before new ones are blocked."},
