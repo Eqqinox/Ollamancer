@@ -238,51 +238,67 @@ def test_no_duplicate_tool_docstrings():
     assert len(set(docs)) == len(docs), "two tools share an identical description"
 
 
-def test_advertised_counts_match_reality():
-    """Every number the docs quote about the repo's own shape must be the repo's own shape.
+# ── Docs-vs-repo counts ─────────────────────────────────────────────────────
+# Added 2026-08-15 after an audit found FOUR hand-maintained numbers had drifted at once: the
+# test count (36 advertised against 40 actual, having already been corrected once before), the
+# coverage header in tests/README.md (24 against 41), the line count in Ollamancer.md (~6,700
+# against 7,727) and the module count in that same sentence ("fourteen", which counted the 12
+# agentic/ modules plus two root files — a basis excluding the nine tool modules the line count
+# in the same breath included).
+#
+# None is interesting alone. Together they are: a project whose front page says "the docs never
+# claim something works from reading the code alone" was carrying six numbers nothing checked.
+# Each is something the repo can count about itself, so from here it does.
+#
+# Split into one test per concern deliberately. As a single function it reported whichever
+# drift it hit first and stopped, so a tool-count change masked a line-count change.
 
-    Added 2026-08-15 after an audit found **four** of these had drifted at once: the test count
-    (advertised 36 against an actual 40, having already been corrected once before), the
-    coverage header in `tests/README.md` (24 against 41), the line count in `Ollamancer.md`
-    (~6,700 against 7,727) and the module count in the same sentence ("fourteen", which counted
-    the 12 `agentic/` modules plus two root files — a basis that excluded the nine tool modules
-    the line count in the same breath included).
+_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-    None of these is interesting on its own. Together they are: a project whose front page says
-    "the docs never claim something works from reading the code alone" was carrying six
-    hand-maintained numbers that nothing checked. Every one of them is something the repo can
-    count about itself, so from here it does.
 
-    The line count carries a tolerance because it moves with every commit and precision there
-    would be noise; the rest are exact, because they change only when something is genuinely
-    added or removed, and that is exactly when a doc should be updated too.
-    """
-    root = pathlib.Path(__file__).resolve().parent.parent
-    read = lambda p: (root / p).read_text()                                  # noqa: E731
+def _read(rel):
+    return (_ROOT / rel).read_text()
 
-    def claims(path, pattern):
-        return [m for m in re.findall(pattern, read(path))]
 
-    # ── tools ────────────────────────────────────────────────────────────────
+def _claims(rel, pattern):
+    """Every number a doc advertises for `pattern`, as ints."""
+    return [int(m) for m in re.findall(pattern, _read(rel))]
+
+
+def _real_test_files():
+    """test_scripts.py is the pytest runner for the others, not a test; run_all.sh skips it."""
+    return [p for p in (_ROOT / "tests").glob("test_*.py") if p.stem != "test_scripts"]
+
+
+def test_docs_count_tools_settings_and_skills():
+    """Tools, /parameters settings and bundled skills, as advertised on the front pages."""
     n_tools = len(tools.TOOL_MAP)
     for doc in ("README.md", "Ollamancer.md"):
-        for found in claims(doc, r"(\d+) native tools"):
-            assert int(found) == n_tools, (
-                f"{doc} advertises {found} native tools; the registry has {n_tools}")
+        for found in _claims(doc, r"(\d+) native tools"):
+            assert found == n_tools, f"{doc} advertises {found} native tools; registry has {n_tools}"
 
-    # ── live-tunable settings ───────────────────────────────────────────────
     n_params = len(ui._all_params())
     for doc in ("README.md", "Ollamancer.md"):
-        for found in claims(doc, r"(\d+) live-tunable settings"):
-            assert int(found) == n_params, (
+        for found in _claims(doc, r"(\d+) live-tunable settings"):
+            assert found == n_params, (
                 f"{doc} advertises {found} live-tunable settings; /parameters has {n_params}")
 
-    # The manual counts the same settings in its own words, and per section. Both were stale
-    # (30 against 32, and "Model Generation (7)" against 8) within an hour of this test being
-    # written, which is the argument for checking the phrasings rather than one canonical one.
-    for found in claims("Agentic_Manual.md", r"\*\*(\d+) parameters, 3 sections:\*\*"):
-        assert int(found) == n_params, (
-            f"Agentic_Manual.md says {found} parameters; /parameters has {n_params}")
+    n_skills = len(list((_ROOT / "skills").glob("*/SKILL.md")))
+    for doc in ("README.md", "Ollamancer.md", "Agentic_Manual.md"):
+        for found in _claims(doc, r"(\d+)-skill library"):
+            assert found == n_skills, f"{doc} advertises a {found}-skill library; skills/ has {n_skills}"
+
+
+def test_manual_counts_parameters_per_section():
+    """The manual counts the same settings in its own words, and per section.
+
+    Both spellings were stale within an hour of the first version of this check being written,
+    which is the argument for verifying each phrasing rather than one canonical one.
+    """
+    n_params = len(ui._all_params())
+    for found in _claims("Agentic_Manual.md", r"\*\*(\d+) parameters, 3 sections:\*\*"):
+        assert found == n_params, f"Agentic_Manual.md says {found} parameters; there are {n_params}"
+
     per_section = collections.Counter()
     section = None
     for kind, entry in ui._flatten_schema():
@@ -290,59 +306,62 @@ def test_advertised_counts_match_reality():
             section = entry
         else:
             per_section[section] += 1
-    for label, count in re.findall(r"- \*\*([A-Za-z &]+) \((\d+)\)\*\*:", read("Agentic_Manual.md")):
+    for label, count in re.findall(r"- \*\*([A-Za-z &]+) \((\d+)\)\*\*:", _read("Agentic_Manual.md")):
         if label in per_section:
             assert int(count) == per_section[label], (
-                f"Agentic_Manual.md says {label} has {count} settings; it has "
-                f"{per_section[label]}")
+                f"Agentic_Manual.md says {label} has {count} settings; it has {per_section[label]}")
 
-    # ── bundled skills ──────────────────────────────────────────────────────
-    n_skills = len(list((root / "skills").glob("*/SKILL.md")))
-    for doc in ("README.md", "Ollamancer.md", "Agentic_Manual.md"):
-        for found in claims(doc, r"(\d+)-skill library"):
-            assert int(found) == n_skills, (
-                f"{doc} advertises a {found}-skill library; skills/ holds {n_skills}")
 
-    # ── tests ───────────────────────────────────────────────────────────────
-    # test_scripts.py is the pytest runner for the others, not a test, and run_all.sh skips it.
-    n_tests = len([p for p in (root / "tests").glob("test_*.py") if p.stem != "test_scripts"])
+def test_docs_count_tests_and_the_coverage_table_is_complete():
+    """The advertised test count, in all six places it appears, plus the coverage table.
+
+    A table that does not list every test file is decorative, and a count that disagrees with
+    the runner sends someone hunting for a test that does not exist.
+    """
+    n_tests = len(_real_test_files())
     for doc, pattern in (("README.md", r"(\d+) deterministic tests"),
                          ("README.md", r"test suite \((\d+) tests\)"),
                          ("Ollamancer.md", r"test suite \((\d+) tests\)"),
                          ("tests/README.md", r"(\d+) scripts plus a collection guard"),
                          ("tests/README.md", r"tests: (\d+) passed"),
                          ("tests/README.md", r"## Coverage \((\d+) files\)")):
-        for found in claims(doc, pattern):
-            assert int(found) == n_tests, (
-                f"{doc} advertises {found} tests; tests/ holds {n_tests}")
+        for found in _claims(doc, pattern):
+            assert found == n_tests, f"{doc} advertises {found} tests; tests/ holds {n_tests}"
 
-    # Every test must also appear in the coverage table, or the table is decorative.
-    listed = set(re.findall(r"^\| `(test_[a-z0-9_]+)`", read("tests/README.md"), re.M))
-    actual = {p.stem for p in (root / "tests").glob("test_*.py")} - {"test_scripts"}
+    listed = set(re.findall(r"^\| `(test_[a-z0-9_]+)`", _read("tests/README.md"), re.M))
+    actual = {p.stem for p in _real_test_files()}
     assert listed == actual, (
         f"tests/README.md coverage table out of step: "
         f"missing {sorted(actual - listed)}, stale {sorted(listed - actual)}")
 
-    # ── modules and lines ───────────────────────────────────────────────────
-    pkg = [p for p in (root / "agentic").glob("*.py") if p.name != "__init__.py"]
-    tool_mods = [p for p in (root / "agentic/tools").glob("*.py") if p.name != "__init__.py"]
+
+def test_docs_count_modules_and_lines():
+    """Module and line counts, which must share a counting basis to mean anything.
+
+    They did not: "~6,700 lines across fourteen focused modules" counted the tool modules in
+    the line total and excluded them from the module total, so no single basis made both true.
+    The basis is now stated in the doc and checked here.
+
+    The line count carries a 10% tolerance because it moves with every commit and precision
+    would just fail on unrelated work. It still catches real drift: the ~6,700 this replaced
+    was 13% low.
+    """
+    pkg = [p for p in (_ROOT / "agentic").glob("*.py") if p.name != "__init__.py"]
+    tool_mods = [p for p in (_ROOT / "agentic/tools").glob("*.py") if p.name != "__init__.py"]
     n_modules = len(pkg) + len(tool_mods)
     n_lines = sum(len(p.read_text().splitlines()) for p in pkg + tool_mods)
 
-    for found in claims("Ollamancer.md", r"across (\d+) focused modules"):
-        assert int(found) == n_modules, (
+    for found in _claims("Ollamancer.md", r"across (\d+) focused modules"):
+        assert found == n_modules, (
             f"Ollamancer.md says {found} focused modules; agentic/ has {len(pkg)} plus "
             f"{len(tool_mods)} tool modules = {n_modules}")
-    for a, b in re.findall(r"(\d+) in `agentic/` plus (\d+) tool modules", read("Ollamancer.md")):
-        assert (int(a), int(b)) == (len(pkg), len(tool_mods)), (
-            f"Ollamancer.md splits the module count as {a}+{b}; actual is "
-            f"{len(pkg)}+{len(tool_mods)}")
 
-    for found in claims("Ollamancer.md", r"~([\d,]+) lines of readable Python"):
+    for a, b in re.findall(r"(\d+) in `agentic/` plus (\d+) tool modules", _read("Ollamancer.md")):
+        assert (int(a), int(b)) == (len(pkg), len(tool_mods)), (
+            f"Ollamancer.md splits the module count as {a}+{b}; actual is {len(pkg)}+{len(tool_mods)}")
+
+    for found in re.findall(r"~([\d,]+) lines of readable Python", _read("Ollamancer.md")):
         claimed = int(found.replace(",", ""))
-        # 10%: the count moves with every commit, so demanding precision would just
-        # produce a test that fails on unrelated work. It still catches real drift —
-        # the 6,700 this replaced was 13% low and would have failed here.
         assert abs(claimed - n_lines) / n_lines < 0.10, (
             f"Ollamancer.md says ~{found} lines of Python; agentic/ is {n_lines}. "
             f"Round to the nearest hundred and update the doc.")

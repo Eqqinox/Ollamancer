@@ -65,14 +65,17 @@ class _Resp:
     def __init__(self, m): self.message = m
 
 
-_last_messages: list = []
-
 SALVAGED = ("INCOMPLETE — I ran out of budget before finishing. Established: the current "
             "date. Still missing: the research itself.")
 
 
 def _run(*, salvage_reply, max_rounds=2, budget=0):
-    """Drive a turn to exhaustion. Returns (final_answer, tool_lists_seen)."""
+    """Drive a turn to exhaustion.
+
+    Returns (final_answer, tool_lists_seen, conversation). The conversation comes back rather
+    than being stashed in a module global: §1b needs to inspect what the model was actually
+    asked, and a returned value is the honest way to hand it over.
+    """
     config.MAX_TOOL_ROUNDS = max_rounds
     config.TURN_BUDGET_SECONDS = budget
     seen = []
@@ -90,13 +93,11 @@ def _run(*, salvage_reply, max_rounds=2, budget=0):
     loop.ollama.chat = fake_chat
     msgs = [{"role": "system", "content": "sys"}, {"role": "user", "content": "research it"}]
     out = loop.run_agent(msgs, "fake-model")
-    global _last_messages
-    _last_messages = msgs
-    return out, seen
+    return out, seen, msgs
 
 
 # ── 1. The round limit salvages instead of discarding ───────────────────────
-final, seen = _run(salvage_reply=SALVAGED)
+final, seen, convo = _run(salvage_reply=SALVAGED)
 assert final == SALVAGED, f"the salvaged answer must be returned, got {final[:80]!r}"
 assert seen[0], "the ordinary rounds must have tools"
 assert seen[-1] == [], (
@@ -116,7 +117,7 @@ assert "SALVAGE_ATTEMPT" in log and "SALVAGE_OK" in log, "the salvage must be au
 # previous answer — the model was still calling tools — and the instruction wanted is "write one
 # now", the opposite of a correction. Telling a small model to correct something that does not
 # exist is a good way to get an empty reply, which discards the turn a second time.
-salvage_msgs = [m for m in _last_messages if m.get("role") == "user"
+salvage_msgs = [m for m in convo if m.get("role") == "user"
                 and "run out of budget" in str(m.get("content", ""))]
 assert salvage_msgs, "the salvage request must reach the model as a user message"
 body = salvage_msgs[-1]["content"]
@@ -175,7 +176,7 @@ assert len(seen2) < 50, "the time budget must trip well before the round limit"
 # ── 3. A failed salvage still reports honestly ──────────────────────────────
 # Silence here would be worse than the status line: the user would see a turn end with
 # nothing at all and no explanation.
-final3, _ = _run(salvage_reply="")          # model returns nothing when asked to salvage
+final3, _, _ = _run(salvage_reply="")          # model returns nothing when asked to salvage
 assert "INCOMPLETE" not in final3, "an empty salvage must not be passed off as an answer"
 assert final3.strip(), "a failed salvage must still say something"
 log = (d / "audit.log").read_text()
