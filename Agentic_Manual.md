@@ -588,7 +588,7 @@ You → /skill commit-message   # load a skill into context for your next reques
 | `~/.agentic_1a_skills/` | **Your global skills** (all projects), created at startup |
 | `<project>/.agentic/skills/` | Project-specific skills |
 
-**Bundled skills (14)**: type `/skills` to see them with their descriptions:
+**Bundled skills (15)**: type `/skills` to see them with their descriptions:
 
 | Skill | What it does |
 |---|---|
@@ -602,12 +602,13 @@ You → /skill commit-message   # load a skill into context for your next reques
 | `dockerize-project` | Writes a correct Dockerfile + `.dockerignore`, builds and verifies it runs |
 | `changelog-from-git` | Generates a CHANGELOG / release notes from the real git history |
 | `web-research-report` | Sourced web research → Markdown report with citations |
+| `web-answer-format` | Shapes a web answer into sections matching the question (news, comparison, how-to…) — auto-loaded on web-shaped questions |
 | `new-python-project` | Scaffolds a modern Python project (venv, pyproject, git, first green test) |
 | `commit-message` | Writes a clean commit message from the real diff |
 | `skill-creator` | Helps you **write a new skill** (adapted from `anthropics/skills`, Apache-2.0) |
 | `mcp-builder` | Helps you **build an MCP server** wired into the agent (same, Apache-2.0) |
 
-> The first twelve are original to this project (MIT); `skill-creator`/`mcp-builder` are
+> The first thirteen are original to this project (MIT); `skill-creator`/`mcp-builder` are
 > adapted from Anthropic's official repository. See [`skills/LICENSES.md`](./skills/LICENSES.md).
 > You can add, edit or delete them freely: they are just folders with a `SKILL.md`.
 
@@ -1097,7 +1098,7 @@ benchmark had been scoring failed runs as successes.
 - **Streaming final answers**, automatic **session persistence**, invisible **DuckDuckGo search failover**, an **encoding fix** (no more `â€™`), a **closest-path hint** on file-not-found, and **deterministic honesty layers** (unsupported values, claimed-fixed-without-action).
 - **Headless mode**: `--run "prompt"` and `--recipe file.md` (exit code = success).
 - Context cap doubled to **64K** plus **context compaction** (auto off by default), **slash-command autocomplete**, **Esc-to-stop**, and **`--private`** ephemeral mode.
-- **Skills**: reusable `SKILL.md` workflows with progressive disclosure, plus a 14-skill library.
+- **Skills**: reusable `SKILL.md` workflows with progressive disclosure, plus a 15-skill library.
 
 **v2.9.x, the reliability series.** Safe mode (v2.9); real context negotiation with Ollama,
 a thin-search circuit breaker and a no-guessing-the-date rule (v2.9.4); empty-response retries

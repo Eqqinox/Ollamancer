@@ -54,7 +54,7 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 - **Never a dead end**: when a turn runs out of tool rounds — or of an optional wall-clock budget — the agent spends one last generation answering from what it already gathered, clearly marked incomplete, instead of returning a status line and binning the work.
 - **Session resume**, **streaming answers**, **live RAM readout**, **Esc-to-stop**.
 - **Compact tool display**: one line per tool call with result size and elapsed time; `/details` prints the full, untruncated record of the last turn.
-- **Skills**: reusable [`SKILL.md`](https://agentskills.io) workflows (the open standard, portable with Claude Code / Cursor / Codex) + a bundled **14-skill library**.
+- **Skills**: reusable [`SKILL.md`](https://agentskills.io) workflows (the open standard, portable with Claude Code / Cursor / Codex) + a bundled **15-skill library**.
 - **Headless / batch**: `--run "prompt"` and `--recipe file.md` (exit code = success) for cron/scripts.
 - **Safe mode** (approve risky calls) and a **Docker sandbox** (isolate shell/REPL).
 - **32 live-tunable settings** in a `/parameters` menu, persisted across sessions.
@@ -123,7 +123,7 @@ Type **`/`** to autocomplete commands, `/help` lists them all. A few highlights:
 | `/context`, `/compact` | Context usage / compact now |
 | `/details` | Full record of the last turn's tool calls |
 | `/resume` | Reload a saved session |
-| `/parameters` | Settings menu (31 tunables) |
+| `/parameters` | Settings menu (32 tunables) |
 | `/private` | Is this session logged? |
 
 Press **Esc** (or Ctrl+C) while it's working to stop the model and return to the prompt.
@@ -132,10 +132,10 @@ Press **Esc** (or Ctrl+C) while it's working to stop the model and return to the
 
 ## Skills
 
-Skills are reusable `SKILL.md` workflows the agent loads on demand. 14 ship bundled, e.g.
+Skills are reusable `SKILL.md` workflows the agent loads on demand. 15 ship bundled, e.g.
 `test-and-fix`, `debug-error`, `write-tests-for`, `security-review`, `optimize-performance`,
 `dependency-audit`, `explain-codebase`, `dockerize-project`, `changelog-from-git`,
-`web-research-report`, `new-python-project`, `commit-message`, plus `skill-creator` and
+`web-research-report`, `web-answer-format`, `new-python-project`, `commit-message`, plus `skill-creator` and
 `mcp-builder` (adapted from Anthropic's Apache-2.0 [anthropics/skills](https://github.com/anthropics/skills)
 ,  see [`skills/LICENSES.md`](./skills/LICENSES.md)).
 
@@ -213,7 +213,7 @@ agentic/              # the implementation
   commands.py         #   slash commands, architect/review, sessions
   cli.py              #   flags and the interactive/headless entry point
 launch.sh             # venv setup + launcher
-skills/               # bundled SKILL.md workflows (14)
+skills/               # bundled SKILL.md workflows (15)
 benchmarks/           # model-reliability fixtures + playthrough harness
 tests/                # deterministic offline test suite (42 tests)
 imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)

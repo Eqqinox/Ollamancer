@@ -37,7 +37,7 @@ _AGENT_HOME = Path(__file__).resolve().parent.parent
 
 
 def bundled_skills_dir() -> Path:
-    """Where the 14 shipped skills live, in either layout.
+    """Where the shipped skills live, in either layout.
 
     From a git checkout they sit at `<repo>/skills`, one level above this package. From a
     `pip install` there is no repo: this file is in `site-packages/agentic/`, so

@@ -101,4 +101,25 @@ assert "MCP: connected" not in out4, (
     "stderr before anything prints:\n" + repr(out4))
 mcp_client._init_mcp = lambda: None
 
+# 5. headless gets the web-answer-format auto-load too (a cron "today's news" job needs the
+# sectioned shape as much as an interactive user), and it stays off stdout.
+# Expect a context-overflow warning on stderr here: the skill body is ~1.1k tokens and the stub
+# above pins num_ctx at 4096, so the guard fires at 70%. That is the guard working, not a
+# regression — against the real 64K default the same body is 1.7% of the window.
+seen = []
+def _recording_chat(**kw):
+    seen.append(kw.get("messages", []))
+    return Resp(Msg(content="## Europe\n- item [Source: http://x]"))
+rag.ollama.chat = _recording_chat
+sys.argv = ["agent.py", "--run", "what are the latest news today?", str(proj)]
+try:
+    with contextlib.redirect_stdout(io.StringIO()) as buf5:
+        agent.main()
+except SystemExit:
+    pass
+sent = seen[0] if seen else []
+assert any("[Skill loaded: web-answer-format]" in str(m.get("content") or "") for m in sent), \
+    "headless --run on a news prompt should carry the web-answer-format skill"
+assert "Skill loaded" not in buf5.getvalue(), "the auto-load must not pollute headless stdout"
+
 print("B9 ALL PASS")

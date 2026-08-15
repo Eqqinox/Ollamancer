@@ -29,7 +29,7 @@ and limitations under the License.
 
 `changelog-from-git`, `commit-message`, `debug-error`, `dependency-audit`,
 `dockerize-project`, `explain-codebase`, `new-python-project`, `optimize-performance`,
-`security-review`, `test-and-fix`, `web-research-report`, `write-tests-for`.
+`security-review`, `test-and-fix`, `web-answer-format`, `web-research-report`, `write-tests-for`.
 
 ## Skills you add yourself
 

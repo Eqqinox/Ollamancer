@@ -38,6 +38,7 @@ So there are two levels of capability:
 - Call a REST API (GET, POST, PUT, DELETE) with `curl -X POST -d...` **[shell]**
 - Look up available packages (`pip index versions`, `npm search`, `brew search`) **[shell]**
 - Search results are cached for 5 minutes within a session, repeating a near-identical query doesn't hit SearXNG again
+- Get a web answer **organised into sections that match the question** (news brief by region/theme, comparison by criterion, cause/fix/verify, price table…), answer first, a date and a source per item: the `web-answer-format` skill, **auto-loaded code-side** on a recency/"look it up" wording so it doesn't depend on the model choosing to load it **[skill, automatic, v3.1]**
 
 ### Local system
 - Get the exact date and time **[native]**

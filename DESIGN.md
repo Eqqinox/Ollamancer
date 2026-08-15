@@ -524,6 +524,47 @@ description always in the prompt; full instructions loaded on demand; referenced
 needed). The format is the open standard, so skills are portable to and from Claude Code,
 Cursor and Codex.
 
+**One skill is auto-loaded, and that is a deliberate hole in tier 2.** `web-answer-format`
+(sections planned from the question, answer first, a date and a source per item) is injected
+code-side, as an already-completed `load_skill` call, when the user's message carries
+recency/news wording or an explicit "look it up" verb. The reasoning is the one behind the
+forced search and the news routing: tier 2 assumes the model *chooses* to load, and a small
+local model mostly does not — it answers from the first result in one flat, undated list. A
+prompt rule is a suggestion; this is not. The trigger is deliberately narrow (an ordinary coding
+question does not match) and it does not re-inject while the body is still in the last 24
+messages. `latest` is the one loose term — it also fires on "upgrade to the latest pandas" — and
+is kept because a false positive costs 1,287 tokens, 2% of the default 64K window, not a wrong
+answer. That was the prediction; the run below tested it and came out better than predicted, the
+false positive produced a *better-organised* dependency answer rather than a distorted one. On a
+window shrunk to 4K in `/parameters` that same body is a third of the budget and will trip the
+overflow guard; the test stub at `num_ctx=4096` shows exactly that.
+
+Measured live on `gemma4:12b-mlx` before shipping, six runs, one turn each:
+
+| Run | Result |
+|---|---|
+| "latest international news today" **with** the skill | Three themed sections, bold headline + date + real source per item, closing coverage note |
+| Same question worded to miss the trigger (**no** skill) | Flat bullet list, no sections, no per-item dates, a **2023** Reuters piece inside a "past 24 hours" roundup, no coverage note |
+| Same question in French | Sections, items and coverage note **all in French** — an English skill body injected as a tool result does not pull the answer into English |
+| Interactive + `--private` | Auto-load fires on the interactive call site too, and `_audit` no-ops cleanly with no log |
+| "should I upgrade this project to the latest pandas?" (the loose-trigger case) | Not a news brief: sections by breaking change, a what-breaks/the-fix pair each, an incremental-upgrade recommendation, sources throughout, and **no** dates on items — the date rule was not misapplied to a question that isn't time-sensitive |
+| "compare SearXNG and Whoogle" (forced-search prefix **and** auto-load on one message) | The comparison template, not the news one: sections by criterion, an explicit `## Verdict` with a choose-X-if recommendation, coverage note |
+
+Two real defects came out of those runs and were fixed in the skill, which is the argument for
+running them: the model reformatted a sourced `2026/07/13` into `Jul 13, 2026`, which
+`_grounding_check` matches by substring or digit-run and therefore flagged — a nudge, and a
+wasted generation, caused by the skill's own "date every item" rule. It now says to copy the
+date in the form the source gives it. And the French answer closed on a literal English
+`Coverage:` label, a leaked template; the skill now says to translate the label too.
+
+Honest limits: n=1 per condition on one model, not a benchmark campaign, and the two news
+conditions differ slightly in wording because the trigger had to be avoided. Adherence is
+partial — the *shape* held in all six runs, the "one deep search per section" planning step did
+not; the model ran a single search and derived its sections from what came back. The last two
+runs are also the only ones made against the final skill text: the date-form and
+answer-in-the-user's-language rules were added between, so the news and French answers above
+were produced by a slightly earlier body.
+
 ---
 
 ## 8. Known limitations

@@ -57,6 +57,28 @@ state._memory = ""
 sp = commands.make_system_prompt(proj)
 assert "Available skills" in sp and "deploy:" in sp
 
+# 9. web-answer-format auto-loads on a web-shaped question (code-side, like the forced search)
+msgs = [{"role": "user", "content": "what are the latest international news today?"}]
+skills._maybe_autoload_web_format(msgs[0]["content"], msgs)
+assert len(msgs) == 3, msgs
+assert msgs[1]["tool_calls"][0]["function"]["name"] == "load_skill"
+assert "[Skill loaded: web-answer-format]" in msgs[2]["content"]
+assert "Coverage:" in msgs[2]["content"]        # the body, not just the header
+
+# already in context → not injected a second time
+skills._maybe_autoload_web_format("and the latest news on the euro?", msgs)
+assert len(msgs) == 3, "should not re-inject while still in recent context"
+
+# a coding question is not web-shaped: no injection, no wasted tokens
+code = [{"role": "user", "content": "refactor this function to use a dict comprehension"}]
+skills._maybe_autoload_web_format(code[0]["content"], code)
+assert len(code) == 1, code
+
+# the forced-search prefix counts as web-shaped
+forced = [{"role": "user", "content": "search openai model prices"}]
+skills._maybe_autoload_web_format(forced[0]["content"], forced)
+assert len(forced) == 3, forced
+
 log = state._AUDIT_LOG.read_text() if state._AUDIT_LOG.exists() else ""
 assert "LOAD_SKILL" in log
 print("SKILLS ALL PASS")

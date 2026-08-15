@@ -103,7 +103,10 @@ Plus **`run_command`** exposes the entire shell, and **MCP** adds any third-part
 - **Session persistence** (`/resume`), reload a previous conversation.
 - **Cross-model review** (`/review-by <model>`), an independent second model critiques the diff.
 - **Skills**: reusable **`SKILL.md`** workflows (the open standard, portable with Claude
-  Code/Cursor/Codex), with progressive disclosure and a bundled 14-skill library.
+  Code/Cursor/Codex), with progressive disclosure and a bundled 15-skill library. One of them,
+  `web-answer-format`, is auto-loaded code-side on web-shaped questions (news, "latest", "look
+  it up"), the same reasoning as the forced search: a small model rarely calls `load_skill`
+  itself, so the answer's shape can't depend on it choosing to.
 - **Honesty layers**: `_grounding_check` (flags numbers/dates/URLs/names in the answer that
   appear in no tool result this turn) and a claim-vs-action nudge ("fixed"/"verified" with no
   real edit/verification), both deterministic. The "verified" half stands down on a turn built
@@ -167,7 +170,7 @@ Ollamancer treats the failure modes of small local models as first-class problem
 ```
 agent.py                  # thin entry point; the agent lives in agentic/
 launch.sh                 # venv setup + launcher (flags: --safe --sandbox --private)
-skills/                   # bundled SKILL.md workflows (14)
+skills/                   # bundled SKILL.md workflows (15)
 benchmarks/               # reusable model-reliability fixtures + playthrough harness
 imessage_bridge.py        # optional: drive the agent from iPhone via iMessage
 requirements.txt

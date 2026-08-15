@@ -242,6 +242,10 @@ def main():
         all_ok = True
         for step in prompts:
             messages.append({"role": "user", "content": step})
+            # A cron job asking for "today's news" wants the sectioned shape as much as an
+            # interactive user does, and headless has no one to ask for it. Silent here: stdout
+            # is the machine-readable channel and carries the answer, nothing else.
+            skills._maybe_autoload_web_format(step, messages)
             try:
                 final = loop.run_agent(messages, model)
             except Exception as e:
@@ -708,6 +712,10 @@ def main():
         # ── Message normal ───────────────────────────────────────────────────
         messages.append({"role": "user", "content": user_input})
         web._maybe_force_search(user_input, messages)
+        before = len(messages)
+        skills._maybe_autoload_web_format(user_input, messages)
+        if len(messages) > before:
+            ui.console.print(f"[dim]{t('skill_autoloaded', name='web-answer-format')}[/dim]\n")
         try:
             final = loop.run_agent(messages, model)
         except (loop._UserAbort, KeyboardInterrupt):

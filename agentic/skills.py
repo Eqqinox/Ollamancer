@@ -13,6 +13,12 @@ Claude Code, Cursor and Codex, so skills are portable in both directions.
   3. *Execution* — the instructions may point at other files in the skill folder, which the
      agent reads on demand with its ordinary file tools.
 
+**One documented exception to tier 2**: `web-answer-format` is loaded code-side by
+`_maybe_autoload_web_format` when the user's message is obviously a web question, because tier 2
+assumes the model *chooses* to load, and on a small local model that assumption is the weak
+link (same reasoning, and the same benchmark evidence, as the forced search in `tools/web.py`).
+Every other skill still waits to be asked for.
+
 Three sources, most specific wins on a name clash: bundled (`<repo>/skills/`), user-global
 (`~/.agentic_1a_skills/`), and per-project (`<project>/.agentic/skills/`).
 
@@ -21,6 +27,7 @@ The frontmatter parser is deliberately minimal — `key: value` lines only, no Y
 """
 
 import difflib
+import re
 from pathlib import Path
 
 from agentic import config, state
@@ -121,3 +128,48 @@ def load_skill(name: str) -> str:
     _audit("LOAD_SKILL", {"name": key, "source": info["source"]})
     return (f"[Skill loaded: {key}] — reference files for this skill live in {info['dir']} "
             f"(read them with read_file if the instructions point to them).\n\n{body}")
+
+
+# ── Auto-load: web-answer-format ─────────────────────────────────────────────
+# Same reasoning as `_maybe_force_search` in tools/web.py: tier-2 loading assumes the model
+# *chooses* to call load_skill, and the benchmarks show a small local model mostly doesn't —
+# it answers straight from the first search result, in one flat undated list. So for the one
+# case where the output shape matters most (a question that will obviously be answered from
+# the web), the load happens code-side, before the model gets its turn.
+#
+# Deliberately narrow: recency/news wording, an explicit "look it up" verb, or the forced-search
+# prefix. An ordinary coding question is not caught, and shouldn't be — these are chat-answer
+# formatting rules, not general ones. `latest` is the one loose term, it also fires on "upgrade
+# to the latest pandas"; kept anyway, because it is the recency word users actually type, and
+# the cost of a false positive is ~1.3k tokens (2% of the default 64K window), not a wrong
+# answer.
+_WEB_FORMAT_SKILL = "web-answer-format"
+_WEB_FORMAT_INTENT_RE = re.compile(
+    r'\b(news|breaking|headlines?|latest|today|todays|current events|happening now|'
+    r'this (week|month)|search (the )?(web|online|internet)|look (it |them )?up|google it|'
+    r'actualit[ée]s?|nouvelles|derni[èe]res?|aujourd.hui|cherche sur (le web|internet))\b'
+    r'|^\s*search\b',
+    re.IGNORECASE,
+)
+
+
+def _maybe_autoload_web_format(user_input: str, messages: list) -> None:
+    """If the user's message clearly calls for a web answer, inject the web-answer-format skill
+    as an already-completed `load_skill` call, before the model's turn. Skipped when the skill
+    is already in recent context (it stays there, no point paying for it twice)."""
+    if not _WEB_FORMAT_INTENT_RE.search(user_input or ""):
+        return
+    marker = f"[Skill loaded: {_WEB_FORMAT_SKILL}]"
+    for msg in messages[-24:]:
+        if marker in str(msg.get("content") or ""):
+            return
+    body = load_skill(_WEB_FORMAT_SKILL)
+    if not body.startswith(f"[Skill loaded: {_WEB_FORMAT_SKILL}]"):
+        return                                  # skill removed or unreadable: stay silent
+    args = {"name": _WEB_FORMAT_SKILL}
+    messages.append({
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [{"function": {"name": "load_skill", "arguments": args}}],
+    })
+    messages.append({"role": "tool", "content": body})
