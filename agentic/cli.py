@@ -24,6 +24,7 @@ import shutil
 import signal
 import sys
 import tempfile
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -48,6 +49,38 @@ atexit.register(safety._cleanup_sandbox)
 atexit.register(toolexec._repl_stop)
 atexit.register(toolexec._cleanup_background_processes)
 atexit.register(mcp_client._cleanup_mcp)
+
+
+def _report_unexpected(exc: BaseException, where: str) -> None:
+    """Report a turn-ending exception so it can be diagnosed, and audit the traceback.
+
+    The three catch-alls around `run_agent` printed `t('unexpected_error')` followed by
+    `str(e)`, which is empty for a great many exception types. What the user saw was the bare
+    words "Unexpected error:" and nothing after the colon — no type, no location, no traceback,
+    and a turn's work gone. It is the single least actionable message the agent can produce, and
+    it is what a benchmark timeout looked like for the whole model-ranking campaign: `run_one.py`
+    raised `RunTimeout()`, which carries no message, the catch-all swallowed it, and 50 of 135
+    runs were recorded as having completed successfully.
+
+    That specific case is now impossible — `RunTimeout` derives from `BaseException` so these
+    handlers cannot see it — but the shape of the bug is general: any exception whose `str()` is
+    empty produces the same blank. So the type name is always shown, and the full traceback goes
+    to the audit log where it can be read after the fact rather than being discarded.
+
+    The catch-alls themselves stay. They exist so one bad turn cannot end a session, which is
+    the right call for an interactive tool.
+    """
+    detail = str(exc).strip()
+    label = type(exc).__name__
+    ui.console.print(f"\n[red]{t('unexpected_error')}[/red] "
+                     f"{rich_escape(f'{label}: {detail}' if detail else label)}\n")
+    ui.console.print(f"[dim]{t('unexpected_error_hint')}[/dim]\n")
+    safety._audit("UNEXPECTED_ERROR", {
+        "where": where,
+        "type": label,
+        "message": detail[:300],
+        "traceback": traceback.format_exc()[-2000:],
+    })
 
 
 def _print_banner():
@@ -212,8 +245,10 @@ def main():
             try:
                 final = loop.run_agent(messages, model)
             except Exception as e:
-                ui.console.print(f"[red]{t('unexpected_error')}[/red] {e}")
-                print(f"ERROR: {e}")
+                _report_unexpected(e, "headless")
+                # stdout is the machine-readable channel in headless mode, so it carries the
+                # type too: "ERROR:" with nothing after it was what a caller actually got.
+                print(f"ERROR: {type(e).__name__}: {e}".rstrip(": "))
                 all_ok = False
                 break
             messages.append({"role": "assistant", "content": final})
@@ -457,7 +492,7 @@ def main():
                 ui.console.print(f"\n[red]{t('model_error', model=failed)}[/red] {e.error}\n")
                 continue
             except Exception as e:
-                ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
+                _report_unexpected(e, "architect")
                 continue
             ui.console.print()
             ui.console.print(Rule("[bold green] Agent (editor) [/bold green]", style="green"))
@@ -642,7 +677,7 @@ def main():
                 ui.console.print(f"\n[yellow]{t('user_stopped')}[/yellow]\n")
                 continue
             except Exception as e:
-                ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
+                _report_unexpected(e, "review_followup")
                 messages.pop()
                 continue
             ui.console.print()
@@ -686,7 +721,7 @@ def main():
             messages.pop()  # drop the unprocessed user message
             continue
         except Exception as e:
-            ui.console.print(f"\n[red]{t('unexpected_error')}[/red] {e}\n")
+            _report_unexpected(e, "turn")
             messages.pop()
             continue
 
