@@ -191,4 +191,40 @@ src = (pathlib.Path(loop.__file__).parent / "config.py").read_text()
 assert "TURN_BUDGET_SECONDS = 0" in src, \
     "the time budget must ship off by default; the round limit already bounds a runaway loop"
 
+# ── 5. Salvage must not borrow another path's wording ──────────────────────
+# Twice in one session a message written for one path was reused on another because the
+# trigger looked similar, and both times the offline suite could not see it: a fake model does
+# not read what it is sent, and a warning printed to the console is not an assertion.
+#
+#   * the salvage *prompt* borrowed `nudge_prefix` ("just correct the answer you just gave"),
+#     when there is no previous answer to correct — pinned in §1b above;
+#   * the salvage *grounding warning* borrowed `grounding_recheck_warning` ("still unverified
+#     after the correction", "corrected lines are the least-checked part of an answer"), which
+#     a live smoke test duly printed on a partial answer, describing a step that never happened.
+#
+# Both are now their own strings. This pins that, by reading the function rather than by
+# triggering it, since the ungrounded branch needs a salvaged answer that also fails the
+# grounding check — reachable, but far more fragile to set up than it is worth.
+import inspect                                              # noqa: E402
+salvage_src = inspect.getsource(loop._salvage)
+assert "grounding_recheck_warning" not in salvage_src.replace(
+    "# Its own string, not `grounding_recheck_warning`", ""), (
+    "salvage must not print the post-correction warning: there was no correction, and it tells "
+    "the reader about a step that never happened")
+assert "salvage_ungrounded_warning" in salvage_src, \
+    "salvage must warn about unsupported values with its own wording"
+assert "prefix_key=\"salvage_prefix\"" in salvage_src, \
+    "the salvage prompt must use the SALVAGE prefix, not the correction one"
+
+from agentic import i18n                                    # noqa: E402
+for lang in ("en", "fr"):
+    for key in ("salvage_ungrounded_warning", "salvage_prefix", "salvage_prompt",
+                "salvage_note", "salvage_reason_time", "salvage_reason_rounds"):
+        assert key in i18n.STR[lang], f"{key} missing in {lang}"
+    warn = i18n.STR[lang]["salvage_ungrounded_warning"]
+    assert "{values}" in warn, f"{lang}: the warning must name the values it doubts"
+    assert "correction" not in warn.lower(), (
+        f"{lang}: the salvage warning must not describe a correction — there was none. This is "
+        "the exact wording that leaked from grounding_recheck_warning and reached a real user.")
+
 print("test_deadline_salvage: all assertions passed")
