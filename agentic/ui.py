@@ -365,8 +365,9 @@ _PARAM_SCHEMA = [
                  "marked incomplete."},
         {"var": "TURN_BUDGET_SECONDS", "label": "Turn Time Budget (s)", "kind": "int",
          "min": 0, "max": 1800, "step": 60, "default": 0,
-         "help": "Wall-clock ceiling for one turn. 0 = off (default): a slow local model is "
-                 "left to finish. When set and reached, the agent stops calling tools and "
+         "help": "Soft wall-clock budget for one turn, checked BETWEEN tool rounds — not "
+                 "during a generation, so a single slow model call can overshoot it. 0 = off "
+                 "(default): a slow local model is left to finish. When exceeded, the agent stops calling tools and "
                  "spends one last generation answering from what it already found, clearly "
                  "marked incomplete, rather than returning nothing. Set it if you would rather "
                  "have a partial answer at 10 minutes than a full one at 25."},

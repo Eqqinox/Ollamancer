@@ -1,7 +1,7 @@
 """Ollamancer — settings (user configuration, persisted).
 
 This module holds the **tunable** values: config paths, model choices, generation
-parameters, web-search settings, and the loop guardrails. All 31 settings exposed by
+parameters, web-search settings, and the loop guardrails. All 32 settings exposed by
 `/parameters` live here and are persisted to `PARAMS_FILE`.
 
 ⚠️ IMPORT RULE (enforced by tests/test_import_rules.py) — these values are **rebound at
@@ -170,7 +170,11 @@ SEMANTIC_CHUNK_LINES = 60      # B5: size of the indexed chunks (lines)
 SEMANTIC_TOP_K = 5             # B5: number of nearest chunks returned
 
 # ── Loop guardrails & retry budgets ──────────────────────────────────────────
-TURN_BUDGET_SECONDS = 0   # wall-clock ceiling for one turn; 0 = off (the default).
+TURN_BUDGET_SECONDS = 0   # soft wall-clock budget for one turn; 0 = off (the default).
+                          # SOFT because it is tested at the top of each tool round, not
+                          # during a generation: one slow model call can carry a turn past it
+                          # by minutes. The longest single run in the benchmark corpus was
+                          # 617 s. It bounds how many more rounds you START, not wall time.
                           # When it trips the turn does NOT return empty: the loop stops calling
                           # tools and spends one last generation answering from what it already
                           # gathered, marked incomplete (see loop._salvage). Off by default
