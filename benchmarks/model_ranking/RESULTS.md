@@ -102,8 +102,8 @@ no duplicated events.*
 > | | |
 > |---|---|
 > | **Reachable at runtime**, not dead code | `test_a56` drives a fabricated number and date through the real `run_agent` and asserts both the injected nudge and the `AUTO_GROUNDING_CHECK_NUDGE` audit record |
-> | **Not defeated by volume** | an invented URL and figure injected into real banked answers, against their real tool results: **caught 91 of 91**. The worry was that a 10-16 KB haystack matches anything by coincidence; a random 4-digit value collides with the concatenated digit-soup only **~3%** of the time, 5 digits 0.3%, 6+ never |
-> | **Sensitive to a realistic fabrication** | not a straw-man fake domain but a plausible one-digit change to a figure the model genuinely retrieved: **71 of 78 (91%) would have nudged**, 7 stayed silent |
+> | **Not defeated by volume** | an invented URL and figure injected into real banked answers, against their real tool results: **caught 91 of 91**. The worry was that a ~20 KB haystack (55 KB at the tail) matches anything by coincidence; a random 4-digit value collides with the concatenated digit-soup only **~3%** of the time, 5 digits 0.3%, 6+ never |
+> | **Sensitive to a realistic fabrication** | not a straw-man fake domain but a plausible one-digit change to a figure the model genuinely retrieved: **73 of 78 (94%) would have nudged**, 5 stayed silent (measured 2026-08-15 on the banked corpus; this fraction moves as runs are added — the reproducible figure is the 91/91 injection sweep in the test) |
 >
 > So the correct reading of the zero is *"nothing needed flagging"*, not *"the check is
 > broken"*, and not *"the check is why."*
@@ -111,7 +111,7 @@ no duplicated events.*
 > **Still not verified:** every positive above is synthetic. No model has yet been observed
 > fabricating and being caught in the wild, so this measures the detector, never the deterrent.
 > Paraphrase remains uncovered by construction (`test_grounding_recheck` pins that blind spot),
-> and the 9% that slip silently are unanalysed.
+> and the ~6% that slip silently are unanalysed.
 >
 > Worth stating plainly, because the original error is the one this project exists to
 > criticise: a true observation ("zero fabricated URLs") was attributed to the wrong cause. The

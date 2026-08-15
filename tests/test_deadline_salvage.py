@@ -65,6 +65,8 @@ class _Resp:
     def __init__(self, m): self.message = m
 
 
+_last_messages: list = []
+
 SALVAGED = ("INCOMPLETE — I ran out of budget before finishing. Established: the current "
             "date. Still missing: the research itself.")
 
@@ -87,7 +89,10 @@ def _run(*, salvage_reply, max_rounds=2, budget=0):
 
     loop.ollama.chat = fake_chat
     msgs = [{"role": "system", "content": "sys"}, {"role": "user", "content": "research it"}]
-    return loop.run_agent(msgs, "fake-model"), seen
+    out = loop.run_agent(msgs, "fake-model")
+    global _last_messages
+    _last_messages = msgs
+    return out, seen
 
 
 # ── 1. The round limit salvages instead of discarding ───────────────────────
@@ -100,6 +105,35 @@ assert seen[-1] == [], (
 
 log = (d / "audit.log").read_text()
 assert "SALVAGE_ATTEMPT" in log and "SALVAGE_OK" in log, "the salvage must be audited"
+
+# ── 1b. What the model is actually ASKED matters, not just that it is asked ──
+# This is the assertion that was missing when the first version shipped, and it is why a real
+# bug survived a passing test: the fake model above answers on the basis of whether tools are
+# present and ignores the message entirely, so it cannot notice a wrong prompt.
+#
+# The bug: `_salvage` wrapped its request in `_nudge()`, whose prefix reads "AUTOMATIC CHECK ON
+# YOUR PREVIOUS ANSWER ... just correct the answer you just gave". In a salvage there is no
+# previous answer — the model was still calling tools — and the instruction wanted is "write one
+# now", the opposite of a correction. Telling a small model to correct something that does not
+# exist is a good way to get an empty reply, which discards the turn a second time.
+salvage_msgs = [m for m in _last_messages if m.get("role") == "user"
+                and "run out of budget" in str(m.get("content", ""))]
+assert salvage_msgs, "the salvage request must reach the model as a user message"
+body = salvage_msgs[-1]["content"]
+assert "correct the answer you just gave" not in body, (
+    "the salvage prompt must not carry the correction prefix: there is no previous answer to "
+    "correct, and that framing is what produces an empty reply")
+# But it must still be MARKED as machine-injected. test_nudge_marking exists because a bare
+# injected user message gets acted on as a task — aileen1.0 wrote one into persistent memory.
+# Salvage needs a different prefix, not no prefix.
+assert body.startswith("["), \
+    "the salvage message must carry a machine-injected marker, like every other appended turn"
+for expected_marker in ("AUTOMATIC", "not a new request", "no tools"):
+    assert expected_marker.lower() in body.lower(), \
+        f"the salvage prefix must say {expected_marker!r}"
+for expected in ("NO tools", "incomplete", "missing"):
+    assert expected.lower() in body.lower(), \
+        f"the salvage prompt must tell the model {expected!r}; got: {body[:200]!r}"
 
 # ── 2. A wall-clock budget triggers the same path ───────────────────────────
 # TURN_BUDGET_SECONDS is checked against time.monotonic() at the top of each round, so a

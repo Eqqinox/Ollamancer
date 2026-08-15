@@ -26,7 +26,7 @@ models, and privacy.**
 
 - **Local and private first.** Everything runs offline via Ollama. A `--private` mode makes a
   session fully ephemeral (nothing written to disk).
-- **From scratch, no framework.** ~7,700 lines of readable Python across 21 focused modules —
+- **From scratch, no framework.** ~7,900 lines of readable Python across 21 focused modules —
   12 in `agentic/` plus 9 tool modules in `agentic/tools/` — auditable end-to-end.
   The decision was validated repeatedly: many fixes required line-level control a framework
   would have hidden. *(Corrected 2026-08-15: this read "~6,700 lines across fourteen focused

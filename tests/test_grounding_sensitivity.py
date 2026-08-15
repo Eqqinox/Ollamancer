@@ -15,7 +15,7 @@ Three things have to be true to tell those apart, and this file measures the two
      the `AUTO_GROUNDING_CHECK_NUDGE` audit record. Not repeated here.
   2. **Sensitive on a realistic haystack** — the hypothesis this file was written to kill.
      `_grounding_check` substring-matches against every tool result of the turn concatenated
-     together. Real search turns produce 16 KB of that (55 KB at the tail), and the worry was
+     together. Real search turns produce ~20 KB of that (55 KB at the tail), and the worry was
      that a haystack so large matches anything by coincidence, making the check vacuous exactly
      where it matters most. Measured on the banked corpus: **false. An injected fabricated URL
      plus figure was caught in 91 of 91 real answers** (the sweep below reproduces this), and a
@@ -25,7 +25,7 @@ Three things have to be true to tell those apart, and this file measures the two
      `https://www.example-fabricated-outlet.com` is a straw man; the failure mode that actually
      occurs is a plausible digit change to a figure the model really did retrieve. Measured by
      perturbing one digit of a genuinely-cited number in answers first verified clean:
-     **71 of 78 would have nudged (91%), 7 stayed silent.** That figure came from a one-off
+     **73 of 78 would have nudged (94%), 5 stayed silent.** That figure came from a one-off
      sweep on 2026-08-15, not from the sweep below, which injects rather than perturbs — the
      assertion in §3 pins the behaviour on the fixture, not the rate on the corpus.
 
@@ -34,7 +34,7 @@ So the layer is calibrated, not dead, and §2 can now say so with a number inste
 **What is still not verified, and is not verified here.** Every positive above is synthetic. No
 model has yet been observed fabricating and being caught in the wild, so this measures the
 detector, never the deterrent. Paraphrased fabrication remains uncovered by construction (the
-bare `owner/repo` blind spot pinned in `test_grounding_recheck`), and the 9% that slip silently
+bare `owner/repo` blind spot pinned in `test_grounding_recheck`), and the ~6% that slip silently
 are unanalysed.
 
 The corpus sweep at the bottom only runs when `benchmarks/model_ranking/results/` is present.
@@ -62,7 +62,13 @@ CORPUS = HERE.parent / "benchmarks" / "model_ranking" / "results"
 # this fixture was almost entirely numbers and showed a 17.8% four-digit collision rate against
 # the real corpus's 2.8% — it would have "proved" the matcher was vacuous by testing a haystack
 # no search turn produces. Prose padding is not filler here, it is the control.
-_REAL_HAYSTACK_BYTES = 10_300     # median of tool_results.json across banked t2/t4 runs
+_REAL_HAYSTACK_BYTES = 20_000     # median of tool_results.json across the 105 banked t2/t4
+                                  # runs (19.8 KB; 55 KB at the tail). An earlier constant of
+                                  # 10,300 came from a stricter filter over one of the two
+                                  # result trees, and was half the real median — which made
+                                  # this test EASIER than reality, since a smaller haystack
+                                  # produces fewer coincidental matches. Erring small here is
+                                  # erring in the direction that flatters the check.
 _REAL_DIGIT_DENSITY = 0.028       # median digits per byte, same corpus
 
 _PROSE = (
@@ -97,7 +103,9 @@ rng = random.Random(SEED)
 HAY = _synthetic_haystack(rng)
 HAY_BYTES = sum(len(x) for x in HAY)
 HAY_DENSITY = len(re.sub(r"\D", "", "".join(HAY))) / HAY_BYTES
-assert 8000 < HAY_BYTES < 40000, f"haystack should mirror the real corpus size, got {HAY_BYTES}"
+assert 18000 < HAY_BYTES < 45000, (
+    f"haystack should be at least the real corpus median (~20 KB), got {HAY_BYTES}. "
+    "Undersizing it makes the volume test easier than reality.")
 assert abs(HAY_DENSITY - _REAL_DIGIT_DENSITY) < 0.015, (
     f"digit density {HAY_DENSITY:.3f} vs the corpus's {_REAL_DIGIT_DENSITY:.3f} — the fixture "
     "must not be denser in numbers than real search output, or §4 below measures nothing")
@@ -113,7 +121,7 @@ assert loop._grounding_check(grounded, HAY) == [], \
     "an answer whose every hard token came from the tool results must not be flagged"
 
 # ── 2. Sensitivity: an invented URL and figure are caught despite the volume ────────
-# The hypothesis this file exists to kill — that 16 KB of haystack makes the check vacuous.
+# The hypothesis this file exists to kill — that 20 KB of haystack makes the check vacuous.
 fabricated = grounded + (" A separate analysis at "
                          "https://www.entirely-invented-outlet.example/story/9182736 "
                          "put the figure at 87,412,339.")

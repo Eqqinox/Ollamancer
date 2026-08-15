@@ -184,7 +184,7 @@ Identical for every model, every run. No per-model tuning.
 > **What it cost.** Re-scoring moved 42 of 135 runs; runs scoring zero went from 17 to 59;
 > fifteen of eighteen models lost points. `qwen-heretic`, ranked first at 87.0 and described as
 > "best agentic *and* best report score tested, both perfect on both reps", **timed out on all
-> four of its T3 and T4 runs** — every one at exactly 300.0 s. Both of its 25/25s came from
+> four of its T3 and T4 runs** — every one at the 300 s cap. Both of its 25/25s came from
 > artifacts left by runs that never finished. It is now eleventh.
 >
 > **The shape of the error, which is the part worth keeping.** `status` honestly measured "the

@@ -148,7 +148,12 @@ def _salvage(messages: list, model: str, reason: str, turn_tool_results: list[st
     ui.console.print(f"[yellow]{t('salvage_note', reason=reason)}[/yellow]")
     safety._audit("SALVAGE_ATTEMPT", {"reason": reason, "round": rounds,
                                       "tool_results": len(turn_tool_results)})
-    messages.append(_nudge(t("salvage_prompt", reason=reason)))
+    # Marked as machine-injected like every other appended turn (see `_nudge`), but with the
+    # SALVAGE prefix rather than the correction one: the default says "just correct the answer
+    # you just gave", and here there is no previous answer — the model was still calling tools.
+    # Telling a small model to correct something that does not exist is the kind of confused
+    # prompt that produces an empty reply, which would discard the turn a second time.
+    messages.append(_nudge(t("salvage_prompt", reason=reason), prefix_key="salvage_prefix"))
     try:
         # An EMPTY list, not None: `_stream_or_buffer_chat` reads None as "use every native and
         # MCP tool", so passing it here would hand the model the full toolset at the exact
@@ -173,7 +178,7 @@ def _salvage(messages: list, model: str, reason: str, turn_tool_results: list[st
     return answer
 
 
-def _nudge(body: str) -> dict:
+def _nudge(body: str, prefix_key: str = "nudge_prefix") -> dict:
     """Wrap an automatic nudge so a model cannot mistake it for a new user request.
 
     Nudges arrive as ordinary `role: user` messages, which is indistinguishable from the human
@@ -184,8 +189,15 @@ def _nudge(body: str) -> dict:
 
     The prefix says explicitly what the message is and names the three wrong reactions
     observed in the wild: don't search it, don't remember it, don't write it to a file.
+
+    `prefix_key` exists because not every machine-injected message is a *correction*. The
+    default prefix ends "just correct the answer you just gave", which is right for every
+    honesty nudge and wrong for `_salvage`: there the model was still calling tools, so there is
+    no previous answer to correct, and the instruction wanted is the opposite — write one now.
+    Both still have to be marked, because the risk this wrapper exists for is the message being
+    mistaken for a human request, and that applies to any injected turn.
     """
-    return {"role": "user", "content": t("nudge_prefix") + body}
+    return {"role": "user", "content": t(prefix_key) + body}
 
 
 def _looks_like_fake_tool_call(text: str) -> bool:

@@ -298,15 +298,14 @@ Distinguishing them needs three separate facts, and only the first was covered:
    real `run_agent` and asserted both the injected nudge and the audit record. Not dead code.
 2. **Not defeated by volume.** The live hypothesis was that the check is *effectively* dead
    where it matters: it substring-matches against every tool result of the turn concatenated,
-   and a real search turn produces 10–16 KB of that, so perhaps a haystack that large matches
+   and a real search turn produces ~20 KB of that, so perhaps a haystack that large matches
    anything by coincidence. **False, and by a wide margin.** Injecting an invented URL and
    figure into real banked answers, against their real tool results, was caught **91 of 91**. A
    random 4-digit value collides with the concatenated digit-soup only ~3% of the time; five
    digits 0.3%; six or more, never.
 3. **Sensitive to a *realistic* fabrication.** Appending an obviously fake domain is a straw
    man. The failure that actually occurs is a plausible one-digit change to a figure the model
-   really did retrieve. On answers verified clean first: **71 of 78 (91%) would have nudged**,
-   7 stayed silent.
+   really did retrieve. On answers verified clean first: **73 of 78 (94%) would have nudged**, 5 stayed silent (measured 2026-08-15 on the banked corpus; this fraction moves as runs are added — the reproducible figure is the 91/91 injection sweep in the test).
 
 So the zero means *nothing needed flagging* — not that the check is broken, and not that the
 check is why. `tests/test_grounding_sensitivity.py` pins all of it.
@@ -330,7 +329,7 @@ padding is the control, not filler.
 **What remains unverified, and is not hidden by the above:** every positive is synthetic. No
 model has been observed fabricating and being caught in the wild, so this measures the
 detector, never the deterrent. Paraphrase is uncovered by construction (§4.2, and the blind
-spot pinned in `test_grounding_recheck`), and the 9% that slip silently are unanalysed.
+spot pinned in `test_grounding_recheck`), and the ~6% that slip silently are unanalysed.
 
 ### 4.3 "A clean lint is not proof"
 
