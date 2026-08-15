@@ -3,17 +3,24 @@
 **Machine:** MacBook, Apple Silicon, 24 GB unified memory · **Date:** 8 August 2026, extended 10 and 11 August
 **Harness:** Ollamancer OSS, 34 native tools, MCP disabled, `--private` mode
 **Parameters (identical for every model):** temp 0.35 · top_p 0.95 · top_k 40 · **repeat_penalty 1.15** · num_ctx 32768 · num_predict 4096
-**Scale:** 100 points = 4 tasks x 25 · 5-minute hard cap per run
+**Scale:** 25 points per task · 5-minute hard cap per run. §1–§10 total all four to 100; **§11 reports a core of 75** (reasoning, search, report) with the agentic task separately, because 14 of 18 models score zero on it
 
-> ### Read [section 10](#10-pass2-the-authoritative-ranking-11-august-2026) first
+> ### Read [section 11](#11-the-corrected-ranking-15-august-2026--read-this-instead-of-10) first
 >
-> **Sections 1–9 are `pass^1`: one run per model per task.** On 11 August every model in the
-> ranking was re-run for a second rep and scored under `pass^k`, the minimum across reps. Eight
-> of the ten re-run models scored *lower*, one by 17 points, and the ranking changed at the top.
+> **Sections 1–10 are superseded and should not be quoted.**
 >
-> Those sections are kept unedited because they are what a single run actually said, and the
-> gap between them and section 10 is the most useful result in this file. **But they overstate
-> every model in them.** Where the two disagree, section 10 is correct.
+> §1–§9 are `pass^1`, one run per model per task. §10 added a second rep and scored `pass^k`,
+> the minimum across reps: eight of ten models scored *lower*, one by 17 points.
+>
+> **§10 was then found to be wrong too.** A timed-out run recorded `status: "ok"` and was scored
+> on the artifact it had left behind, so runs that produced nothing scored up to 25/25. Fixing
+> it on 15 August moved 42 of 135 runs and cost fifteen of eighteen models points — the largest
+> by 50, which took §10's first place to eleventh. §11 is the corrected ranking, and it reports
+> a **core score out of 75** plus the agentic task separately, because 14 of 18 models score
+> zero on that task and blending it into one total describes nothing.
+>
+> Every superseded section is kept unedited. The gap between a published ranking and its
+> correction is the most useful thing in this file.
 
 ---
 
@@ -40,7 +47,7 @@
 > it ran. See [section 9](#9-additions-10-august-2026) for the combined ranking.
 >
 > **This table is `pass^1` and is superseded.** Under `pass^2`, `gemma4:12b-mlx` falls to 79.2
-> and second place. See [section 10](#10-pass2-the-authoritative-ranking-11-august-2026).
+> and second place. See [section 10](#10-pass2-the-ranking-as-published-on-11-august--superseded).
 
 ### Reliability, the column that decides daily use
 
@@ -296,7 +303,7 @@ so they stay in the ranking without occupying 15.7 GB.
   4th from 5th. Treat gaps under about 6 points as ties.
   **Superseded on 11 August:** this caution turned out to be understated. A second rep moved
   eight of ten models, the largest by 17 points — more than the 6-point tie band suggested was
-  possible. See [section 10](#10-pass2-the-authoritative-ranking-11-august-2026).
+  possible. See [section 10](#10-pass2-the-ranking-as-published-on-11-august--superseded).
 - **The 5-minute cap shapes the results.** **14** of 40 runs hit it. A model scoring 0 on the
   report might well have finished given 15 minutes, but that is not a workflow anyone wants.
   *(Corrected 2026-08-15: this said 19, which contradicted §1's own per-model timeout column on
@@ -402,7 +409,9 @@ Grounding itself was flawless: **7.0/7.0 across all four reruns, zero fabricated
 
 ---
 
-## 10. `pass^2`: the authoritative ranking (11 August 2026)
+## 10. `pass^2`: the ranking as published on 11 August — SUPERSEDED
+
+> ⚠️ **Do not quote this section.** Every number in it was produced by a scorer that counted a timed-out run as a completed one. See [§11](#11-the-corrected-ranking-15-august-2026--read-this-instead-of-10). Kept unedited as the record of what was published.
 
 Five models were added and, more importantly, **every model in the ranking was given a second
 rep**. The reported score is now the **minimum across reps** (`pass^k`, PLAN.md §1.3): a model
@@ -492,6 +501,13 @@ qwen-heretic     agentic   [25, 25]   spread  0   ← passed it both times
 > **the gap between them is not a clean measurement**, and no default should move on it.
 
 ### 10.3 Three controlled quantisation pairs
+
+> ⚠️ **The figures below are the superseded ones.** The finding survives the correction; the
+> numbers do not. On the corrected core /75 of §11 the three pairs read
+> **37.0 vs 0.0**,
+> **34.0 vs 18.0**, and
+> **57.8 vs 38.0** — same direction in all three, and
+> the 9B pair is still the widest gap in the campaign. Quote §11's numbers, not these.
 
 | Pair | Lower / smaller | Higher / larger | Result |
 |---|---|---|---|
@@ -603,3 +619,110 @@ entirely agentic (12 and 6 against 25), not memory.
   report task spikes **+1.58 GB of swap** and repeatedly killed the driver process; the runs
   were completed after unloading resident models between attempts. No run in the table was
   produced under those degraded conditions — `rank.sh` re-runs anything without a `meta.json`.
+
+---
+
+## 11. The corrected ranking (15 August 2026) — read this instead of §10
+
+**§10 was wrong, and by a lot.** A timed-out run recorded `status: "ok"` and was scored on
+whatever artifact it had left behind, so runs that produced nothing collected up to 25/25.
+Fixing that moved 42 of 135 runs, took the number scoring zero from 17 to 59, and cost fifteen
+of eighteen models points. `qwen-heretic`, §10's first place at 87.0 and described there as
+"best agentic *and* best report score tested, both perfect on both reps", **timed out on all
+four of its T3 and T4 runs** at the 300 s cap; both of its 25/25s came from files left behind by
+turns that never finished. The mechanism, the scale and the fix are in
+[`PLAN.md` §3](./PLAN.md).
+
+§10 is kept unedited, like §1–§9 before it, because the gap between a published ranking and its
+correction is the most useful thing in this file. **Nothing in §1–§10 should be quoted.**
+
+### 11.1 Why this section does not lead with a score out of 100
+
+The same fix that corrected the numbers also made a single total indefensible, and it was
+already weak before. Across all 18 models:
+
+| Task | Best `pass^k` | Median | Runs that produced no answer |
+|---|---|---|---|
+| T1 reasoning | 25/25 | 16.5 | 5/33 |
+| T2 web search | 25/25 | 18.9 | 3/36 |
+| **T3 agentic** | **12/25** | **0** | **22/33** |
+| T4 report | 23.8/25 | 0 | 20/33 |
+
+**Fourteen of eighteen models score zero on T3, and the best result in the entire campaign is
+12 out of 25.** That is not a scoring artifact: `DESIGN.md` §6 already calls end-to-end
+multi-bug fixing *the open problem*, and no model has ever solved this fixture in one sitting.
+
+Averaging a task almost nobody passes into three that most models partly pass produces a number
+that describes neither. A top score of 57.8/100 reads like a mediocre grade; what it actually
+means is 17/25 reasoning, 17/25 search, 23.8/25 report, and a wall on a research problem. So
+the headline below is the **core 75** — reasoning, search, report — with agentic reported beside
+it as the open challenge it is, and completion rate shown so a low score is never confused with
+a slow one.
+
+T3 stays in the battery. It is the only task that separates `gpt-oss:20b` and `qwen2.5:7b`
+from everything else, and a discriminator that four models in eighteen can touch is worth more
+than one everybody passes. It just should not be blended into a single figure.
+
+### 11.2 Ranking
+
+Same runs as §10, same protocol, corrected scorer. `pass^k` is the **minimum** across reps, so a
+model counts only what it produced every time. **Runs completed** is how many of that model's
+runs returned an answer at all rather than hitting the 300 s cap.
+
+| # | Model | Size | Reasoning | Search | Report | **Core /75** | Agentic /25 | Runs completed |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Qwen3.6-35B-A3B **IQ2_M** | 12.6 GB | 17 | 17 | 23.8 | **57.8** | 0 | 6/8 |
+| 2 | qwen2.5:7b ◆ | 4.7 GB | 12 | 19 | 21.2 | **51.9** | 6 | 4/4 |
+| 3 | Agen/gemma-4-26B-heretic | 17 GB | 25 | 22 | 0.0 | **47.0** | 0 | 4/8 |
+| 4 | gemma4:26b-mlx | 17 GB | 25 | 22 | 0.0 | **47.0** | 0 | 4/8 |
+| 5 | gemma4:12b-mlx | 7.7 GB | 25 | 21 | 0.0 | **45.7** | 0 | 5/8 |
+| 6 | gemma4:e4b-mlx ◆ | 8.8 GB | 25 | 19 | 0.0 | **43.7** | 0 | 5/7 |
+| 7 | gemma4:e4b-mlx-bf16 ◆ | 16 GB | 18 | 25 | 0.0 | **43.0** | 0 | 3/4 |
+| 8 | Ornith-1.0-9B-GGUF | 5.6 GB | 25 | 16 | 0.0 | **41.0** | 0 | 4/8 |
+| 9 | gpt-oss:20b | 13 GB | 19 | 19 | 0.0 | **38.0** | 12 | 7/8 |
+| 10 | Qwen3.6-35B-A3B **IQ3_M** | 16.3 GB | 16 | 22 | 0.0 | **38.0** | 0 | 4/8 |
+| 11 | qwen-heretic | 7.0 GB | 17 | 20 | 0.0 | **37.0** | 0 | 4/8 |
+| 12 | qwen3.5:4b | 3.4 GB | 12 | 22 | 0.0 | **34.0** | 0 | 6/8 |
+| 13 | gemma-4-12b-nightshift-heretic | 7.4 GB | 0 | 25 | 0.0 | **25.0** | 0 | 3/8 |
+| 14 | qwen3.5:4b-mlx | 4.0 GB | 0 | 0 | 18.0 | **18.0** | 0 | 5/8 |
+| 15 | gamy316/aileen1.0 | 4.9 GB | 1 | 14 | 0.0 | **15.3** | 6 | 8/8 |
+| 16 | ornith:9b | 5.6 GB | 0 | 14 | 0.0 | **14.3** | 0 | 3/8 |
+| 17 | lfm2.5:8b | 5.2 GB | 0 | 0 | 0.0 | **0.0** | 9 | 8/8 |
+| 18 | qwen3.5:9b-mlx | 8.9 GB | 0 | 0 | 0.0 | **0.0** | 0 | 2/8 |
+
+◆ **Not `pass^2`** — single-observation rows, not comparable to the rest. `qwen2.5:7b` and
+`gemma4:e4b-mlx-bf16` were never in the rep-2 scope; `gemma4:e4b-mlx` has four reps on search
+and one elsewhere, so its rep count is inconsistent even within its own row.
+
+### 11.3 What actually changed, and what to take from it
+
+- **The 300 s cap decides more than the models do.** 50 of 135 runs produced nothing, and T3 and
+  T4 account for 42 of those. Any reading of this table is a reading of behaviour under a
+  five-minute budget on a 24 GB laptop, not of the models in general.
+- **Completion rate is the column to read first.** `gamy316/aileen1.0` and `lfm2.5:8b` completed
+  8/8 runs and still rank near the bottom: they are not slow, they are weak. `Agen/gemma-4-26B`
+  ranks third on 4/8 — strong when it finishes, and it finishes half the time. Those are
+  different recommendations and one number cannot carry both.
+- **`gpt-oss:20b` is the most interesting row.** It ranks ninth on core and scores **12/25 on
+  T3, the highest result any model has recorded on the agentic task**, with 7/8 runs completed.
+  On the old blended total it sat third for the wrong reason; here it is visible for the right
+  one.
+- **`lfm2.5:8b` scores 0 on all three core tasks and 9 on T3.** Every point it has comes from
+  the hardest task in the battery. On 8/8 completed runs that is not noise, and it is not a
+  result a single total would ever have surfaced.
+- **The ranking is not settled at the top.** Ranks 1–8 span 57.8 to 41.0 with three
+  non-comparable single-run rows inside them, and §10.4's caveat still applies: several rep-1
+  runs predate scorer fixes their rep-2 counterparts benefited from. **Treat the top half as
+  unordered.**
+
+### 11.4 What would make this better, stated rather than done
+
+- **Study the cap instead of fixing it.** Every table here is at 300 s. Running the same battery
+  at 300/600/900 would separate "cannot do this" from "cannot do this quickly", which is the
+  single largest confound in the file.
+- **Re-measure with the current agent.** These runs predate deadline salvage: a turn that ran
+  out returned nothing, where the shipped agent now answers from what it gathered. The benchmark
+  measures an agent that no longer exists, and a re-run would have to cover all 135 runs, since
+  mixing salvaged and non-salvaged runs in one table is exactly the comparability failure
+  §1.2 exists to prevent.
+- **Re-run rep 1 for the original ten** on the current build, closing §10.4's inherited defect.

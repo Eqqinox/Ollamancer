@@ -1,7 +1,7 @@
 # Ollamancer: what it is, in detail
 
 > A fully-local, terminal-first AI agent for Ollama, built from scratch in Python.
-> Version **v3.0** · developed on macOS (M4 Pro, 24 GB) · docs in English · bilingual EN/FR interface.
+> Version **v3.1** · developed on macOS (M4 Pro, 24 GB) · docs in English · bilingual EN/FR interface.
 >
 > This document is the detailed presentation. See `README.md` for the quick front page,
 > `Agentic_Manual.md` for the full user manual, `capabilities.md` for the exhaustive
@@ -165,7 +165,7 @@ Ollamancer treats the failure modes of small local models as first-class problem
 ## 9. Repository map
 
 ```
-agent.py                  # the whole agent (ReAct loop, tools, UI), v3.0
+agent.py                  # thin entry point; the agent lives in agentic/
 launch.sh                 # venv setup + launcher (flags: --safe --sandbox --private)
 skills/                   # bundled SKILL.md workflows (14)
 benchmarks/               # reusable model-reliability fixtures + playthrough harness
@@ -183,7 +183,7 @@ tests/                    # deterministic offline test suite (42 tests)
 
 ## 10. Status & positioning
 
-A mature **personal tool** (v3.0), not a funded product. It won't out-star OpenCode, but it
+A mature **personal tool** (v3.1), not a funded product. It won't out-star OpenCode, but it
 occupies a genuinely uncommon niche the 2026 market analysis says the field is missing:
 **fully-local + deterministic honesty controls + small-model reliability engineering +
 skills-beyond-MCP + privacy mode + a rich terminal UX.**

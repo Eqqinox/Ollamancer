@@ -1,0 +1,20 @@
+## Timeline
+The "Shai-Hulud" npm supply-chain attack campaign emerged in late 2025 and continued through much of 2026 with several distinct waves of activity [1]. The initial self-replicating worm was identified by researchers in September 2025, notably compromising the `@ctrl/tinycolor` package and over 40 others [1]. By November 25, 2025, a more aggressive version known as "Shai-Hulud 2.0" was detected by Unit 42 researchers [2]. This iteration expanded its impact significantly, affecting tens of thousands of GitHub repositories across approximately 350 unique users [2]. In mid-2026, the campaign continued with further strikes; specifically, on May 11, 2026, a "Mini Shai-Hulud" variant compromised at least 84 npm package artifacts within the `@tanstack/*` and `@squawk/*` namespaces [3]. This was followed by an attack on June 1, 2026, targeting the `@redhat-cloud-services` namespace with at least 32 packages [4]. The campaign saw a significant resurgence in early August 2026, where variants like "CHAINDROP" were identified as compromising the `keyv` and `cacheable` ecosystems, affecting hundreds of packages [5][6].
+
+## How it spreads
+The Shai-Hulud worm utilizes a sophisticated self-propagation engine to achieve rapid ecosystem-wide distribution [1]. The malware includes an `NpmModule.updatePackage` function that queries the NPM registry API to identify up to 20 additional packages owned by the same maintainer as the currently infected package [1]. Once identified, the attacker force-publishes malicious patches to these packages, creating a cascading infection chain across the NPM registry [1].
+
+The attack's execution method evolved between variants. While early versions might have used `postinstall` scripts, the "Shai-Hulud 2.0" campaign shifted its focus to the `preinstall` phase of software dependencies [2]. This shift was a strategic move to bypass static scanning tools that typically inspect code during later build stages or post-installation checks [2]. By executing during the `preinstall` phase, the malware ensures execution on virtually every build server processing an infected package, effectively eliminating the need for human interaction and guaranteeing widespread reach [2]. The payload itself often consists of a large, minified JavaScript bundle (e.g., `bundle.js`) that executes asynchronously to perform reconnaissance and harvest credentials [1]. This more aggressive version even included mechanisms that could attempt to destroy a user's home directory [2].
+
+## Remediation steps
+Mitigating the Shai-Hulud threat requires a multi-layered approach focused on both identification and cleanup [5]. First, developers must audit their dependency trees for known compromised packages or namespaces, such as `@tanstack/*`, `@calm-services`, or `keyv` [3][4][6]. Removing the malicious versions from NPM is a critical step to stop further propagation of the worm [1].
+
+Furthermore, because the malware targets high-value cloud credentials and secrets by exfiltrating them to public GitHub repositories (often labeled with descriptions like "Sha1-Hulud: The Second Coming"), organizations must rotate all environment variables, API keys, and cloud provider credentials that were accessible during any build processes involving infected packages [2]. Strengthening the CI/CD pipeline is also essential; implementing more robust static analysis and monitoring for unexpected `preinstall` or `postinstall` script activity can help detect future variants before they achieve widespread distribution [2][5].
+
+## Sources
+1. https://www.stepsecurity.io/blog/ctrl-tinycolor-and-40-npm-packages-compromised
+2. https://unit42.paloaltonetworks.com/npm-supply-chain-attack/
+3. https://snyk.io/blog/tanstack-npm-packages-compromised/
+4. https://unit42.paloaltonetworks.com/monitoring-npm-supply-chain-attacks/
+5. https://www.elastic.co/security-labs/shai-hulud-chaindrop-npm-supply-chain
+6. https://www.microsoft.com/en-us/security/blog/2026/08/04/chaindrop-supply-chain-compromise-anatomy-self-propagating-worm/

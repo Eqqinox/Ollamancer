@@ -1,0 +1,19 @@
+## Timeline
+The Shai‑Hulud campaign began in September 2025 when a self‑replicating npm worm first appeared in the registry. By late November, it had infected more than 470 packages and created roughly 25 000 malicious GitHub repositories that were used for credential exfiltration and further propagation [Source: https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem][Source: https://unit42.paloaltonetworks.com/npm-supply-chain-attack/]. The second wave surfaced on August 4 2026 after an attacker hijacked the maintainer account of keyv – a widely‑used caching library. From this single compromised account, the worm spread to over 800 npm packages, representing more than two billion monthly downloads across JavaScript projects worldwide [Source: https://research.jfrog.com/post/shai-hulud-is-back-august/][Source: https://dev.to/chaudharidevam/shai-hulud-strikes-back-keyv-cacheable-800-npm-packages-hijacked-in-massive-worm-attack-4ci]. The attack continued into late August and early September 2026 as additional maintainers were taken over, expanding the reach of the worm further.
+
+## How it spreads
+Shai‑Hulud infects npm packages by inserting a pre‑install hook (node setup.mjs) that silently downloads an embedded Bun runtime. The payload then harvests local and CI secrets, exfiltrates them to attacker‑controlled GitHub repositories or C2 domains, and uses stolen npm tokens to republish patched versions of every writable package in the ecosystem [Source: https://unit42.paloaltonetworks.com/npm-supply-chain-attack/][Source: https://research.jfrog.com/post/shai-hulud-is-back-august/]. Because the infection occurs during the pre‑install phase, it executes automatically on any machine that installs a compromised dependency—build servers, CI pipelines, developers’ local environments, and even downstream projects that consume those packages. The worm also monitors for token revocation; if detected, it triggers additional malicious actions to maintain persistence [Source: https://dev.to/chaudharidevam/shai-hulud-strikes-back-keyv-cacheable-800-npm-packages-hijacked-in-massive-worm-attack-4ci].
+
+## Remediation steps
+1. **Audit dependencies** – Run `npm audit` or use a supply‑chain monitoring tool (e.g., Snyk, Wiz) to identify any packages that match the known compromised versions listed in the CISA alert and JFrog report.
+2. **Reinstall clean copies** – Remove all local node_modules directories and reinstall dependencies from trusted sources; avoid using cached or prebuilt binaries that may have been tampered with.
+3. **Rotate credentials** – Immediately revoke any npm publish tokens, GitHub personal access tokens, CI secrets, and cloud provider keys that were in use at the time of infection [Source: https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem].
+4. **Update tooling** – Ensure Node.js and npm are on supported versions; upgrade to npm 8+ where pre‑install hooks run only when explicitly enabled.
+5. **Implement supply‑chain defenses** – Use lockfile verification, provenance signing (Sigstore), and package integrity checks to detect tampered packages before installation [Source: https://research.jfrog.com/post/shai-hulud-is-back-august/].
+6. **Monitor for re‑infection** – Set up alerts on new releases of key npm libraries and watch GitHub Actions logs for unexpected lifecycle scripts.
+
+## Sources
+1. https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem
+2. https://unit42.paloaltonetworks.com/npm-supply-chain-attack/
+3. https://research.jfrog.com/post/shai-hulud-is-back-august/
+4. https://dev.to/chaudharidevam/shai-hulud-strikes-back-keyv-cacheable-800-npm-packages-hijacked-in-massive-worm-attack-4ci

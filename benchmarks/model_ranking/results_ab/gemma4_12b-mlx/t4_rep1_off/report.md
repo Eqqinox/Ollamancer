@@ -1,0 +1,16 @@
+## Timeline
+The Shai-Hulud campaign began in late 2025 as a self-replicating worm targeting the npm ecosystem [1]. By November 2025, "Shai-Hulud 2.0" was identified as a significantly wider and more aggressive evolution of this threat [1]. This specific iteration targeted tens of thousands of GitHub repositories across approximately 350 unique users [1]. A new variant, known as Mini Shai-Hulud, emerged in April 2026, initially targeting the SAP developer ecosystem before expanding into a massive campaign that compromised over 373 malicious package versions across 169 different names by May 2026 [2]. The evolution of these attacks shows a clear progression from simple credential harvesting to automated, self-replicating worms capable of large-scale distribution within the software supply chain.
+
+## How it spreads
+The worm leverages npm lifecycle scripts—specifically `preinstall` hooks—to execute malicious code automatically during the installation process [2]. Because this occurs before the rest of the package is installed or tested, it effectively bypasses static scanning tools and eliminates the need for human interaction [1]. Once executed, the malware identifies and scans the environment for high-value credentials, including `.npmrc` files (containing npm tokens), GitHub Personal Access Tokens (PATs), and cloud provider keys for AWS, GCP, and Azure [1]. 
+
+The propagation mechanism is highly automated: once a developer's token is stolen, the worm authenticates to the registry as that user. It then identifies other packages maintained by that specific developer, injects malicious code into them, and publishes new versions to the public registry [1]. Furthermore, the Mini Shai-Hulud variant specifically exploits the Bun JavaScript runtime and OIDC authentication to spread through trusted release paths [2]. If the malware fails to successfully exfiltrate any credentials or access tokens, it employs a destructive fallback mechanism that attempts to overwrite and delete every writable file in the user's home directory as an act of sabotage [1].
+
+## Remediation steps
+Organizations must prioritize immediate credential rotation for all npm tokens, GitHub Personal Access Tokens (PATs), and cloud provider keys (AWS, Azure, GCP) that were accessible on any developer machines or CI/CD runners potentially exposed to the infection [2]. It is critical to treat any environment where a compromised package version was installed as fully breached. Security teams should conduct an exhaustive audit of recent package publishing activity for unauthorized releases and inspect all CI/CD workflows for suspicious behavior, such as unexpected external network connections during build phases [2]. 
+
+Additionally, because the worm targets pre-install scripts, organizations should consider enforcing stricter policies on which packages can be installed in production environments. Monitoring for the creation of public GitHub repositories with descriptions related to "Shai-Hulud" or identifying unauthorized access to internal systems is also recommended as a secondary detection measure [1].
+
+## Sources
+1. https://unit42.paloaltonetworks.com/npm-supply-chain-attack/
+2. https://www.picussecurity.com/resource/blog/mini-shai-hulud-the-npm-supply-chain-worm-explained

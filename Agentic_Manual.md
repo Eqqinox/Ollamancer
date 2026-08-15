@@ -1,5 +1,5 @@
 # Ollamancer: User manual
-> Local terminal AI agent · v3.0
+> Local terminal AI agent · v3.1
 
 > **Interface language.** The agent's interface (banner, `/help`, messages, `/model` table)
 > is **English by default**. Use `/lang fr` to switch to French mid-session, the interface
@@ -1066,6 +1066,29 @@ Durable facts belong in `memory_write`, not in the conversation history.
 
 > This is a condensed summary. The full engineering history, with the reasoning and the
 > benchmark evidence behind each change, is in [`DESIGN.md`](./DESIGN.md).
+
+**v3.1 (2026-08-15).** Reliability and honesty of the *reporting*, after an audit found the
+benchmark had been scoring failed runs as successes.
+
+- **A turn that runs out now answers instead of returning nothing.** Hitting the tool-round
+  limit, or the new optional `TURN_BUDGET_SECONDS` wall clock, used to discard everything the
+  turn had gathered and print a status line. The agent now spends one final generation, with
+  tools disabled, answering from the evidence already collected and stating what is missing.
+  The grounding check still runs on it and warns. **32 live settings.**
+- **No more bare `Unexpected error:`.** The turn-level catch-alls printed the message and
+  nothing else whenever an exception carried no text. They now always name the exception type,
+  explain that the session survived, and write the full traceback to the audit log.
+- **The claim-vs-action nudge no longer fires on research turns**, where "verified" means
+  checked against the sources and no verification tool could have run.
+- **Benchmark scorer fixed:** a timed-out run recorded `status: "ok"` and was scored on the file
+  it had left behind, so runs producing nothing scored up to 25/25. Correcting it moved 42 of
+  135 runs; the model ranked first fell from 87.0 to eleventh place. See `RESULTS.md` §11.
+- **The honesty layer is now measured, not assumed.** `_grounding_check` had never fired in 264
+  benchmark runs, which is equally consistent with a calibrated check and a dead one; its
+  sensitivity is now pinned at 91/91 on injected fabrications.
+- **Docs check their own numbers.** Six hand-maintained counts had drifted; `test_structure`
+  now verifies tools, settings, skills, tests, modules and line counts against the repo.
+- **42 offline tests** (from 36).
 
 **v3.0 (2026-08-05), major release.** 7 fixes + 10 features.
 - **5 new tools:** `append_file` (chunked writes, anti-truncation), `search_semantic` (local RAG via bge-m3), `analyze_image` (vision), `python_repl` (persistent interpreter), `load_skill`. **34 tools total.**

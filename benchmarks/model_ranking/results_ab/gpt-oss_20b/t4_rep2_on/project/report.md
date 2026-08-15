@@ -1,0 +1,19 @@
+## Timeline
+The first alert from CISA on September 23, 2025 documented that the self‑replicating worm had compromised more than 500 npm packages via pre‑install scripts [1]. Palo Alto Networks Unit 42 reported a renewed campaign—*Shai‑Hulud 2.0*—in early November 2025, expanding to tens of thousands of GitHub repositories and adding destructive fallback actions if credential exfiltration failed [2]. Microsoft’s December 9, 2025 blog showed the worm now leveraged the Bun runtime for pre‑install execution and maintainer hijacking [3]. In April–May 2026 a second wave—*Mini Shai‑Hulud* followed by *Megalodon*—targeted npm and PyPI ecosystems, compromising 172 packages across 404 malicious versions and backdooring thousands of CI/CD workflows in under six hours. The Cloud Security Alliance’s May 22, 2026 note described this two‑wave attack that combined package registry compromise with CI/CD pipeline hijacking [4].
+
+## How it spreads
+Shai‑Hulud embeds itself in the `preinstall` script of infected npm packages. When `npm install` runs, the malicious script (e.g., `setup_bun.js`) executes before any tests, allowing the worm to run without user interaction [1]. It scans for credentials—`.npmrc` tokens, GitHub PATs, and cloud API keys—and exfiltrates them by creating a public GitHub repository named *Shai‑Hulud* under the victim’s account. Using the stolen npm token, it authenticates to the registry as the compromised maintainer, injects malicious code into other packages owned by that user, and publishes new infected versions, propagating exponentially [2]. Later variants (Shai‑Hulud 2.0) leveraged the Bun runtime to download a GitHub Actions Runner archive, configure a rogue runner named *SHA1Hulud*, and use tools such as TruffleHog to harvest additional secrets before attempting destructive fallback actions if exfiltration fails [3]. The 2026 waves extended this model by hijacking build pipelines themselves, generating SLSA‑level provenance attestations for malicious artifacts and backdooring CI/CD workflows across thousands of repositories in a coordinated burst [4].
+
+## Remediation steps
+1. **Audit dependencies**: review `package-lock.json` or `yarn.lock` to identify affected packages; pin vulnerable versions to releases before September 16, 2025 [1].
+2. **Rotate credentials and enforce MFA** for GitHub, npm, and cloud platforms; remove unused OAuth apps and review repository webhooks and secrets [1].
+3. **Enable supply‑chain tooling**: use Dependabot or similar to receive alerts, enable branch protection rules, and activate secret scanning in GitHub repositories [2].
+4. **Monitor network activity** for outbound connections to known malicious domains (e.g., webhook.site) and block them; inspect firewall logs for anomalous traffic associated with credential exfiltration or destructive commands such as `shred` on hidden files [1, 3].
+5. **Harden GitHub security posture**: delete throwaway accounts used by attackers, audit CI workflow permissions, and enforce signed commits to detect impersonation attempts highlighted in the 2026 wave where fake personas were used for repository creation [4].
+6. **Deploy runtime protection** such as Microsoft Defender or equivalent solutions that correlate telemetry across endpoints, containers, and cloud workloads; use dedicated hunting queries for pre‑install script execution anomalies and credential exfiltration signatures [3].
+
+## Sources
+1. https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem
+2. https://unit42.paloaltonetworks.com/npm-supply-chain-attack/
+3. https://www.microsoft.com/en-us/security/blog/2025/12/09/shai-hulud-2-0-guidance-for-detecting-investigating...
+4. https://labs.cloudsecurityalliance.org/research/csa-research-note-shai-hulud-megalodon-supply-chain-cascade

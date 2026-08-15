@@ -6,7 +6,7 @@
 
 No cloud. No API keys. No data leaves your machine. Point it at a project folder and talk to it. It reasons and acts with 35 native tools, MCP servers, and your shell.
 
-> Status: **v3.0** · developed on macOS (Apple Silicon, 24 GB) · Python 3.12+ · documentation in English, **bilingual EN/FR interface** · MIT.
+> Status: **v3.1** · developed on macOS (Apple Silicon, 24 GB) · Python 3.12+ · documentation in English, **bilingual EN/FR interface** · MIT.
 
 <!-- TODO: demo recording.
      asciinema rec demo.cast --cols 100 --rows 30
@@ -67,7 +67,7 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 
 ```bash
 # 1. Pull a tool-capable model (any small Qwen/Gemma build works), and the RAG embedder:
-ollama pull gemma4:12b-mlx    # the default; any tool-capable model works. See RESULTS.md §10
+ollama pull gemma4:12b-mlx    # the default; any tool-capable model works. See RESULTS.md §11
 ollama pull bge-m3            # embedding model, needed for local RAG
 
 # 2. Install it (not on PyPI yet, so straight from the repo):
@@ -187,7 +187,7 @@ See [`tests/README.md`](./tests/README.md) for what each one covers.
 - [`capabilities.md`](./capabilities.md): exhaustive capability list.
 - [`DESIGN.md`](./DESIGN.md): design rationale & engineering history (including what *didn't* work).
 - [`benchmarks/README.md`](./benchmarks/README.md): the model-reliability fixtures and findings.
-- [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md): 18 local models ranked on reasoning, search, agentic work and report writing, with the protocol and its limits in [`PLAN.md`](./benchmarks/model_ranking/PLAN.md). §10 is the current `pass^2` ranking; the earlier sections are single-run and are kept only to show how much a second run moved them.
+- [`benchmarks/model_ranking/RESULTS.md`](./benchmarks/model_ranking/RESULTS.md): 18 local models ranked on reasoning, search, agentic work and report writing, with the protocol and its limits in [`PLAN.md`](./benchmarks/model_ranking/PLAN.md). **§11 is the current ranking**; §1–§10 are superseded and kept unedited. That trail is deliberate: §10 was itself found to be wrong on 15 August, when a scorer bug that counted timed-out runs as completed was fixed, costing fifteen of eighteen models points.
 
 All documentation is in English. The **agent's interface is bilingual EN/FR** (`/lang`), that's a feature, not an oversight.
 

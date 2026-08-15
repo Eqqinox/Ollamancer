@@ -1,0 +1,16 @@
+## Timeline
+The Shai-Hulud worm first emerged as a significant self-replicating supply chain threat in September 2025 [1]. During this initial phase, it was identified by researchers as being responsible for compromising over 500 distinct packages within the massive npm ecosystem [1]. As the campaign progressed into late 2025, specifically by November, it evolved into a more complex iteration known as "Shai-Hulud 2.0" [2]. This newer version significantly expanded its reach, affecting tens of thousands of GitHub repositories and infecting more than 25,000 malicious repositories across approximately 350 unique users [2].
+
+## How it spreads
+The worm operates as a highly autonomous, self-replicating entity that gains initial access by infecting packages hosted on the npmjs.com registry [1]. Once inside a package, the malware actively scans the environment for sensitive credentials, specifically targeting GitHub Personal Access Tokens (PATs) and API keys for major cloud services including Amazon Web Services (AWS), Google Cloud Platform (GCP), and Microsoft Azure [1]. After harvesting these secrets, it exfiltrates them to an endpoint controlled by the attacker and automatically uploads them to a public repository named "Shai-Hulud" via the GitHub/user/repos API [1].
+
+The worm achieves rapid propagation through a sophisticated automated process: it authenticates to the npm registry as the compromised developer, injects its own unique code into other packages, and then publishes these new versions back to the registry for others to discover [1]. In the Shai-Hulud 2.0 iteration, the primary infection point shifted specifically to the pre-install phase of software dependencies [2]. This strategic shift allows the malware to execute automatically on virtually every build server processing the package without requiring any human interaction, while simultaneously bypassing many static scanning tools that typically only inspect code during later build stages [2].
+
+## Remediation steps
+To effectively mitigate the impact of the Shai-Hulud worm, organizations should begin by conducting a thorough dependency review of all software currently leveraging the npm ecosystem [1]. This process involves checking `package-lock.json` or `yarn.lock` files to identify affected packages even when they are nested deep within complex dependency trees [1]. For immediate stability, it is highly recommended that developers pin their package versions to known safe releases produced prior to September 16, 2025 [1].
+
+Security teams should also take proactive measures by immediately rotating all developer credentials and mandating phishing-resistant multifactor authentication (MFA) on critical platforms such as GitHub and npm [1]. Furthermore, continuous monitoring for anomalous network behavior is essential; specifically, organizations should configure their systems to block outbound connections to webhook.site domains and closely monitor firewall logs for any suspicious domain activity that might indicate a hidden infection [1].
+
+## Sources
+1. https://www.cisa.gov/news-events/alerts/2025/09/23/widespread-supply-chain-compromise-impacting-npm-ecosystem
+2. https://unit42.paloaltonetworks.com/npm-supply-chain-attack/

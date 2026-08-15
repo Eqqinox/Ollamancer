@@ -302,7 +302,7 @@ background tasks on this machine.
 
 ## 6. Scoring
 
-100 points, 25 per category, as the four categories were named as equals.
+25 points per category, as the four categories were named as equals. `RESULTS.md` §11 reports the first three as a **core of 75** and the agentic task beside it rather than as one total of 100: 14 of 18 models score zero on that task, so blending it in produces a figure that describes neither.
 `score.py` computes everything except the two judged items, which are entered by
 hand.
 
