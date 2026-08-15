@@ -172,7 +172,13 @@ def _salvage(messages: list, model: str, reason: str, turn_tool_results: list[st
         unsupported = _grounding_check(answer, turn_tool_results)
         if unsupported:
             shown = ", ".join(unsupported[:8])
-            ui.console.print(f"[yellow]{t('grounding_recheck_warning', values=shown)}[/yellow]")
+            # Its own string, not `grounding_recheck_warning`. That one says "still unverified
+            # after the correction" and "corrected lines are the least-checked part of an
+            # answer" — there was no correction here, and a live smoke test duly printed it on a
+            # salvaged answer, describing a step that never happened. Same mistake as reusing
+            # the nudge prefix: a message that is right for one path is not free to reuse on
+            # another just because the trigger looks similar.
+            ui.console.print(f"[yellow]{t('salvage_ungrounded_warning', values=shown)}[/yellow]")
             safety._audit("SALVAGE_UNGROUNDED", {"unsupported": unsupported[:12]})
     safety._audit("SALVAGE_OK", {"reason": reason, "chars": len(answer)})
     return answer
