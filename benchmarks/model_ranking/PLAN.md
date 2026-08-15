@@ -336,6 +336,25 @@ times slower is a different recommendation, and the table should show that.
 
 Stated up front, in the spirit of the rest of this repo's benchmark write-ups:
 
+> ### ⚠️ The inference baseline changed on 2026-08-15, after every run in this file
+>
+> `OLLAMA_FLASH_ATTENTION=1` and `OLLAMA_KV_CACHE_TYPE=q8_0` were set on the machine (via
+> `launchctl setenv`, which is how the macOS desktop app picks them up). Every result in
+> `RESULTS.md`, including the corrected §11, was produced **without** them.
+>
+> This is recorded here rather than in a shell profile because it is exactly the kind of change
+> that invalidates a comparison silently: §1.2 pins every generation parameter so that failures
+> attribute to the model, and the KV-cache dtype is a generation parameter the harness does not
+> control. **A future run is not comparable to a banked one across this line.** Any new epoch
+> should re-run all 135 cells rather than topping up.
+>
+> Measured effect on quality is negligible — q8_0 KV cache is under 0.1% perplexity delta
+> against f16 in published llama.cpp benchmarks — so this is a memory and speed change, not a
+> capability one. Two caveats worth knowing: it applies to the llama.cpp/GGUF path, so the
+> `-mlx` tags in the roster (nvfp4, MLX runner) are unaffected; and `launchctl setenv` does not
+> survive a reboot, so a machine that has restarted is silently back on the old baseline unless
+> a LaunchAgent makes it permanent.
+
 - **One machine, one quantization tier.** Results are about *these builds on this
   M-series 24 GB Mac*, not about the underlying models in general. This cuts hardest
   for the two >20 GB models: a poor score from them is evidence about *this machine*,
