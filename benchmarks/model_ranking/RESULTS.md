@@ -806,3 +806,26 @@ Three fixes, each measured:
 - One task, one machine, one SearXNG instance whose news index returned nothing dated inside
   thirty days for the benchmark query — which is why the freshness filter matters here and might
   matter less elsewhere.
+
+### 12.3 The cap measures the machine as much as the model — demonstrated
+
+T1 was re-run the same day, purely to confirm that the auto-load trigger stays out of a task
+whose prompt says "do NOT use any tool, do not search the web". It does: **no `LOAD_SKILL` and
+no skill text in any of the 24 runs, and 23 of 24 made zero tool calls** — the exception called
+`python_repl`, a model disobeying the instruction on its own.
+
+The scores, however, appeared to collapse: `pass^k` 15.1 → 9.8, with four models dropping to
+zero. Every one of those was a **rep-1 timeout whose rep-2 completed comfortably** (289 s, 140 s,
+110 s, 83 s, 118 s). Rep 1 is each model's cold load, and by then the machine had spent a day
+benchmarking, with swap at 7 GB of 8 GB.
+
+So the same model, task and seed was run once more with the machine idle — 85% memory free, swap
+at 3.5 GB. `gemma4:12b-mlx` T1 rep 1, which had just timed out at 300 s, scored **25/25 in
+180 s**. Same code, same run, opposite result.
+
+That is §11.3's first bullet, reproduced deliberately rather than inferred: **a zero in this file
+can mean "the machine was paging", not "the model cannot do this".** The contaminated runs are
+kept under `archive/t1_check_20260816_contaminated/` and the published T1 set was restored
+untouched, verified score-identical. It is also the strongest argument for §11.4's first item —
+running the battery at 300/600/900 s would separate the two readings instead of leaving them
+fused, and until that is done, **every zero in this file carries this ambiguity.**
