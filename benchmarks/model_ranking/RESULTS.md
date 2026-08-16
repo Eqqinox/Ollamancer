@@ -624,6 +624,10 @@ entirely agentic (12 and 6 against 25), not memory.
 
 ## 11. The corrected ranking (15 August 2026) — read this instead of §10
 
+> **The Search column is superseded by §12.** The web layer changed on 16 August and T2
+> was re-run; every other column here still stands. Sections are never edited in place
+> in this file, so the old numbers remain below as published.
+
 **§10 was wrong, and by a lot.** A timed-out run recorded `status: "ok"` and was scored on
 whatever artifact it had left behind, so runs that produced nothing collected up to 25/25.
 Fixing that moved 42 of 135 runs, took the number scoring zero from 17 to 59, and cost fifteen
@@ -726,3 +730,79 @@ and one elsewhere, so its rep count is inconsistent even within its own row.
   mixing salvaged and non-salvaged runs in one table is exactly the comparability failure
   §1.2 exists to prevent.
 - **Re-run rep 1 for the original ten** on the current build, closing §10.4's inherited defect.
+
+---
+
+## 12. T2 re-run after the web layer changed (16 August 2026)
+
+The agent's web path changed on 16 August: a `web-answer-format` skill loaded code-side on
+web-shaped questions, `search_web_deep(query, sections=[...])` returning breadth from results it
+already had, and freshness filtering for news. §11's Search column was produced before all of
+that, so it describes code that no longer ships. **T1, T3 and T4 were not re-run** — the
+auto-load trigger fires on none of those task prompts, verified against the prompt files, though
+verified by pattern rather than by running them.
+
+Twelve of the fifteen models in `survivors.txt`: three were uninstalled from the machine and are
+recorded as such rather than dropped. Same protocol, same pinned parameters, same 300 s cap;
+`MAX_SECTIONS` and `SECTION_RSS_ITEMS` are now pinned in `run_one.py` too, so a later change to
+a shipped default cannot silently make old and new runs incomparable.
+
+| Model | T2 before | time | T2 after | time | Δ |
+|---|---|---|---|---|---|
+| gpt-oss:20b | 19.0 | 81s | **25.0** | 211s | **+6.0** |
+| qwen3.5:4b-mlx | 0.0 | 137s | **25.0** | 96s | **+25.0** |
+| Qwen3.6-35B-A3B **IQ3_M** | 22.0 | 124s | **25.0** | 127s | **+3.0** |
+| Ornith-1.0-9B-GGUF | 16.0 | 172s | **23.7** | 209s | **+7.7** |
+| gemma-4-12b-nightshift-heretic | 25.0 | 158s | **23.7** | 112s | -1.3 |
+| qwen-heretic:latest | 20.0 | 178s | **23.7** | 175s | **+3.7** |
+| qwen3.5:9b-mlx | 0.0 | 300s | **23.7** | 191s | **+23.7** |
+| qwen3.5:4b | 22.0 | 71s | **22.0** | 113s | — |
+| Agen/gemma-4-26B-heretic | 22.0 | 218s | **22.0** | 124s | — |
+| Qwen3.6-35B-A3B **IQ2_M** | 17.0 | 130s | **22.0** | 134s | **+5.0** |
+| gemma4:12b-mlx | 20.7 | 116s | **20.6** | 130s | — |
+| gemma4:26b-mlx | 22.0 | 201s | **19.0** | 149s | -3.0 |
+| **mean** | **17.1** | **157s** | **22.9** | **148s** | **+5.8** |
+
+`pass^k`, the minimum across two reps, out of 25. **Mean 17.1 → 22.9 (63% → 92%), mean time
+157 s → 148 s, and no run hit the cap in either direction.** Both models that scored zero now
+pass; `qwen3.5:9b-mlx` had timed out on both reps.
+
+### 12.1 The first re-run was a regression, and that is the useful part
+
+Run on the code as first written, T2 produced **three timeouts where thirty-six banked runs had
+none**, and a model that had scored 25/25 twice returned an empty response. The cause was not
+the search: it was the skill file, at 1,594 tokens, plus a rule telling the model to write
+`Sections: A, B, C` as prose *before* calling a tool — models that treat content and tool_calls
+as exclusive answered with neither and burned a generation on the retry.
+
+Three fixes, each measured:
+
+- **The question's own count wins.** The task asks for three stories; the skill asked for 3–6
+  items per section across 2–4 sections, so models wrote up to twenty-four. That was the doubled
+  generation time, not the extra sources.
+- **A leaner skill is not automatically better.** At 555 tokens, with a shape example showing
+  *one* section and *one* bullet, `gemma4:12b-mlx` produced exactly one item and scored 19.0 —
+  **worse than no skill at all** (20.7). A small model copies the example, not the instruction.
+  Showing three sections of two items cost forty tokens and took the same model to 25/25 in
+  59 s, against 118 s before the feature existed.
+- **A sixth Ollama tool-call signature.** `gpt-oss:20b` emitted
+  `{"query":"...",sections:["science"]}` with the second key unquoted; Ollama rejects the call
+  with a 500 and the turn dies with `ERROR:` as its answer, scoring 0 on a task it had passed at
+  19/25. It appeared because the tool gained a second parameter — a two-key object is harder for
+  a small model to serialise than a one-key object — so any tool that grows an argument can wake
+  it. With the retry-and-failover ladder the other five signatures already had, that run scores
+  25/25.
+
+### 12.2 Limits
+
+- **Two models slipped**: `gemma4:26b-mlx` by 3.0 and `gemma-4-12b-nightshift-heretic` by 1.3.
+  At two reps that is inside the spread this campaign has shown elsewhere, so the honest reading
+  is *no evidence of improvement for those two*, not a demonstrated cost.
+- **The gain is in consistency, not in peak quality.** Best-rep scores barely move; several
+  models already reached 25. What changed is the weak rep, which is exactly what `pass^k`
+  measures and exactly what a user feels.
+- Sixteen models were in the original campaign, twelve here. The three uninstalled ones and the
+  single-observation rows marked ◆ in §11 are not comparable across the two sections.
+- One task, one machine, one SearXNG instance whose news index returned nothing dated inside
+  thirty days for the benchmark query — which is why the freshness filter matters here and might
+  matter less elsewhere.
