@@ -29,7 +29,7 @@ No cloud. No API keys. No data leaves your machine. Point it at a project folder
 The local-agent space is crowded (Aider, OpenCode, Goose…). Ollamancer is different where it counts: it takes seriously the three things the [2026 local-first market analysis](https://nimbalyst.com/blog/best-local-first-ai-coding-tools-2026/) says the field is *missing*:
 
 -  **Deterministic honesty controls**: it flags numbers/dates/URLs/names in an answer that appear in *no* tool result this turn, and nudges when the model claims "fixed/verified" without a real edit or verification (with the scope, and the coverage it deliberately gives up, set out in [`DESIGN.md` §4.2b](./DESIGN.md#42b-a-nudge-is-only-as-good-as-its-premise)). Hallucination is treated as a first-class, *deterministic* problem, not left to the model.
--  **Small-model reliability engineering**: retries + fallback for five confirmed Ollama tool-call and context failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across 18 models, scored `pass^k` (the *minimum* across repeats, so a model counts only what it delivers every time).
+-  **Small-model reliability engineering**: retries + fallback for five confirmed Ollama tool-call and context failure signatures, chunked writes to avoid mid-JSON truncation, a one-time **model failover**, and a documented benchmark campaign across 18 models, scored `pass^k` (the *minimum* across repeats, so a model counts only what it delivers every time). Skills are loaded **for** the model, because a small one reliably won't load them itself, and a web question answered from memory is sent back to search rather than shipped uncited.
 -  **Privacy by design**: fully offline, plus a `--private` ephemeral mode that writes *nothing* to disk.
 
 Plus local RAG, vision, dual-model planning, skills, and a genuinely nice terminal UX.
@@ -42,7 +42,7 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 ## Features
 
 - **35 native tools** + [MCP](https://modelcontextprotocol.io) + full shell.
-- **Web search**: private SearXNG with automatic **DuckDuckGo failover**, plus deep-read and a headless-browser fetch.
+- **Web search**: private SearXNG with automatic **DuckDuckGo failover**, plus deep-read and a headless-browser fetch. For a "today" question it drops stale and undated results and leans on dated RSS, so a 2023 article cannot be served as this morning's news.
 - **Repo map**: `repo_map` outlines every file's classes and functions, ranked by PageRank over a "who uses whose names" graph so the widely used modules survive the budget. Python needs no dependencies; other languages use tree-sitter via the `treesitter` extra.
 - **Local RAG**: conceptual code search over your project with the `bge-m3` embedding model (`search_semantic`), zero extra dependencies.
 - **Vision**: describe screenshots / read charts via an installed multimodal model.
