@@ -904,6 +904,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     grounding_nudges_used = 0
     template_parser_retries = 0
     xml_parse_retries = 0
+    toolcall_parse_retries = 0   # 6th plumbing signature: unquoted key in tool-call JSON
     json_truncation_retries = 0
     context_overflow_compacted = False   # one forced compaction per turn on a num_ctx overflow
     last_failure_signature = None
@@ -1011,6 +1012,36 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     continue
                 ui.console.print(f"[red]{t('xml_parse_fallback', error=err_text[:200])}[/red]")
                 safety._audit("XML_PARSE_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
+                return t("xml_parse_fallback", error=err_text[:200])
+            if ("error parsing tool call" in err_text.lower()
+                    and "looking for beginning of object key" in err_text.lower()):
+                # A sixth signature, found by the t2 benchmark rather than in use: gpt-oss:20b
+                # emitted `{"query":"NASA launch August 15 2026",sections:["science"]}` — the
+                # first key quoted, the second not. Ollama rejects the whole call with a 500 and
+                # the turn dies with ERROR: as its answer, which scored 0/25 on a task the same
+                # model had passed at 19/25.
+                #
+                # It surfaced when `search_web_deep` gained its second parameter, and that is the
+                # general lesson: a two-key object is measurably harder for a small model to
+                # serialise than a one-key object, so any tool that grows an argument can wake
+                # this up. Retrying is the only client-side move — the content we send is valid,
+                # it is the model's own JSON that is malformed, and a resample usually fixes it.
+                if toolcall_parse_retries < config.MAX_TOOLCALL_PARSE_RETRIES:
+                    toolcall_parse_retries += 1
+                    ui.console.print(f"[dim]{t('toolcall_parse_retry_note', n=toolcall_parse_retries, max=config.MAX_TOOLCALL_PARSE_RETRIES)}[/dim]")
+                    safety._audit("TOOLCALL_PARSE_RETRY", {"round": rounds, "retry": toolcall_parse_retries, "error_preview": err_text[:200]})
+                    time.sleep(1)
+                    rounds -= 1  # never reached the model, don't count it against MAX_TOOL_ROUNDS
+                    continue
+                target = None if plumbing_failover_used else models._plumbing_failover_target(model)
+                if target:
+                    plumbing_failover_used = True
+                    model = _failover_to(model, target, "toolcall_parse", rounds)
+                    toolcall_parse_retries = 0
+                    rounds -= 1
+                    continue
+                ui.console.print(f"[red]{t('xml_parse_fallback', error=err_text[:200])}[/red]")
+                safety._audit("TOOLCALL_PARSE_GIVEUP", {"round": rounds, "error_preview": err_text[:200]})
                 return t("xml_parse_fallback", error=err_text[:200])
             if "unexpected end of json input" in err_text.lower():
                 # A third Ollama failure signature, distinct from the two above, see the

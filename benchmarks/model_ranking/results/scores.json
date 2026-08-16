@@ -70,11 +70,11 @@
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: npr.org, scitechdaily.com, theguardian.com"
+      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 297.5,
-    "n_tool_calls": 4
+    "seconds": 124.5,
+    "n_tool_calls": 2
   },
   {
     "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t2_rep2",
@@ -86,20 +86,21 @@
     "max": 25,
     "parts": {
       "datetime_first": 5,
-      "deep_read": 1,
+      "deep_read": 4,
       "story_count": 5,
       "diversity": 4,
       "grounded": 7.0,
-      "aggregator_penalty": 0,
+      "aggregator_penalty": -3,
       "duplicate_penalty": 0
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: apnews.com, cnn.com, reuters.com"
+      "3 distinct domains: aljazeera.com, mashable.com, msn.com",
+      "aggregator used as source: msn.com"
     ],
     "judged_pending": [],
-    "seconds": 137.6,
-    "n_tool_calls": 3
+    "seconds": 122.9,
+    "n_tool_calls": 2
   },
   {
     "run": "results/Agen_gemma-4-26B-A4B-it-uncensored-heretic_latest/t3_rep1",
@@ -216,58 +217,6 @@
     "judged_pending": [],
     "seconds": 39.6,
     "n_tool_calls": 0
-  },
-  {
-    "run": "results/gamy316_aileen1.0_latest/t2_rep1",
-    "model": "gamy316/aileen1.0:latest",
-    "task": "t2",
-    "rep": 1,
-    "status": "ok",
-    "total": 14.3,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 1,
-      "story_count": 5,
-      "diversity": 1.3,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "8 stories, 2 source URLs",
-      "1 distinct domains: reuters.com"
-    ],
-    "judged_pending": [],
-    "seconds": 49.7,
-    "n_tool_calls": 1
-  },
-  {
-    "run": "results/gamy316_aileen1.0_latest/t2_rep2",
-    "model": "gamy316/aileen1.0:latest",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
-    "total": 20.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "3 stories, 3 source URLs",
-      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
-    ],
-    "judged_pending": [],
-    "seconds": 58.7,
-    "n_tool_calls": 1
   },
   {
     "run": "results/gamy316_aileen1.0_latest/t3_rep1",
@@ -421,31 +370,6 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
-    "total": 20.7,
-    "max": 25,
-    "parts": {
-      "datetime_first": 5,
-      "deep_read": 1,
-      "story_count": 5,
-      "diversity": 2.7,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "3 stories, 3 source URLs",
-      "2 distinct domains: indianexpress.com, reuters.com"
-    ],
-    "judged_pending": [],
-    "seconds": 118.3,
-    "n_tool_calls": 3
-  },
-  {
-    "run": "results/gemma4_12b-mlx/t2_rep2",
-    "model": "gemma4:12b-mlx",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -459,11 +383,36 @@
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: aljazeera.com, npr.org, theguardian.com"
+      "3 distinct domains: aljazeera.com, reuters.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 113.0,
-    "n_tool_calls": 3
+    "seconds": 158.8,
+    "n_tool_calls": 2
+  },
+  {
+    "run": "results/gemma4_12b-mlx/t2_rep2",
+    "model": "gemma4:12b-mlx",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 20.6,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 3.3,
+      "diversity": 1.3,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "2 stories, 2 source URLs",
+      "1 distinct domains: aljazeera.com"
+    ],
+    "judged_pending": [],
+    "seconds": 101.6,
+    "n_tool_calls": 2
   },
   {
     "run": "results/gemma4_12b-mlx/t3_rep1",
@@ -592,31 +541,6 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
-    "total": 22.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 5,
-      "deep_read": 1,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "3 stories, 3 source URLs",
-      "3 distinct domains: apnews.com, sciencedaily.com, techstartups.com"
-    ],
-    "judged_pending": [],
-    "seconds": 220.1,
-    "n_tool_calls": 4
-  },
-  {
-    "run": "results/gemma4_26b-mlx/t2_rep2",
-    "model": "gemma4:26b-mlx",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -630,11 +554,36 @@
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: bbc.com, sports.yahoo.com, thestreet.com"
+      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 181.8,
-    "n_tool_calls": 7
+    "seconds": 130.2,
+    "n_tool_calls": 3
+  },
+  {
+    "run": "results/gemma4_26b-mlx/t2_rep2",
+    "model": "gemma4:26b-mlx",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 19.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 1.7,
+      "diversity": 1.3,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "1 stories, 1 source URLs",
+      "1 distinct domains: aljazeera.com"
+    ],
+    "judged_pending": [],
+    "seconds": 167.5,
+    "n_tool_calls": 3
   },
   {
     "run": "results/gemma4_26b-mlx/t3_rep1",
@@ -727,110 +676,6 @@
     "n_tool_calls": 0
   },
   {
-    "run": "results/gemma4_e4b-mlx/t2_rep1",
-    "model": "gemma4:e4b-mlx",
-    "task": "t2",
-    "rep": 1,
-    "status": "ok",
-    "total": 20.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "3 stories, 3 source URLs",
-      "3 distinct domains: npr.org, techcrunch.com, theguardian.com"
-    ],
-    "judged_pending": [],
-    "seconds": 56.4,
-    "n_tool_calls": 1
-  },
-  {
-    "run": "results/gemma4_e4b-mlx/t2_rep2",
-    "model": "gemma4:e4b-mlx",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
-    "total": 18.7,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 2.7,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "3 stories, 3 source URLs",
-      "2 distinct domains: bbc.co.uk, cnbc.com"
-    ],
-    "judged_pending": [],
-    "seconds": 50.3,
-    "n_tool_calls": 1
-  },
-  {
-    "run": "results/gemma4_e4b-mlx/t2_rep3",
-    "model": "gemma4:e4b-mlx",
-    "task": "t2",
-    "rep": 3,
-    "status": "ok",
-    "total": 20.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "3 stories, 3 source URLs",
-      "3 distinct domains: bbc.co.uk, npr.org, reuters.com"
-    ],
-    "judged_pending": [],
-    "seconds": 47.4,
-    "n_tool_calls": 1
-  },
-  {
-    "run": "results/gemma4_e4b-mlx/t2_rep4",
-    "model": "gemma4:e4b-mlx",
-    "task": "t2",
-    "rep": 4,
-    "status": "ok",
-    "total": 20.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "3 stories, 3 source URLs",
-      "3 distinct domains: bbc.co.uk, npr.org, theguardian.com"
-    ],
-    "judged_pending": [],
-    "seconds": 43.1,
-    "n_tool_calls": 1
-  },
-  {
     "run": "results/gemma4_e4b-mlx/t3_rep1",
     "model": "gemma4:e4b-mlx",
     "task": "t3",
@@ -887,31 +732,6 @@
     "judged_pending": [],
     "seconds": 55.9,
     "n_tool_calls": 0
-  },
-  {
-    "run": "results/gemma4_e4b-mlx-bf16/t2_rep1",
-    "model": "gemma4:e4b-mlx-bf16",
-    "task": "t2",
-    "rep": 1,
-    "status": "ok",
-    "total": 25,
-    "max": 25,
-    "parts": {
-      "datetime_first": 5,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "3 stories, 3 source URLs",
-      "3 distinct domains: bbc.co.uk, npr.org, reuters.com"
-    ],
-    "judged_pending": [],
-    "seconds": 149.0,
-    "n_tool_calls": 3
   },
   {
     "run": "results/gemma4_e4b-mlx-bf16/t3_rep1",
@@ -1011,35 +831,10 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
-    "total": 19.0,
+    "total": 25,
     "max": 25,
     "parts": {
       "datetime_first": 5,
-      "deep_read": 4,
-      "story_count": 1.7,
-      "diversity": 1.3,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "1 stories, 1 source URLs",
-      "1 distinct domains: reuters.com"
-    ],
-    "judged_pending": [],
-    "seconds": 68.7,
-    "n_tool_calls": 4
-  },
-  {
-    "run": "results/gpt-oss_20b/t2_rep2",
-    "model": "gpt-oss:20b",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
-    "total": 20.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
       "deep_read": 4,
       "story_count": 5,
       "diversity": 4,
@@ -1048,13 +843,37 @@
       "duplicate_penalty": 0
     },
     "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
       "3 stories, 3 source URLs",
-      "3 distinct domains: bbc.co.uk, finance.yahoo.com, npr.org"
+      "3 distinct domains: reuters.com, theguardian.com, wired.com"
     ],
     "judged_pending": [],
-    "seconds": 93.7,
-    "n_tool_calls": 3
+    "seconds": 196.0,
+    "n_tool_calls": 8
+  },
+  {
+    "run": "results/gpt-oss_20b/t2_rep2",
+    "model": "gpt-oss:20b",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aljazeera.com, bbc.co.uk, cnet.com"
+    ],
+    "judged_pending": [],
+    "seconds": 226.7,
+    "n_tool_calls": 10
   },
   {
     "run": "results/gpt-oss_20b/t3_rep1",
@@ -1202,33 +1021,7 @@
     "total": 22.0,
     "max": 25,
     "parts": {
-      "datetime_first": 2,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "called get_datetime, but only after searching",
-      "3 stories, 3 source URLs",
-      "3 distinct domains: bbc.com, cnbc.com, reuters.com"
-    ],
-    "judged_pending": [],
-    "seconds": 113.7,
-    "n_tool_calls": 9
-  },
-  {
-    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t2_rep2",
-    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
-    "total": 17.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
+      "datetime_first": 5,
       "deep_read": 1,
       "story_count": 5,
       "diversity": 4,
@@ -1237,13 +1030,37 @@
       "duplicate_penalty": 0
     },
     "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
       "3 stories, 3 source URLs",
-      "3 distinct domains: foxbusiness.com, sciencedaily.com, theguardian.com"
+      "3 distinct domains: forbes.com, investopedia.com, reuters.com"
     ],
     "judged_pending": [],
-    "seconds": 146.8,
-    "n_tool_calls": 21
+    "seconds": 169.7,
+    "n_tool_calls": 7
+  },
+  {
+    "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t2_rep2",
+    "model": "hf.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive:IQ2_M",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 1,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: cnbc.com, cnn.com, malaymail.com"
+    ],
+    "judged_pending": [],
+    "seconds": 97.3,
+    "n_tool_calls": 8
   },
   {
     "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ2_M/t3_rep1",
@@ -1388,11 +1205,11 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
-    "total": 22.0,
+    "total": 25,
     "max": 25,
     "parts": {
       "datetime_first": 5,
-      "deep_read": 1,
+      "deep_read": 4,
       "story_count": 5,
       "diversity": 4,
       "grounded": 7.0,
@@ -1401,11 +1218,11 @@
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: cnbc.com, euronews.com, keyt.com"
+      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 111.9,
-    "n_tool_calls": 11
+    "seconds": 155.5,
+    "n_tool_calls": 9
   },
   {
     "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t2_rep2",
@@ -1426,11 +1243,11 @@
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: aol.com, apnews.com, cnbc.com"
+      "3 distinct domains: aljazeera.com, globalxetfs.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 137.1,
-    "n_tool_calls": 13
+    "seconds": 98.7,
+    "n_tool_calls": 6
   },
   {
     "run": "results/hf.co_HauhauCS_Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive_IQ3_M/t3_rep1",
@@ -1554,25 +1371,24 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
-    "total": 17.0,
+    "total": 23.7,
     "max": 25,
     "parts": {
-      "datetime_first": 0,
-      "deep_read": 1,
+      "datetime_first": 5,
+      "deep_read": 4,
       "story_count": 5,
-      "diversity": 4,
+      "diversity": 2.7,
       "grounded": 7.0,
       "aggregator_penalty": 0,
       "duplicate_penalty": 0
     },
     "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
       "3 stories, 3 source URLs",
-      "3 distinct domains: cnn.com, fortune.com, sports.yahoo.com"
+      "2 distinct domains: aljazeera.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 184.0,
-    "n_tool_calls": 11
+    "seconds": 258.9,
+    "n_tool_calls": 7
   },
   {
     "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t2_rep2",
@@ -1580,25 +1396,24 @@
     "task": "t2",
     "rep": 2,
     "status": "ok",
-    "total": 16.0,
+    "total": 23.7,
     "max": 25,
     "parts": {
-      "datetime_first": 2,
-      "deep_read": 1,
-      "story_count": 3.3,
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
       "diversity": 2.7,
       "grounded": 7.0,
       "aggregator_penalty": 0,
       "duplicate_penalty": 0
     },
     "notes": [
-      "called get_datetime, but only after searching",
-      "2 stories, 2 source URLs",
-      "2 distinct domains: investopedia.com, reuters.com"
+      "3 stories, 3 source URLs",
+      "2 distinct domains: aljazeera.com, bbc.co.uk"
     ],
     "judged_pending": [],
-    "seconds": 160.7,
-    "n_tool_calls": 11
+    "seconds": 159.5,
+    "n_tool_calls": 3
   },
   {
     "run": "results/hf.co_deepreinforce-ai_Ornith-1.0-9B-GGUF_Q4_K_M/t3_rep1",
@@ -1702,24 +1517,24 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
-    "total": 25,
+    "total": 23.7,
     "max": 25,
     "parts": {
       "datetime_first": 5,
       "deep_read": 4,
       "story_count": 5,
-      "diversity": 4,
+      "diversity": 2.7,
       "grounded": 7.0,
       "aggregator_penalty": 0,
       "duplicate_penalty": 0
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: livemint.com, theguardian.com, thestreet.com"
+      "2 distinct domains: aljazeera.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 175.8,
-    "n_tool_calls": 4
+    "seconds": 124.2,
+    "n_tool_calls": 2
   },
   {
     "run": "results/jikepjikep_16HEX_gemma-4-12b-nightshift-heretic-uncensored-qat-q4_latest/t2_rep2",
@@ -1727,23 +1542,23 @@
     "task": "t2",
     "rep": 2,
     "status": "ok",
-    "total": 25,
+    "total": 23.7,
     "max": 25,
     "parts": {
       "datetime_first": 5,
       "deep_read": 4,
       "story_count": 5,
-      "diversity": 4,
+      "diversity": 2.7,
       "grounded": 7.0,
       "aggregator_penalty": 0,
       "duplicate_penalty": 0
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: aljazeera.com, bbc.co.uk, reuters.com"
+      "2 distinct domains: aljazeera.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 140.3,
+    "seconds": 99.1,
     "n_tool_calls": 2
   },
   {
@@ -1866,59 +1681,6 @@
     ],
     "judged_pending": [],
     "seconds": 149.7,
-    "n_tool_calls": 0
-  },
-  {
-    "run": "results/lfm2.5_8b/t2_rep1",
-    "model": "lfm2.5:8b",
-    "task": "t2",
-    "rep": 1,
-    "status": "ok",
-    "total": 17.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 3.3,
-      "diversity": 2.7,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "2 stories, 2 source URLs",
-      "2 distinct domains: npr.org, reuters.com"
-    ],
-    "judged_pending": [],
-    "seconds": 72.7,
-    "n_tool_calls": 2
-  },
-  {
-    "run": "results/lfm2.5_8b/t2_rep2",
-    "model": "lfm2.5:8b",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
-    "total": 0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 0,
-      "story_count": 0.0,
-      "diversity": 0.0,
-      "grounded": 0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "0 stories, 0 source URLs",
-      "0 distinct domains: none",
-      "no source URLs at all"
-    ],
-    "judged_pending": [],
-    "seconds": 13.7,
     "n_tool_calls": 0
   },
   {
@@ -2056,58 +1818,6 @@
     "n_tool_calls": 0
   },
   {
-    "run": "results/ornith_9b/t2_rep1",
-    "model": "ornith:9b",
-    "task": "t2",
-    "rep": 1,
-    "status": "ok",
-    "total": 19.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 2,
-      "deep_read": 1,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "called get_datetime, but only after searching",
-      "3 stories, 3 source URLs",
-      "3 distinct domains: climatecentral.org, electrek.co, washingtonpost.com"
-    ],
-    "judged_pending": [],
-    "seconds": 99.4,
-    "n_tool_calls": 5
-  },
-  {
-    "run": "results/ornith_9b/t2_rep2",
-    "model": "ornith:9b",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
-    "total": 14.3,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 1,
-      "story_count": 5,
-      "diversity": 1.3,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "3 stories, 3 source URLs",
-      "1 distinct domains: bbc.com"
-    ],
-    "judged_pending": [],
-    "seconds": 180.3,
-    "n_tool_calls": 9
-  },
-  {
     "run": "results/ornith_9b/t3_rep1",
     "model": "ornith:9b",
     "task": "t3",
@@ -2229,10 +1939,10 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
-    "total": 20.7,
+    "total": 23.7,
     "max": 25,
     "parts": {
-      "datetime_first": 2,
+      "datetime_first": 5,
       "deep_read": 4,
       "story_count": 5,
       "diversity": 2.7,
@@ -2241,13 +1951,12 @@
       "duplicate_penalty": 0
     },
     "notes": [
-      "called get_datetime, but only after searching",
       "3 stories, 3 source URLs",
-      "2 distinct domains: aljazeera.com, bbc.co.uk"
+      "2 distinct domains: aljazeera.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 254.3,
-    "n_tool_calls": 7
+    "seconds": 157.9,
+    "n_tool_calls": 5
   },
   {
     "run": "results/qwen-heretic_latest/t2_rep2",
@@ -2255,10 +1964,10 @@
     "task": "t2",
     "rep": 2,
     "status": "ok",
-    "total": 20.0,
+    "total": 25,
     "max": 25,
     "parts": {
-      "datetime_first": 0,
+      "datetime_first": 5,
       "deep_read": 4,
       "story_count": 5,
       "diversity": 4,
@@ -2267,13 +1976,12 @@
       "duplicate_penalty": 0
     },
     "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
       "3 stories, 3 source URLs",
-      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
+      "3 distinct domains: aljazeera.com, cnn.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 101.7,
-    "n_tool_calls": 3
+    "seconds": 191.7,
+    "n_tool_calls": 5
   },
   {
     "run": "results/qwen-heretic_latest/t3_rep1",
@@ -2364,32 +2072,6 @@
     "judged_pending": [],
     "seconds": 67.4,
     "n_tool_calls": 0
-  },
-  {
-    "run": "results/qwen2.5_7b/t2_rep1",
-    "model": "qwen2.5:7b",
-    "task": "t2",
-    "rep": 1,
-    "status": "ok",
-    "total": 18.7,
-    "max": 25,
-    "parts": {
-      "datetime_first": 0,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 2.7,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "never called get_datetime \u2014 cannot know what 'last 24 hours' means",
-      "12 stories, 3 source URLs",
-      "2 distinct domains: aljazeera.com, sciencedaily.com"
-    ],
-    "judged_pending": [],
-    "seconds": 71.6,
-    "n_tool_calls": 3
   },
   {
     "run": "results/qwen2.5_7b/t3_rep1",
@@ -2498,6 +2180,32 @@
     "task": "t2",
     "rep": 1,
     "status": "ok",
+    "total": 22.0,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": -3,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aljazeera.com, bbc.co.uk, msn.com",
+      "aggregator used as source: msn.com"
+    ],
+    "judged_pending": [],
+    "seconds": 89.4,
+    "n_tool_calls": 5
+  },
+  {
+    "run": "results/qwen3.5_4b/t2_rep2",
+    "model": "qwen3.5:4b",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
     "total": 25,
     "max": 25,
     "parts": {
@@ -2511,37 +2219,11 @@
     },
     "notes": [
       "3 stories, 3 source URLs",
-      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
+      "3 distinct domains: aljazeera.com, bbc.co.uk, oklahoman.com"
     ],
     "judged_pending": [],
-    "seconds": 69.1,
-    "n_tool_calls": 6
-  },
-  {
-    "run": "results/qwen3.5_4b/t2_rep2",
-    "model": "qwen3.5:4b",
-    "task": "t2",
-    "rep": 2,
-    "status": "ok",
-    "total": 22.0,
-    "max": 25,
-    "parts": {
-      "datetime_first": 2,
-      "deep_read": 4,
-      "story_count": 5,
-      "diversity": 4,
-      "grounded": 7.0,
-      "aggregator_penalty": 0,
-      "duplicate_penalty": 0
-    },
-    "notes": [
-      "called get_datetime, but only after searching",
-      "3 stories, 3 source URLs",
-      "3 distinct domains: bbc.co.uk, firstpost.com, science.nasa.gov"
-    ],
-    "judged_pending": [],
-    "seconds": 72.8,
-    "n_tool_calls": 6
+    "seconds": 135.9,
+    "n_tool_calls": 5
   },
   {
     "run": "results/qwen3.5_4b/t3_rep1",
@@ -2670,28 +2352,12 @@
     "model": "qwen3.5:4b-mlx",
     "task": "t2",
     "rep": 1,
-    "status": "timeout",
-    "total": 0,
-    "max": 25,
-    "parts": {},
-    "notes": [
-      "run did not complete: timed out or crashed: no answer was produced"
-    ],
-    "judged_pending": [],
-    "seconds": 192.6,
-    "n_tool_calls": 11
-  },
-  {
-    "run": "results/qwen3.5_4b-mlx/t2_rep2",
-    "model": "qwen3.5:4b-mlx",
-    "task": "t2",
-    "rep": 2,
     "status": "ok",
-    "total": 19.0,
+    "total": 25,
     "max": 25,
     "parts": {
-      "datetime_first": 2,
-      "deep_read": 1,
+      "datetime_first": 5,
+      "deep_read": 4,
       "story_count": 5,
       "diversity": 4,
       "grounded": 7.0,
@@ -2699,13 +2365,37 @@
       "duplicate_penalty": 0
     },
     "notes": [
-      "called get_datetime, but only after searching",
       "3 stories, 3 source URLs",
-      "3 distinct domains: apnews.com, orlandosentinel.com, sciencedaily.com"
+      "3 distinct domains: aljazeera.com, foxnews.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 81.6,
-    "n_tool_calls": 10
+    "seconds": 101.0,
+    "n_tool_calls": 7
+  },
+  {
+    "run": "results/qwen3.5_4b-mlx/t2_rep2",
+    "model": "qwen3.5:4b-mlx",
+    "task": "t2",
+    "rep": 2,
+    "status": "ok",
+    "total": 25,
+    "max": 25,
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 4,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
+    "notes": [
+      "3 stories, 3 source URLs",
+      "3 distinct domains: aljazeera.com, bbc.co.uk, theguardian.com"
+    ],
+    "judged_pending": [],
+    "seconds": 90.6,
+    "n_tool_calls": 7
   },
   {
     "run": "results/qwen3.5_4b-mlx/t3_rep1",
@@ -2847,32 +2537,50 @@
     "model": "qwen3.5:9b-mlx",
     "task": "t2",
     "rep": 1,
-    "status": "timeout",
-    "total": 0,
+    "status": "ok",
+    "total": 23.7,
     "max": 25,
-    "parts": {},
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 2.7,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
     "notes": [
-      "run did not complete: timed out or crashed: no answer was produced"
+      "3 stories, 3 source URLs",
+      "2 distinct domains: aljazeera.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 300.0,
-    "n_tool_calls": 26
+    "seconds": 268.2,
+    "n_tool_calls": 7
   },
   {
     "run": "results/qwen3.5_9b-mlx/t2_rep2",
     "model": "qwen3.5:9b-mlx",
     "task": "t2",
     "rep": 2,
-    "status": "timeout",
-    "total": 0,
+    "status": "ok",
+    "total": 23.7,
     "max": 25,
-    "parts": {},
+    "parts": {
+      "datetime_first": 5,
+      "deep_read": 4,
+      "story_count": 5,
+      "diversity": 2.7,
+      "grounded": 7.0,
+      "aggregator_penalty": 0,
+      "duplicate_penalty": 0
+    },
     "notes": [
-      "run did not complete: timed out or crashed: no answer was produced"
+      "3 stories, 3 source URLs",
+      "2 distinct domains: aljazeera.com, theguardian.com"
     ],
     "judged_pending": [],
-    "seconds": 300.0,
-    "n_tool_calls": 16
+    "seconds": 114.2,
+    "n_tool_calls": 3
   },
   {
     "run": "results/qwen3.5_9b-mlx/t3_rep1",

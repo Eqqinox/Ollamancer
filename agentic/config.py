@@ -135,8 +135,11 @@ DEEP_SEARCH_CHAR_BUDGET  = 2000     # characters of clean text kept per page
 DEEP_SEARCH_TIMEOUT      = 5        # seconds before giving up on a page
 DEEP_SEARCH_THIN_THRESHOLD = 200    # characters: below this the text is judged a "JS shell", escalate to browser rendering
 MAX_SECTIONS             = 4        # sections search_web_deep will match headlines for in one call
-SECTION_RSS_ITEMS        = 3        # headlines returned per section (they come from the cached
-                                    # RSS pool, so this costs context, not requests)
+SECTION_RSS_ITEMS        = 2        # headlines returned per section (they come from the cached
+                                    # RSS pool, so this costs context, not requests — and context
+                                    # is what the t2 benchmark showed it really costs: at 3, the
+                                    # tool result grew ~2-4k tokens and three models that had
+                                    # never timed out started hitting the 300s cap)
 RSS_ENABLED               = "on"    # "on"/"off", add press RSS feeds (real dates, no JS/anti-bot) for news queries
 # Major-press RSS feeds verified live on 2026-08-02, see DESIGN.md. Reuters and AP have
 # had no direct RSS feed since 2020, so we go through the Google News search feed (which
@@ -201,6 +204,9 @@ MAX_TOOL_ROUNDS   = 45  # guardrail: prevents an endless tool-call loop. Raised 
                         # task. A guardrail should stop runaway loops, not truncate work that is
                         # still making progress; 45 does the first without the second.
 MAX_VERIFY_NUDGES = 2   # max auto "verify your edit" re-prompts per user turn
+MAX_TOOLCALL_PARSE_RETRIES = 2  # resamples when the model emits malformed tool-call JSON
+                        # (unquoted key). Found on gpt-oss:20b once search_web_deep took a
+                        # second parameter: a two-key object is harder to serialise than one.
 MAX_THIN_SEARCHES = 4   # beyond this, force the model to stop searching into the void
 MAX_DEEP_SEARCHES = 6   # beyond this, force a stop even when the results are real, avoids
                          # a chain of (expensive) search_web_deep calls that never converges

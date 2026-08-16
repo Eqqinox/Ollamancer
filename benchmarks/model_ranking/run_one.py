@@ -104,6 +104,12 @@ def _pinned_params() -> dict:
         "GEN_SEED": _SEED,
         "GEN_NUM_PREDICT": 4096,
         "STREAM_FINAL": "off",
+        # Defaults, pinned rather than inherited: they change how much material one
+        # search_web_deep hands back, so a later change to the shipped default would silently
+        # make old and new runs incomparable — which is the whole failure this function exists
+        # to prevent.
+        "MAX_SECTIONS": 4,
+        "SECTION_RSS_ITEMS": 2,
     }, **_OVERRIDES)
 
 

@@ -60,14 +60,14 @@ try:
     assert payload["trigger"] == "json_truncation" and payload["round"] == 7
 
     # ── 4. Every failover branch goes through the helper ────────────────────
-    # The bug existed because the same three lines were written three times. If a fourth
+    # The bug existed because the same three lines were written three times. If a fifth
     # signature is added later with its own inline `model = target`, this fails.
     src = Path(loop.__file__).read_text()
     body = src[src.index("def run_agent"):]
     inline = re.findall(r"^\s*model = target\s*$", body, re.M)
     assert not inline, f"{len(inline)} failover branch(es) still switch models inline, skipping the unload"
-    assert len(re.findall(r"model = _failover_to\(", body)) == 3, \
-        "expected exactly three failover branches routed through _failover_to"
+    assert len(re.findall(r"model = _failover_to\(", body)) == 4, \
+        "expected exactly four failover branches routed through _failover_to"
 
     # ── 5. The helper actually calls the unloader ───────────────────────────
     # Guards against someone 'tidying' the helper back into a bare return.

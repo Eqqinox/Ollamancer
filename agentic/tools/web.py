@@ -259,10 +259,15 @@ def _freshness_filter(results: list, max_age_days: int = 30) -> list:
 def _breadth_cap(sections: list) -> int:
     """How many extra sources to hand back beyond the pages actually read.
 
-    Scales with the number of sections because that is what a sectioned answer needs material
-    for, and stays bounded so a four-section answer does not bury the model in snippets.
+    Scales with the number of sections, because that is what a sectioned answer needs material
+    for, and is capped hard — the first version allowed twelve and the benchmark billed us for
+    it. On the t2 news task the tool result grew by 2–4k prompt tokens, `gemma4:12b-mlx` went
+    from 113s to a 300s timeout, `gpt-oss:20b` from 69s to a timeout, and a model that had
+    scored 25/25 twice returned an empty response instead. Quality went *up* wherever the turn
+    finished; the cost was that several turns stopped finishing, and pass^k counts a timeout as
+    zero. Breadth is worth paying for, at about half what it was charging.
     """
-    return min(config.SECTION_RSS_ITEMS * max(len(sections or []), 1), 12)
+    return min(2 * max(len(sections or []), 1), 6)
 
 
 def _match_rss(pool: list[dict], query: str, max_items: int = 5,
@@ -612,7 +617,7 @@ def search_web_deep(query: str, sections: list = None) -> str:
             blocks.append(
                 f"Title: {res.get('title','')}{_source_tag(res)}\nURL: {res.get('url','')}\n"
                 f"Published: {published}\n"
-                f"(Further result — not opened, snippet only: {res.get('content','')[:300]})"
+                f"(Further result — not opened, snippet only: {res.get('content','')[:180]})"
             )
         for res, cleaned, err, date in fetched:
             title = res.get("title", "")
