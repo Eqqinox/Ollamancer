@@ -160,12 +160,33 @@ _WEB_FORMAT_INTENT_RE = re.compile(
 )
 
 
+# Two ways a message can match the trigger and still not want any of this, both found by
+# running the trigger over the benchmark tasks rather than over invented examples:
+#
+#   * the phrase appears inside a *prohibition* — "Do NOT use any tool, do not search the web"
+#     is the reasoning task, and injecting a web-answer skill there also arms the
+#     unsearched-answer nudge, which would then push the model to search on the one task that
+#     forbids it;
+#   * the user asked for a short answer — "Answer with just the date and the number" wants two
+#     values, not sections, an answer-first paragraph and a coverage line.
+_NO_WEB_FORMAT_RE = re.compile(
+    r"\bdo\s*n[o']?t\s+(use\s+any\s+tool|use\s+tools?|search|look\s+it\s+up)"
+    r"|\bwithout\s+(searching|using\s+(any\s+)?tools?|the\s+web)\b"
+    r"|\bfrom\s+your\s+own\s+(reasoning|knowledge)\b"
+    r"|\banswer\s+with\s+(just|only)\b|\bin\s+(one|a\s+single)\s+(word|line|sentence)\b"
+    r"|\bne\s+cherche\s+pas\b|\bsans\s+(chercher|outils?)\b",
+    re.IGNORECASE,
+)
+
+
 def _maybe_autoload_web_format(user_input: str, messages: list) -> None:
     """If the user's message clearly calls for a web answer, inject the web-answer-format skill
     as an already-completed `load_skill` call, before the model's turn. Skipped when the skill
     is already in recent context (it stays there, no point paying for it twice)."""
     if not _WEB_FORMAT_INTENT_RE.search(user_input or ""):
         return
+    if _NO_WEB_FORMAT_RE.search(user_input or ""):
+        return          # matched on a prohibition, or the user asked for a one-line answer
     marker = f"[Skill loaded: {_WEB_FORMAT_SKILL}]"
     for msg in messages[-24:]:
         if marker in str(msg.get("content") or ""):

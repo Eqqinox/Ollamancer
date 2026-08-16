@@ -86,6 +86,19 @@ for asks_the_world in ("how do I build a web scraper?",
                        "which library should I use for scraping?"):
     assert skills._WEB_FORMAT_INTENT_RE.search(asks_the_world), asks_the_world
 
+# a match inside a prohibition is not a request. The benchmark's reasoning task says "Do NOT use
+# any tool, do not search the web" — which fired the trigger, injected a web-answer skill into a
+# no-tools task, and armed the unsearched-answer nudge to push the model to search on the one
+# task that forbids it. The gate task's "Answer with just the date and the number" is the other
+# shape: a match that wants two values, not sections and a coverage line.
+for refuses in ("Answer from your own reasoning. Do NOT use any tool, do not search the web.",
+                "What is today's date? Answer with just the date and the number.",
+                "give me the latest version without searching",
+                "quelles sont les actualités ? ne cherche pas sur le web"):
+    guarded = [{"role": "user", "content": refuses}]
+    skills._maybe_autoload_web_format(refuses, guarded)
+    assert len(guarded) == 1, refuses
+
 # the loop reads the same marker load_skill writes, so the unsearched-answer nudge cannot
 # disagree with the auto-load about what counts as a web question
 from agentic import loop as _loop
