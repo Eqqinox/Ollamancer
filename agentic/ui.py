@@ -464,6 +464,13 @@ _PARAM_SCHEMA = [
                  "feeds (Reuters, AP, BBC, Al Jazeera, NPR, Guardian, Fox) — real publisher "
                  "dates, no JavaScript/anti-bot problem, since RSS is served for machine "
                  "consumption. Mainstream coverage only; doesn't help for independent/underground sources."},
+        {"var": "MAX_SECTIONS", "label": "Answer Sections per Search", "kind": "int",
+         "min": 1, "max": 6, "step": 1, "default": 4,
+         "help": "How many sections (regions, themes, criteria) one search_web_deep call will "
+                 "gather material for, so a sectioned answer needs one search instead of one "
+                 "per section. The extra sources are results the search already returned and "
+                 "used to discard, so they cost context but no extra requests — upstream "
+                 "engines still see one query. Set to 1 for the old one-angle-per-call behaviour."},
         {"var": "MAX_DEEP_SEARCHES", "label": "Max Deep Searches per Turn", "kind": "int",
          "min": 2, "max": 15, "step": 1, "default": 6,
          "help": "How many search_web_deep calls the agent can make in one turn before being "

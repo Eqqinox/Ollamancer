@@ -57,7 +57,7 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 - **Skills**: reusable [`SKILL.md`](https://agentskills.io) workflows (the open standard, portable with Claude Code / Cursor / Codex) + a bundled **15-skill library**.
 - **Headless / batch**: `--run "prompt"` and `--recipe file.md` (exit code = success) for cron/scripts.
 - **Safe mode** (approve risky calls) and a **Docker sandbox** (isolate shell/REPL).
-- **32 live-tunable settings** in a `/parameters` menu, persisted across sessions.
+- **33 live-tunable settings** in a `/parameters` menu, persisted across sessions.
 
 ---
 
@@ -123,7 +123,7 @@ Type **`/`** to autocomplete commands, `/help` lists them all. A few highlights:
 | `/context`, `/compact` | Context usage / compact now |
 | `/details` | Full record of the last turn's tool calls |
 | `/resume` | Reload a saved session |
-| `/parameters` | Settings menu (32 tunables) |
+| `/parameters` | Settings menu (33 tunables) |
 | `/private` | Is this session logged? |
 
 Press **Esc** (or Ctrl+C) while it's working to stop the model and return to the prompt.

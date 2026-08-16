@@ -134,6 +134,9 @@ DEEP_SEARCH_FETCH_COUNT  = 3        # pages actually opened by search_web_deep
 DEEP_SEARCH_CHAR_BUDGET  = 2000     # characters of clean text kept per page
 DEEP_SEARCH_TIMEOUT      = 5        # seconds before giving up on a page
 DEEP_SEARCH_THIN_THRESHOLD = 200    # characters: below this the text is judged a "JS shell", escalate to browser rendering
+MAX_SECTIONS             = 4        # sections search_web_deep will match headlines for in one call
+SECTION_RSS_ITEMS        = 3        # headlines returned per section (they come from the cached
+                                    # RSS pool, so this costs context, not requests)
 RSS_ENABLED               = "on"    # "on"/"off", add press RSS feeds (real dates, no JS/anti-bot) for news queries
 # Major-press RSS feeds verified live on 2026-08-02, see DESIGN.md. Reuters and AP have
 # had no direct RSS feed since 2020, so we go through the Google News search feed (which

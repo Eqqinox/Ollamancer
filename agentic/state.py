@@ -79,6 +79,8 @@ _LAST_PROMPT_TOKENS = 0            # last real prompt_eval_count returned by Oll
 # ── Caches (cleared by reset() so a fresh session never sees stale data) ─────
 _num_ctx_cache: dict = {}   # model name -> negotiated num_ctx (avoids an ollama.show() per call)
 _search_cache: dict = {}    # (query, category, language) -> (timestamp, results)
+_rss_cache: dict = {}       # "pool" -> (timestamp, items) — every feed fetched once per TTL,
+                            # so per-section matching costs no extra requests
 _robots_cache: dict = {}    # origin (scheme://host) -> RobotFileParser | None (None = not found, allow)
 
 
@@ -117,7 +119,7 @@ def reset() -> None:
     _LAST_PROMPT_TOKENS = 0
 
     for container in (_snapshots, _context_files, _bg_processes,
-                      _num_ctx_cache, _search_cache, _robots_cache):
+                      _num_ctx_cache, _search_cache, _robots_cache, _rss_cache):
         container.clear()
     _last_turn_tool_results.clear()
     _last_turn_tool_calls.clear()

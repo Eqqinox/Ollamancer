@@ -145,9 +145,16 @@ def load_skill(name: str) -> str:
 # answer.
 _WEB_FORMAT_SKILL = "web-answer-format"
 _WEB_FORMAT_INTENT_RE = re.compile(
+    # Recency and "go look it up" wording.
     r'\b(news|breaking|headlines?|latest|today|todays|current events|happening now|'
     r'this (week|month)|search (the )?(web|online|internet)|look (it |them )?up|google it|'
     r'actualit[ée]s?|nouvelles|derni[èe]res?|aujourd.hui|cherche sur (le web|internet))\b'
+    # Open questions that want an answer from the world rather than from this repo. "How do I
+    # build a web scraper" ran zero searches and answered from memory, unsourced, which is the
+    # all-purpose half of the job — the trigger only covered the news half.
+    r'|\bwhat (are|is) the best\b|\bbest (way|tool|library|framework|model|practice)s?\b'
+    r'|\bhow (do|can) (i|you|we) (build|make|set up|install|choose|start)\b'
+    r'|\b(compare|vs\.?|versus)\b|\bwhich (one |tool |library |model )?should i\b'
     r'|^\s*search\b',
     re.IGNORECASE,
 )

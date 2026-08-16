@@ -38,6 +38,7 @@ So there are two levels of capability:
 - Call a REST API (GET, POST, PUT, DELETE) with `curl -X POST -d...` **[shell]**
 - Look up available packages (`pip index versions`, `npm search`, `brew search`) **[shell]**
 - Search results are cached for 5 minutes within a session, repeating a near-identical query doesn't hit SearXNG again
+- Cover several **sections of one answer in a single search** (`search_web_deep(query, sections=[…])`), on any topic — news by region, models by benchmark, a how-to by cause/fix: the call returns the pages it read **plus the results it did not open**, which arrived in the same response and used to be discarded, so upstream engines still see **one query** and the extra breadth costs no extra requests **[native, `search_web_deep`; `MAX_SECTIONS` in `/parameters`, v3.1]**
 - Get a web answer **organised into sections that match the question** (news brief by region/theme, comparison by criterion, cause/fix/verify, price table…), answer first, a date and a source per item: the `web-answer-format` skill, **auto-loaded code-side** on a recency/"look it up" wording so it doesn't depend on the model choosing to load it **[skill, automatic, v3.1]**
 
 ### Local system

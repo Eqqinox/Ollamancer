@@ -11,25 +11,49 @@ question, an answer first, dates on anything time-sensitive, and a source next t
 
 For a written-to-file research report, use `web-research-report` instead.
 
-## 1. Plan the sections before searching
+## 1. The procedure — do these in order, one tool call at a time
 
-Read the question and write down the 2–4 sections the answer will have. The sections come from
-the question, not from whatever the search happens to return.
+**Step 1.** If the question says today / latest / current / this week: call `get_datetime`.
 
-- "latest international news today" → sections by region or by theme
-- "X vs Y" → one section per criterion the user named, then a verdict
-- "how do I fix <error>" → cause, fix, check
-- "is <library> still maintained" → status, recent activity, alternatives
+**Step 2.** Name the sections. Write one line, before any search:
+`Sections: <A>, <B>, <C>` — 2 to 4 of them, taken from the question itself, never from what a
+search happened to return.
 
-One `search_web_deep` call per section, not one call for everything. Short natural queries
-(3–6 words). Budget: the loop stops you after **6** deep searches in a turn, so plan 2–4
-sections and keep one spare call for a retry — not two retries on every section. If a section
-is still empty after its retry, keep the section and say it is empty; do not silently drop the
-user's sub-question, and do not keep re-querying into the void (four thin searches in a row
-also stops you).
+**Step 3.** Call `search_web_deep` **once**, passing those same names as `sections`. One call
+returns more candidate sources — several read in full, the rest as snippets — enough material
+for every section. Do not make one call per section: it is slower, it gets your SearXNG
+instance rate-limited, and it buys no coverage this doesn't already give you.
 
-Call `get_datetime` first whenever the question says today / latest / current / this week, and
-put the real date in the queries and in the answer.
+**Step 4.** File the sources yourself, then write the answer in the shape of §2. The results
+are not pre-sorted and are not meant to be: you know that a Tokyo flood belongs under
+Asia-Pacific and that a licence note is not a speed benchmark. If nothing in the results fits
+a section, say so in that section — never move another section's source into it.
+
+Worked examples — the same call shape for any topic:
+
+```
+get_datetime()
+Sections: Middle East, Europe, Asia-Pacific
+search_web_deep("international news today",
+                sections=["Middle East", "Europe", "Asia-Pacific"])
+
+Sections: speed, quality, licence
+search_web_deep("best GGUF models local inference",
+                sections=["speed", "quality", "licence"])
+```
+
+Need one section's detail the snippets don't cover? Open that source with `fetch_url`, which
+costs no new search, before spending another `search_web_deep`.
+
+More section patterns: "X vs Y" → one section per criterion the user named, then a verdict;
+"how do I fix \<error>" → cause, fix, check; "is \<library> still maintained" → status, recent
+activity, alternatives.
+
+Keep queries short and natural (3–6 words), and 2–4 sections. Budget: the loop stops you after
+**6** deep searches in a turn, which one sectioned call barely dents — spend the rest on
+sections the feeds missed, not on re-querying the same angle. An empty section stays in the
+answer, marked empty; never silently drop the user's sub-question, and never keep querying into
+the void (four thin searches in a row also stops you).
 
 ## 2. Universal shape
 
@@ -64,6 +88,10 @@ Rules that apply to every answer:
 - **One source per item**, inline: `[Source: <URL>]`, the real URL from the tool result.
 - **Kill the filler.** No "in conclusion", no restating the question, no explaining that news
   changes fast. The last line is the coverage note, nothing else.
+- **A correction is a rewrite, not a changelog.** If you are asked to re-check or fix something,
+  reply with the whole answer in this shape again. Opening with "the two items are genuinely
+  different" or "I have corrected the categorisation" reads as process, not news — the reader
+  never saw the draft you are correcting.
 - **Terminal formatting.** Headings + bullets. Tables only up to 3–4 narrow columns; beyond
   that use bullets, a wide table wraps into noise in a terminal.
 

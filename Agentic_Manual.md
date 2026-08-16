@@ -403,7 +403,7 @@ used to be hard-coded. Navigate with **↑/↓** between rows, **←/→** to ad
 **`r`** to reset the selected one to its default, **`q`**/Enter to exit. A help line at the
 bottom explains the currently selected parameter.
 
-**32 parameters, 3 sections:**
+**33 parameters, 3 sections:**
 
 - **Model Generation (8)**: Temperature, Top P, Top K, Repeat Penalty, Max Output Tokens,
   Seed, and **Stream Final Answer** (stream the final answer live; can be disabled if a model
@@ -417,10 +417,11 @@ bottom explains the currently selected parameter.
   architect phase (`MAX_READONLY_REFUSALS`), `search_semantic` result count, indexing chunk
   size, and **context compaction** (`AUTO_COMPACT` on/off, `COMPACT_THRESHOLD_PCT` threshold,
   `COMPACT_KEEP_TURNS` recent turns kept).
-- **Web Search (8)**: search language, number of results kept, `search_web_deep` settings
+- **Web Search (9)**: search language, number of results kept, `search_web_deep` settings
   (pages actually read, character budget per page, timeout before giving up, thin-content
-  threshold), the never-converging deep-search circuit breaker (`MAX_DEEP_SEARCHES`), and the
-  RSS fallback toggle.
+  threshold), how many answer sections one search covers (`MAX_SECTIONS`), the
+  never-converging deep-search circuit breaker (`MAX_DEEP_SEARCHES`), and the RSS fallback
+  toggle.
 
 ```
 You → /parameters

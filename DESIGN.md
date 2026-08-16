@@ -557,6 +557,85 @@ wasted generation, caused by the skill's own "date every item" rule. It now says
 date in the form the source gives it. And the French answer closed on a literal English
 `Coverage:` label, a leaked template; the skill now says to translate the label too.
 
+**The planning step needed code, and the cheap version was the right one.** Seven live runs in,
+the model wrote its section plan every time and searched *once* every time, so the skill was
+describing coverage it never produced. Prompt rewrites had already been spent on it. Surveying
+how the field solves this (LangChain's MultiQueryRetriever, RAG-Fusion, GPT-Researcher, Open
+Deep Research) turns up one shared answer: the model emits a *list* of queries in a single
+output and **code** fans out, map/reduce style, rather than the agent choosing to make N
+sequential tool calls.
+
+The version that fits here is cheaper still, because the material was already being paid for and
+thrown away — twice. `_fetch_rss_headlines` pulled every feed in `NEWS_RSS_FEEDS` and filtered
+locally, so splitting it into `_rss_pool` (fetch once, cache for `SEARCH_CACHE_TTL`) and
+`_match_rss` (pure local filtering) makes a second angle cost nothing; and the search itself
+requests nine results, reads three, and discarded six. `search_web_deep(query, sections=[...])`
+sends exactly **one** query upstream and gets its breadth from what has already arrived. The
+fan-out considered first would have charged seven HTTP requests per angle — twenty-one for three
+sections — which is precisely what gets a self-hosted SearXNG rate-limited, and why it was
+dropped rather than built.
+
+The `sections` argument alone was not enough. Ollama's schema converter emits the array as
+`"items": null` and marks every parameter required regardless of default, and across live runs
+the model passed the argument about half the time while writing `Sections: A, B, C` in prose
+every time. So `_route_planned_sections` reads that line and fills the argument in — the model
+states intent, the code carries it out, exactly as with news-category routing and the forced
+search. Its premise is the model's own declaration from this turn, not an inference about what
+it should have wanted, which is what makes it safe under §4.2b. **Not yet exercised live**: in
+both runs since it was added the model supplied the argument itself, so only the unit tests have
+seen it fire.
+
+**The first version labelled each source with its section in code, and that was the wrong half
+of the problem to automate.** Lexical matching mis-filed something in every one of three live
+runs: `east` inside `southeast` put an Indonesian earthquake in the Middle East; requiring both
+words emptied "Asia-Pacific" over a story that says Asia and never Pacific; "east of Tokyo" then
+put Japan in the Middle East while a full two-term match was available. Each fix was correct and
+the next run found the next hole, which is the signature of automating a semantic job with a
+lexical tool. The model, meanwhile, had corrected one of those mis-filings *unprompted* — it
+knows Japan is in Asia — and the worst symptom was code emitting "no matching headline for this
+section" while the pool held two Japanese stories, an absence asserted as fact that no honesty
+layer can catch because it did come from a tool result.
+
+So the division of labour inverted: **code guarantees breadth, the model does the filing.** And
+breadth turned out to be free twice over. `search_web_deep` asks SearXNG for nine results, reads
+three, and used to discard the other six — title, URL and snippet, already downloaded in the
+same response. Returning them as "Further result — not opened" gives a sectioned answer its
+material on **any** topic, not just news, where the RSS pool happens to supply the same thing.
+That closed the real gap in the first design, which only ever worked for news; a model
+comparison or a how-to got one query, three pages, and no section coverage at all.
+
+Selection and labelling then had to be told apart, because removing the labelling removed the
+selection with it and a Europe section came back empty while the pool held European stories.
+Lexical matching is right for "is this item about Europe" and wrong for "which heading does this
+belong under". Section names now *select* items into one **unlabelled** pool; the model files
+them.
+
+**Free breadth turned out to have a news-shaped hole in it.** Returning the results the search
+already had was safe for every other topic, but SearXNG's news category answers "international
+news today" with Reuters pieces from 2023 and an undated 2025 page, and the model wrote them up
+as today's news — the exact failure `_NEWS_INTENT_RE` routing exists to prevent, reintroduced by
+a change that had nothing to do with news. `_freshness_filter` drops results a news query dates
+older than 30 days, and undated ones too, since undated is indistinguishable from stale for a
+"today" question. The fallback needed two attempts: "read a stale page rather than nothing"
+sounds prudent, but on this instance *every* result was stale, so it fired every time and the
+model preferred those full-text pages to the dated RSS summaries. Stale pages are now a fallback
+only when there is no RSS either.
+
+**The all-purpose half needed its own guarantee.** Widening the auto-load trigger to open
+questions ("how do I build…", "what are the best…", "compare X vs Y") made the skill load for
+"how do I build a web scraper?" — and the model still answered from memory, with **four
+fabricated source URLs**. The grounding check caught the URLs; nothing was asking why there were
+no real ones. So a nudge, on a premise deterministic on both sides: the skill was auto-loaded
+(code judged this a web question) and no read or search tool ran all turn. It reads the marker
+`load_skill` itself writes, so it cannot drift from the auto-load's definition. Live, it fired
+once and the rewritten answer cited realpython, geeksforgeeks and dev.to — real pages, and one
+extra generation spent only in the failing case.
+
+The method worth keeping is not the feature. Three of my own mis-matches survived into three
+separate nine-minute runs, and every one was reproducible in seconds by calling `_match_rss`
+against the real `_rss_pool()` in a REPL. Fixtures prove the rules you thought of; live data
+proves the ones you did not.
+
 Honest limits: n=1 per condition on one model, not a benchmark campaign, and the two news
 conditions differ slightly in wording because the trigger had to be avoided. Adherence is
 partial — the *shape* held in all six runs, the "one deep search per section" planning step did

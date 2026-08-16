@@ -679,6 +679,52 @@ def _failover_to(current: str, target: str, trigger: str, rounds: int) -> str:
     return target
 
 
+def _web_format_skill_loaded(messages: list) -> bool:
+    """Did this conversation just have the web-answer-format skill injected?
+
+    Used as half the premise for the unsearched-answer nudge. Reads the marker `load_skill`
+    itself writes, so it cannot drift from the auto-load's own idea of what a web question is.
+    """
+    marker = "[Skill loaded: web-answer-format]"
+    return any(marker in str(m.get("content") or "") for m in messages[-30:])
+
+
+# ── Routing the model's own plan into its search call ────────────────────────
+_SECTIONS_LINE_RE = re.compile(r"^\s*sections\s*:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+
+
+def _route_planned_sections(name: str, args: dict, messages: list) -> dict:
+    """Fill `search_web_deep(sections=…)` from the plan line the model just wrote.
+
+    Measured, not assumed. Across live runs the model reliably writes `Sections: A, B, C`
+    before searching — it is one line of prose — and just as reliably omits the `sections`
+    argument, because Ollama's schema converter emits the array as `"items": null` and marks
+    every parameter required, which small models handle badly. Asking harder in the prompt was
+    already tried; this is the same answer as the news-category routing and the forced search,
+    the model states intent and the code carries it out.
+
+    The premise is the model's own declaration from this turn, not an inference about what it
+    ought to have wanted, which is what makes it safe to act on (DESIGN.md §4.2b). An explicit
+    `sections` argument always wins.
+    """
+    if name != "search_web_deep" or not isinstance(args, dict) or args.get("sections"):
+        return args
+    for msg in reversed(messages[-6:]):
+        if msg.get("role") != "assistant":
+            continue
+        match = _SECTIONS_LINE_RE.search(str(msg.get("content") or ""))
+        if not match:
+            continue
+        names = [part.strip(" .*_`") for part in match.group(1).split(",")]
+        names = [n for n in names if n and len(n) < 40][:config.MAX_SECTIONS]
+        if len(names) >= 2:              # one "section" is just the query again
+            args = dict(args)
+            args["sections"] = names
+            safety._audit("SECTIONS_ROUTED", {"sections": names})
+        break
+    return args
+
+
 def _guard_context_overflow(messages: list, model: str, tool_schemas=None) -> bool:
     """Compact before sending if the prompt would overflow num_ctx. Returns True if it did.
 
@@ -854,6 +900,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     fake_toolcall_retries = 0
     searched_since_cite = False
     citation_nudges_used = 0
+    unsearched_nudged = False        # fires at most once: a web question answered from memory
     grounding_nudges_used = 0
     template_parser_retries = 0
     xml_parse_retries = 0
@@ -1058,6 +1105,19 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                 ui.console.print(f"[red]{t('empty_response_fallback')}[/red]")
                 safety._audit("EMPTY_RESPONSE", {"round": rounds, "thinking_preview": thinking_preview})
                 return t("empty_response_fallback")
+            # Answered a look-it-up question without looking anything up. The premise is
+            # deterministic on both sides: the skill was auto-loaded (so code judged this a web
+            # question) and no search ran all turn. Live, "how do I build a web scraper?" was
+            # answered from memory with four fabricated source URLs — the grounding check caught
+            # the URLs, but nothing was asking the prior question of why there were no real ones.
+            if (not had_research and not unsearched_nudged
+                    and _web_format_skill_loaded(messages)):
+                unsearched_nudged = True
+                ui.console.print(f"[dim]{t('unsearched_note')}[/dim]")
+                safety._audit("UNSEARCHED_ANSWER_NUDGE", {"round": rounds})
+                messages.append({"role": "assistant", "content": msg.content or ""})
+                messages.append(_nudge(t("unsearched_nudge")))
+                continue
             if (searched_since_cite and "http" not in msg.content
                     and citation_nudges_used < config.MAX_CITATION_NUDGES):
                 citation_nudges_used += 1
@@ -1168,6 +1228,8 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
                     args = json.loads(args)
                 except Exception:
                     args = {}
+
+            args = _route_planned_sections(name, args, messages)
 
             call_started = time.time()
             if config.TOOL_DISPLAY == "full":

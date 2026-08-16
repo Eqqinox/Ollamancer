@@ -73,6 +73,24 @@ assert len(msgs) == 3, "should not re-inject while still in recent context"
 code = [{"role": "user", "content": "refactor this function to use a dict comprehension"}]
 skills._maybe_autoload_web_format(code[0]["content"], code)
 assert len(code) == 1, code
+for quiet in ("fix the failing test in tests/test_b9.py", "explain what this module does",
+              "write a commit message for my diff", "add type hints here"):
+    assert not skills._WEB_FORMAT_INTENT_RE.search(quiet), quiet
+
+# open questions about the world are web-shaped too, not just news: "how do I build a web
+# scraper" ran zero searches and answered from memory, unsourced, because the trigger only
+# covered recency wording
+for asks_the_world in ("how do I build a web scraper?",
+                       "what are the best GGUF models right now?",
+                       "compare SearXNG and Whoogle",
+                       "which library should I use for scraping?"):
+    assert skills._WEB_FORMAT_INTENT_RE.search(asks_the_world), asks_the_world
+
+# the loop reads the same marker load_skill writes, so the unsearched-answer nudge cannot
+# disagree with the auto-load about what counts as a web question
+from agentic import loop as _loop
+assert _loop._web_format_skill_loaded(msgs)
+assert not _loop._web_format_skill_loaded([{"role": "user", "content": "hello"}])
 
 # the forced-search prefix counts as web-shaped
 forced = [{"role": "user", "content": "search openai model prices"}]

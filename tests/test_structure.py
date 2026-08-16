@@ -71,7 +71,7 @@ EXPECTED_PARAM_VARS = {
     "COMPACT_KEEP_TURNS",
     "SEARCH_LANGUAGE", "SEARCH_RESULT_CAP", "DEEP_SEARCH_FETCH_COUNT",
     "DEEP_SEARCH_CHAR_BUDGET", "DEEP_SEARCH_TIMEOUT", "DEEP_SEARCH_THIN_THRESHOLD",
-    "MAX_DEEP_SEARCHES", "RSS_ENABLED",
+    "MAX_SECTIONS", "MAX_DEEP_SEARCHES", "RSS_ENABLED",
 }
 
 
@@ -176,7 +176,7 @@ def test_param_schema():
     assert variables == EXPECTED_PARAM_VARS, (
         f"tunables changed\n  missing: {sorted(EXPECTED_PARAM_VARS - variables)}"
         f"\n  unexpected: {sorted(variables - EXPECTED_PARAM_VARS)}")
-    assert len(params) == 32, f"expected 32 tunables, got {len(params)}"
+    assert len(params) == 33, f"expected 33 tunables, got {len(params)}"
     for p in params:
         assert p["kind"] in ("int", "float", "enum"), f"{p['var']}: bad kind {p['kind']!r}"
         assert p.get("help"), f"{p['var']} has no help text"
