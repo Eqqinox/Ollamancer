@@ -26,7 +26,7 @@ models, and privacy.**
 
 - **Local and private first.** Everything runs offline via Ollama. A `--private` mode makes a
   session fully ephemeral (nothing written to disk).
-- **From scratch, no framework.** ~7,900 lines of readable Python across 21 focused modules —
+- **From scratch, no framework.** ~8,300 lines of readable Python across 21 focused modules —
   12 in `agentic/` plus 9 tool modules in `agentic/tools/` — auditable end-to-end.
   The decision was validated repeatedly: many fixes required line-level control a framework
   would have hidden. *(Corrected 2026-08-15: this read "~6,700 lines across fourteen focused
@@ -150,7 +150,7 @@ Ollamancer treats the failure modes of small local models as first-class problem
   `~/.agentic_1a_params.json`.
 - **Models**: `/model` (session), `/default-model` (persisted), `/failover-model`,
   `/architect-models`, `/vision-model`.
-- **`/help`** lists every slash command (36 total).
+- **`/help`** lists every slash command (37 total).
 
 ---
 
@@ -159,8 +159,11 @@ Ollamancer treats the failure modes of small local models as first-class problem
 - **[Ollama](https://ollama.com)** with at least one tool-capable model (e.g. a small Qwen/Gemma
   build; the bge-m3 embedding model for RAG).
 - **Python 3.12+** in a virtualenv (the `launch.sh` script sets it up).
-- Core Python deps: `ollama`, `requests`, `rich`, `prompt_toolkit`. Optional: `trafilatura`
-  (clean web extraction), `feedparser` (news RSS), `playwright` (JS pages), `mcp` (MCP servers).
+- Core Python deps: `ollama`, `requests`, `rich`, `trafilatura` (clean web extraction),
+  `feedparser` (news RSS). Optional extras, each of which the agent starts and runs without,
+  reporting the feature unavailable rather than failing: `playwright` (JS pages, `[browser]`),
+  `mcp` (MCP servers, `[mcp]`), `prompt_toolkit` (fixes paste-submits-early on macOS libedit
+  builds, `[prompt]`), `tree-sitter-language-pack` (`repo_map` beyond Python, `[treesitter]`).
 - Optional services: **SearXNG** (Docker) for private web search; **Docker** for the sandbox.
 
 ---

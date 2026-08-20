@@ -199,7 +199,7 @@ All documentation is in English. The **agent's interface is bilingual EN/FR** (`
 pyproject.toml        # packaging; `ollamancer` console script -> agentic.cli:main
 agent.py              # entry point + compatibility facade (44 lines)
 agentic/              # the implementation
-  config.py           #   persisted settings (the 31 /parameters values)
+  config.py           #   persisted settings (the 33 /parameters values)
   state.py            #   per-session runtime state + reset()
   i18n.py             #   bilingual EN/FR strings and the system prompt
   ui.py               #   console, prompt, autocomplete, /parameters menu

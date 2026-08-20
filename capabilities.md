@@ -1,5 +1,5 @@
 # Ollamancer: Exhaustive capability list
-> Everything the agent can do, updated 2026-08-15 (v3.1)
+> Everything the agent can do, updated 2026-08-16 (v3.1)
 
 ---
 
