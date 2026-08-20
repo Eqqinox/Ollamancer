@@ -307,9 +307,7 @@ def main():
             continue
 
         if user_input == "/context":
-            cap = models.get_num_ctx(model)
-            used = state._LAST_PROMPT_TOKENS or loop._estimate_tokens(messages)
-            pct = int(used / cap * 100) if cap else 0
+            used, cap, pct, _estimated = loop._context_usage(messages, model)
             ui.console.print(f"[dim]{t('context_usage', used=used, cap=cap, pct=pct, auto=config.AUTO_COMPACT, thr=config.COMPACT_THRESHOLD_PCT)}[/dim]\n")
             continue
 
@@ -738,6 +736,9 @@ def main():
         ui.console.print(Rule("[bold green] Agent [/bold green]", style="green"))
         ui.console.print(Markdown(final))
         ui.console.print(Rule(style="dim"))
+        _tokline = loop.turn_token_line(messages, model)
+        if _tokline:
+            ui.console.print(f"[dim]{_tokline}[/dim]")
         ui.console.print()
 
         messages.append({"role": "assistant", "content": final})

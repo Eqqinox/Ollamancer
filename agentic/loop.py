@@ -661,6 +661,96 @@ def _tool_schema_tokens(tool_schemas=None) -> int:
     return n
 
 
+def _context_usage(messages: list, model: str, tool_schemas=None,
+                  prefer_real: bool = True) -> tuple[int, int, int, bool]:
+    """How full the context is: `(used, cap, percent, estimated)`.
+
+    One function because two callers ask *almost* the same question, and two copies of this
+    arithmetic would drift the way every other hand-maintained pair in this repo has:
+
+    * `/context` asks "how full is it right now", between turns. `prefer_real=True` answers
+      with Ollama's exact `prompt_eval_count` from the last send.
+    * the live readout beside the RAM gauge asks "what am I about to send", mid-turn — where
+      that same number is stale as soon as a tool result is appended, and after a compaction
+      is stale *high*, which would show the context filling up while it was actually emptied.
+      `prefer_real=False` estimates the messages actually in hand.
+
+    The estimate adds the tool schemas. `_estimate_tokens` reads message content only, and the
+    belt is ~5,800 tokens — 18% of a 32K window before a word is said — so a readout without it
+    is not slightly low, it is wrong by a fifth of the window. `_guard_context_overflow`
+    already counts them for the same reason.
+
+    `estimated` is returned rather than folded into the number so the caller can mark it. A
+    figure sitting next to a live RAM gauge reads as measured, and this one frequently is not.
+    """
+    cap = models.get_num_ctx(model)
+    real = state._LAST_PROMPT_TOKENS
+    anchor = state._LAST_PROMPT_MSG_COUNT
+    if prefer_real and real:
+        used, estimated = real, False
+    elif real and 0 < anchor <= len(messages):
+        # Anchored: Ollama's exact count for the first `anchor` messages, plus a guess at only
+        # what has been appended since. The schema term — the whole error — is inside the real
+        # figure rather than re-guessed. Measured on gemma4:12b-mlx: estimating the entire
+        # prompt gave 5,954 against a true 4,839 (+23%), because chars/4 over-counts the
+        # punctuation-dense JSON of the tool belt and the belt dominates a short conversation.
+        used, estimated = real + _estimate_tokens(messages[anchor:]), True
+    else:
+        # No anchor yet (first call of a session), or the conversation shrank under it, which
+        # is what a compaction does. Fall back to pricing the whole thing, schemas included.
+        used, estimated = _estimate_tokens(messages) + _tool_schema_tokens(tool_schemas), True
+    pct = int(used / cap * 100) if cap else 0
+    return used, cap, pct, estimated
+
+
+def turn_token_line(messages: list, model: str) -> str:
+    """The one-line token summary printed under a finished answer, or "" if nothing is known.
+
+    Deliberately printed *after* the turn rather than shown on the spinner, because only then
+    are both numbers real: Ollama reports usage exclusively in its final chunk, so mid-turn
+    there is nothing to display but an estimate — and the spinner is transient anyway
+    (`rich`'s Status wraps a Live with transient=True), so it erases itself and never reaches
+    the scrollback.
+
+    Two numbers, because "tokens used" means two different things and only one of them was
+    visible before:
+
+      * **context** — the prompt, which is the whole conversation re-sent every round, against
+        the window. This is what fills up and eventually forces a compaction.
+      * **generated** — what the model actually wrote this turn, summed across rounds. This is
+        the number `THINK_MODE` moves: measured here, thinking off took `gemma4:12b-mlx` from
+        391 tokens to 5 on the same question. A setting whose main effect is invisible is a
+        setting nobody can tune.
+    """
+    used, cap, pct, estimated = _context_usage(messages, model)
+    generated = state._TURN_EVAL_TOKENS
+    if not used and not generated:
+        return ""
+    tilde = "~" if estimated else ""
+    line = f"· context {tilde}{_fmt_tokens(used)}/{_fmt_tokens(cap)} ({pct}%)"
+    if generated:
+        line += f" · generated {_fmt_tokens(generated)}"
+    return line
+
+
+def _fmt_tokens(n: int) -> str:
+    """Compact token count for a one-line status: 8420 -> "8.4k", 940 -> "940"."""
+    return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
+
+
+def _usage_suffix(usage) -> str:
+    """The ` · ~8.4k/49k (17%)` clause appended to a spinner label, or "" when unknown.
+
+    The tilde marks an estimate. Kept as a separate helper so the streaming and buffered
+    spinners cannot render the same number two different ways.
+    """
+    if not usage:
+        return ""
+    used, cap, pct, estimated = usage
+    tilde = "~" if estimated else ""
+    return f"  [dim]· {tilde}{_fmt_tokens(used)}/{_fmt_tokens(cap)} ({pct}%)[/dim]"
+
+
 def _failover_to(current: str, target: str, trigger: str, rounds: int) -> str:
     """Switch to the backup model after a plumbing bug, **unloading the failed one first**.
 
@@ -766,10 +856,14 @@ def _guard_context_overflow(messages: list, model: str, tool_schemas=None) -> bo
 
 
 # ── The model call: spinner, streaming, and the buffered fallback ────────────
-def _start_ram_spinner():
+def _start_ram_spinner(usage=None):
     """Start a console spinner with a live-RAM readout (same look as _chat_with_live_ram) and
     return a stop() callable. Used by the streaming path so the RAM/thinking indicator is shown
-    while the model is warming up / reasoning, before the first answer token streams in."""
+    while the model is warming up / reasoning, before the first answer token streams in.
+
+    `usage` is the tuple from _context_usage(), appended after the RAM figure. It is fixed for
+    the call: the prompt is already assembled by the time the spinner starts, so there is
+    nothing to re-measure while it spins."""
     status_cm = ui.console.status(f"[bold blue]{t('thinking_status')}[/bold blue]", spinner="dots")
     status = status_cm.__enter__()
     stop_evt = threading.Event()
@@ -780,6 +874,7 @@ def _start_ram_spinner():
             label = t("thinking_status")
             if rss is not None:
                 label += f"  [dim]· {rss:.1f} GB RAM[/dim]"
+            label += _usage_suffix(usage)
             try:
                 status.update(f"[bold blue]{label}[/bold blue]")
             except Exception:
@@ -804,8 +899,12 @@ def _start_ram_spinner():
     return stop
 
 
-def _chat_with_live_ram(status_key: str, chat_fn):
-    """Run a blocking ollama.chat() call while showing live RAM usage next to the spinner."""
+def _chat_with_live_ram(status_key: str, chat_fn, usage=None):
+    """Run a blocking ollama.chat() call while showing live RAM usage next to the spinner.
+
+    `usage` is the optional _context_usage() tuple; omitted by the utility calls (compaction
+    summary, /review-by, /architect planning), which send their own short one-off prompt
+    rather than the conversation, so a context gauge there would describe nothing."""
     with ui.console.status(f"[bold blue]{t(status_key)}[/bold blue]", spinner="dots") as status:
         stop = threading.Event()
 
@@ -815,7 +914,8 @@ def _chat_with_live_ram(status_key: str, chat_fn):
                 label = t(status_key)
                 if rss is not None:
                     label += f"  [dim]· {rss:.1f} GB RAM[/dim]"
-                    status.update(f"[bold blue]{label}[/bold blue]")
+                label += _usage_suffix(usage)
+                status.update(f"[bold blue]{label}[/bold blue]")
                 stop.wait(0.7)
 
         poller = threading.Thread(target=_poll, daemon=True)
@@ -835,6 +935,8 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
     tool_schemas defaults to all native + MCP tools; the architect phase (B4) passes a
     read-only subset."""
     tool_list = tools.TOOLS + mcp_client.MCP_TOOL_SCHEMAS if tool_schemas is None else tool_schemas
+    # What this call is about to send, not what the last one sent — see _context_usage().
+    usage = _context_usage(messages, model, tool_schemas=tool_list, prefer_real=False)
 
     def _buffered():
         return _chat_with_live_ram(
@@ -842,6 +944,7 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
             lambda: ollama.chat(model=model, messages=messages, tools=tool_list,
                                  stream=False, options=models._gen_options(model),
                                  **models.think_kwargs(model)),
+            usage=usage,
         )
 
     if config.STREAM_FINAL != "on":
@@ -860,7 +963,7 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
     # On a tool round (no content, just tool_calls) the spinner stays up the
     # whole time, so the RAM readout and the "thinking" indicator remain visible during tool
     # rounds, as they were before streaming was added (a regression, since fixed).
-    stop_spinner = _start_ram_spinner()
+    stop_spinner = _start_ram_spinner(usage)
     holder: dict = {"live": None}
 
     def _on_text(txt: str) -> None:
@@ -891,6 +994,7 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     state._checkpoint_turn += 1
     state._checkpoint_made_this_turn = False   # B1: at most one checkpoint per turn, before the first write
     state._last_turn_tool_calls.clear()        # /details always describes the latest turn only
+    state._TURN_EVAL_TOKENS = 0                # generated-token count is per turn, not per call
     rounds = 0
     dupe_nudges_used = 0          # same-event-twice check, capped at one per turn
     edited_since_verify = False
@@ -951,6 +1055,9 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             pec = getattr(resp, "prompt_eval_count", 0) or 0
             if pec:
                 state._LAST_PROMPT_TOKENS = pec   # the prompt's true token count (for compaction)
+                state._LAST_PROMPT_MSG_COUNT = len(messages)   # what that count covered
+            # Summed, not assigned: a turn is several rounds and each reports only its own.
+            state._TURN_EVAL_TOKENS += getattr(resp, "eval_count", 0) or 0
         except ollama.ResponseError as e:
             # e.error is a dict ({"code":..., "message":...}) when the Ollama
             # response body is JSON with a nested "error" key (the case for this

@@ -199,9 +199,10 @@ class _StreamedMessage:
 
 
 class _StreamedResp:
-    def __init__(self, message, prompt_eval_count=0):
+    def __init__(self, message, prompt_eval_count=0, eval_count=0):
         self.message = message
         self.prompt_eval_count = prompt_eval_count
+        self.eval_count = eval_count
 
 
 class _UserAbort(Exception):
@@ -271,6 +272,7 @@ def _consume_stream(stream, on_text=None, abort_check=None) -> _StreamedResp:
     thinking_parts: list[str] = []
     tool_calls: list = []
     prompt_eval_count = 0
+    eval_count = 0
     for chunk in stream:
         if abort_check is not None and abort_check():
             try:
@@ -281,6 +283,9 @@ def _consume_stream(stream, on_text=None, abort_check=None) -> _StreamedResp:
         pec = getattr(chunk, "prompt_eval_count", None)
         if pec:
             prompt_eval_count = pec  # the final chunk (done=True) carries the prompt's true token count
+        ec = getattr(chunk, "eval_count", None)
+        if ec:
+            eval_count = ec          # same chunk: how many tokens the model actually generated
         m = getattr(chunk, "message", None)
         if m is None:
             continue
@@ -297,7 +302,7 @@ def _consume_stream(stream, on_text=None, abort_check=None) -> _StreamedResp:
                 on_text("".join(content_parts))
     msg = _StreamedMessage("".join(content_parts), tool_calls or None,
                            "".join(thinking_parts) or None)
-    return _StreamedResp(msg, prompt_eval_count=prompt_eval_count)
+    return _StreamedResp(msg, prompt_eval_count=prompt_eval_count, eval_count=eval_count)
 
 
 

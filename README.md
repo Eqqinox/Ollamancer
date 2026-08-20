@@ -52,7 +52,7 @@ Plus local RAG, vision, dual-model planning, skills, and a genuinely nice termin
 - **Git checkpoints**: `/undo` reverts a whole turn (shadow repo, works in non-git projects too).
 - **Context compaction**: summarizes old turns when the window fills (off by default; `/compact` on demand).
 - **Never a dead end**: when a turn runs out of tool rounds — or of an optional wall-clock budget — the agent spends one last generation answering from what it already gathered, clearly marked incomplete, instead of returning a status line and binning the work.
-- **Session resume**, **streaming answers**, **live RAM readout**, **Esc-to-stop**.
+- **Session resume**, **streaming answers**, **Esc-to-stop**, and a **token readout**: the spinner carries `12.3 GB RAM · ~8.4k/49.2k (17%)` while the model works, and each answer is followed by the exact figures — `· context 12.4k/49.2k (25%) · generated 391`. Two different meanings of "tokens used": how full the window is, and how much the model actually wrote.
 - **Compact tool display**: one line per tool call with result size and elapsed time; `/details` prints the full, untruncated record of the last turn.
 - **Skills**: reusable [`SKILL.md`](https://agentskills.io) workflows (the open standard, portable with Claude Code / Cursor / Codex) + a bundled **15-skill library**.
 - **Headless / batch**: `--run "prompt"` and `--recipe file.md` (exit code = success) for cron/scripts.
@@ -159,7 +159,7 @@ that way so upgrades do not orphan an existing install.
 
 ## Tests
 
-The agent ships with 43 deterministic tests that run **fully offline**, no Ollama, no
+The agent ships with 44 deterministic tests that run **fully offline**, no Ollama, no
 network, and no writes to your real config (the runner enforces that last one):
 
 ```bash
@@ -215,7 +215,7 @@ agentic/              # the implementation
 launch.sh             # venv setup + launcher
 skills/               # bundled SKILL.md workflows (15)
 benchmarks/           # model-reliability fixtures + playthrough harness
-tests/                # deterministic offline test suite (43 tests)
+tests/                # deterministic offline test suite (44 tests)
 imessage_bridge.py    # optional: drive it from iPhone via iMessage (macOS)
 ```
 

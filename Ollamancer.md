@@ -60,7 +60,9 @@ Model reasons → calls tool(s) → gets results → reasons again … → final
 
 - **Tool schemas** are auto-extracted from Python type hints + docstrings (Ollama SDK), no
   manual JSON schemas.
-- **Streaming** final answers (buffered on tool rounds), with a live RAM readout while the
+- **Streaming** final answers (buffered on tool rounds), with a live RAM **and context**
+  readout (`12.3 GB RAM · ~8.4k/49.2k (17%)`, a tilde marking an estimate), plus an exact
+  `· context 12.4k/49.2k (25%) · generated 391` line under each answer, while the
   model works.
 - **Safety rails**: a max-rounds guard, retry+fallback for five confirmed Ollama tool-call
   plumbing bugs, and a one-time **model failover** to a backup model when those retries exhaust.
@@ -120,7 +122,8 @@ Plus **`run_command`** exposes the entire shell, and **MCP** adds any third-part
   cron/scripts.
 - **Privacy**: `--private` ephemeral session; safe mode (`--safe`) approves risky calls; Docker
   sandbox (`--sandbox`) isolates shell/REPL.
-- **Terminal UX**: slash-command autocomplete (type `/`), streamed answers, live RAM,
+- **Terminal UX**: slash-command autocomplete (type `/`), streamed answers, live RAM and
+  context usage,
   Esc-to-stop, bilingual interface.
 
 ---
@@ -182,7 +185,7 @@ Ollamancer.md             # this file, detailed presentation
 Agentic_Manual.md         # full user manual
 capabilities.md           # exhaustive capability list
 DESIGN.md                 # design rationale & engineering history
-tests/                    # deterministic offline test suite (43 tests)
+tests/                    # deterministic offline test suite (44 tests)
 ```
 
 ---

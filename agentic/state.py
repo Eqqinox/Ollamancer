@@ -73,8 +73,17 @@ _last_turn_tool_calls: list = []    # [{name, args, result, seconds, blocked}] f
 
 # ── Model & context tracking ─────────────────────────────────────────────────
 _CURRENT_MODEL = ""                # the current loop's model, updated by run_agent
+_TURN_EVAL_TOKENS = 0              # tokens the model *generated* this turn, summed over every
+                                   # round. Ollama reports eval_count per call, and one turn is
+                                   # many calls, so the per-call figure answers the wrong
+                                   # question. Reset by run_agent at the start of each turn.
 _LAST_PROMPT_TOKENS = 0            # last real prompt_eval_count returned by Ollama (the
                                    # prompt's true size), used to trigger compaction
+_LAST_PROMPT_MSG_COUNT = 0         # len(messages) when that count was taken, so the live gauge
+                                   # can price only what has been appended since instead of
+                                   # re-estimating the whole prompt. Measured: estimating the
+                                   # lot runs +23% high, because the tool schemas dominate it
+                                   # and chars/4 over-counts punctuation-dense JSON.
 
 # ── Caches (cleared by reset() so a fresh session never sees stale data) ─────
 _num_ctx_cache: dict = {}   # model name -> negotiated num_ctx (avoids an ollama.show() per call)
@@ -106,7 +115,7 @@ def reset() -> None:
     global _AUDIT_LOG, _SNAPSHOT_DIR, _BG_LOG_DIR, _SESSION_DIR, _SESSION_FILE, _SEMANTIC_DB
     global _todo, _memory, _bg_counter, _SANDBOX_CONTAINER
     global _CHECKPOINT_GITDIR, _checkpoint_turn, _checkpoint_made_this_turn
-    global _CURRENT_MODEL, _LAST_PROMPT_TOKENS
+    global _CURRENT_MODEL, _LAST_PROMPT_TOKENS, _TURN_EVAL_TOKENS, _LAST_PROMPT_MSG_COUNT
 
     PROJECT_ROOT = None
     SAFE_MODE = SANDBOX_MODE = PRIVATE_MODE = False
@@ -125,6 +134,8 @@ def reset() -> None:
 
     _CURRENT_MODEL = ""
     _LAST_PROMPT_TOKENS = 0
+    _LAST_PROMPT_MSG_COUNT = 0
+    _TURN_EVAL_TOKENS = 0
 
     for container in (_snapshots, _context_files, _bg_processes,
                       _num_ctx_cache, _search_cache, _robots_cache, _rss_cache,

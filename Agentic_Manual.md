@@ -1011,7 +1011,22 @@ If you don't run SearXNG, `search_web` automatically fails over to the `duckduck
 when one is configured, see the MCP section of [`capabilities.md`](./capabilities.md).
 
 ### The agent doesn't answer / is very slow
-- The model is thinking, the "Thinking…" spinner with the live RAM readout is normal.
+- The model is thinking, the "Thinking…" spinner with the live RAM readout is normal. It also
+  shows the context the call is about to send against the cap — `12.3 GB RAM · ~8.4k/49.2k
+  (17%)`. The **tilde marks an estimate**: until Ollama has answered once there is no exact
+  count, and mid-turn the exact one belongs to the previous send, so the readout estimates
+  what is in hand instead — anchored on the last exact count, so only the newly added
+  messages are guessed. Measured on `gemma4:12b-mlx`, that lands within 0.2% from the second
+  call onward; the first call of a session has nothing to anchor to and reads about 23% high.
+  `/context` reports the exact count between turns.
+- Under each answer a persistent line gives the **exact** figures — `· context 12.4k/49.2k
+  (25%) · generated 391`. `context` is the prompt (the whole conversation, re-sent every
+  round) against the window; `generated` is what the model actually wrote this turn, summed
+  over its rounds. The second is the number **Thinking Mode** moves: with thinking off,
+  `gemma4:12b-mlx` answered the same question in 5 generated tokens instead of 391.
+- If that percentage climbs toward 100 during a turn, the model is running out of window
+  rather than hanging. `/compact` folds the old turns into a summary; **Auto-Compact** in
+  `/parameters` does it for you once past the threshold.
 - Press **Esc** to stop it and get back to the prompt. Note that what the model had gathered
   so far is discarded — Esc is a cancel, not a "wrap up now".
 - For faster answers, switch to a smaller model with `/model`.

@@ -19,7 +19,7 @@ it, since a name imported elsewhere is a separate binding.
 Either runner works, and both run each test in its **own process**.
 
 ```bash
-pytest                         # 43 scripts plus a collection guard
+pytest                         # 44 scripts plus a collection guard
 pytest -k skills               # one script
 pytest -x                      # stop at the first failure
 bash tests/run_all.sh          # no pytest needed
@@ -35,7 +35,7 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root, "tests: 43 passed, 0 failed"
+bash tests/run_all.sh          # from the project root, "tests: 44 passed, 0 failed"
 ```
 
 Or a single test:
@@ -44,7 +44,7 @@ Or a single test:
 PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 ```
 
-## Coverage (43 files)
+## Coverage (44 files)
 
 | File | Feature under test |
 |---|---|
@@ -76,6 +76,7 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_packaging` | the 14 bundled skills are findable in a checkout and shipped by the wheel; requirements.txt and pyproject stay in step |
 | `test_repomap` | PageRank, the distinctiveness filter, Python extraction, ranking order, `focus=`, the character budget, and both language paths |
 | `test_tool_display` | the compact one-line tool display, and that `/details` keeps the full untruncated result the line omitted |
+| `test_context_readout` | the token gauge beside the live RAM figure, and that `/context` and the spinner share one formula rather than two copies that can drift. Pins the flag that separates them: `/context` reports Ollama's exact `prompt_eval_count` between turns, while the live readout estimates what is *about to be sent*, because that count is stale as soon as a tool result is appended and stale **high** after a compaction — which would show the context filling at the moment it was emptied. Also that the estimate counts the tool schemas (~5,800 tokens, 18% of a 32K window, invisible to `_estimate_tokens`), that an estimate is always marked with a tilde so a guess never reads as a measurement, and that a zero cap cannot divide by zero |
 | `test_think_mode` | `THINK_MODE`: that `default` sends no `think` argument at all, that a model without the `thinking` capability is never sent one (the Ollama 400 that broke five other clients when a thinking setting outlived a model switch), that the capability costs one `ollama.show()` per model rather than one per turn, that a runtime refusal outranks the advertised capability and survives for the session, and that the menu offers exactly the five implemented values — `max` excluded, since Ollama rejects it top-level |
 | `test_banner` | the startup wordmark keeps its shape, and the width guard hides it on a terminal too narrow to hold it |
 | `test_architect_guards` | architect phase stays read-only; no unsatisfiable claim-vs-action nudge |

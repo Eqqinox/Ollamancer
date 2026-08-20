@@ -644,6 +644,41 @@ runs are also the only ones made against the final skill text: the date-form and
 answer-in-the-user's-language rules were added between, so the news and French answers above
 were produced by a slightly earlier body.
 
+**The context gauge, and why it does not use the exact number.** The spinner shows what the
+call is about to send against the cap (`12.3 GB RAM · ~8.4k/49.2k (17%)`). The obvious
+implementation — reuse Ollama's exact `prompt_eval_count`, which is already kept for
+compaction — is wrong twice: mid-turn that figure belongs to the *previous* send, and after a
+compaction it is stale **high**, so the gauge would show the window filling at the moment it
+was emptied. So `/context`, which is asked between turns, keeps the exact count, and the live
+readout estimates the messages actually in hand; one function with a flag, because two copies
+of this arithmetic is the shape that has drifted here before. Estimates carry a tilde: a number
+sitting beside a live RAM reading looks measured, and this one usually is not.
+
+**And the first version of that estimate was 23% wrong, which only running it showed.** Pricing
+the whole prompt — content by chars/4, plus `_tool_schema_tokens` for the belt — predicted
+5,954 tokens against a true 4,839 on `gemma4:12b-mlx`. The error is almost entirely the belt:
+`json.dumps(...) // 4` over-counts punctuation-dense JSON, and on a short conversation the belt
+*is* the prompt. So the live gauge no longer re-guesses it. It anchors on Ollama's exact
+`prompt_eval_count`, records how many messages that figure covered, and estimates only what has
+been appended since; the schema term stops being guessed at all. Measured across three rounds
+of a real conversation: **+23.0%, then −0.2%, then −0.1%**. The 23% survives only on the first
+call of a session, when there is no real count to anchor to, and it errs high, which is the
+safe direction for a gauge whose job is to warn you before the window fills.
+
+`_tool_schema_tokens` was deliberately left alone rather than recalibrated. It also feeds
+`_guard_context_overflow`, where over-estimating means compacting slightly early and
+under-estimating means the overflow this repo already has a retry branch for.
+
+The exact figures go **under the answer**, not on the spinner, for two reasons that only
+became obvious once it was built: Ollama reports usage in its final chunk alone, so mid-turn
+there is nothing but the estimate, and `rich`'s Status wraps a Live with `transient=True`, so
+the spinner erases itself and can never reach the scrollback — it is unreadable in a
+screenshot or a log by construction. The line also reports the number that was missing
+entirely: `eval_count`, what the model actually *generated*, which the code had been
+discarding while keeping `prompt_eval_count`. Both are "tokens used" and they answer different
+questions — one fills the window, the other is what `THINK_MODE` moves — and it is summed over
+the turn rather than per call, since a turn is many rounds and each reports only its own.
+
 **Thinking Mode (`THINK_MODE`).** The agent never passed `think` at all, so every thinking
 model ran with reasoning on. That was
 measured as expensive long before it was addressed — `qwen-heretic` spends most of its output
