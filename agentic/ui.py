@@ -303,7 +303,7 @@ def _consume_stream(stream, on_text=None, abort_check=None) -> _StreamedResp:
 
 
 # ── /parameters: the live settings menu ──────────────────────────────────────
-# A full-screen curses menu over the 30 tunables in agentic/config.py. Each row names
+# A full-screen curses menu over the 34 tunables in agentic/config.py. Each row names
 # its variable as a string and reads/writes it with getattr/setattr on the config
 # module: so the menu, the persisted JSON, and the value the agent actually reads are
 # guaranteed to be the same object. (While the schema and the variables shared a module
@@ -312,6 +312,25 @@ def _consume_stream(stream, on_text=None, abort_check=None) -> _StreamedResp:
 
 _PARAM_SCHEMA = [
     ("Model Generation", [
+        {"var": "THINK_MODE", "label": "Thinking Mode", "kind": "enum",
+         "options": ["default", "off", "low", "medium", "high"], "default": "default",
+         "help": "Reasoning effort for models that support thinking, via Ollama's `think` "
+                 "argument. \"default\" sends nothing and leaves the model to its own habit "
+                 "(what every earlier version did). \"off\" suppresses the reasoning trace, "
+                 "which is dramatic on speed — measured here, gemma4:12b-mlx went 391 output "
+                 "tokens to 5, and qwen-heretic 600 to 6 — but is NOT free: on a reasoning "
+                 "question the same model got the arithmetic right with thinking on and wrong "
+                 "with it off. Fast is not the same as correct; prefer it for straightforward "
+                 "work, not for puzzles. The three levels tune trace length on models that "
+                 "read them (gpt-oss measured at 120 chars of reasoning on \"low\" against "
+                 "1762 on \"high\"). Only ever sent to a model whose /model row shows a ✓ in "
+                 "the Think column; on any other it is silently not sent, never an error. Two "
+                 "limits, both confirmed by measurement rather than inferred: a level on a "
+                 "boolean-only model (the Qwen family) switches thinking on rather than "
+                 "sizing it — low and high produced byte-identical traces — and \"off\" on a "
+                 "level-only model (gpt-oss) is ignored upstream, which reasoned *more* than "
+                 "the default. Neither is detectable in advance: Ollama reports thinking as "
+                 "one yes/no capability and never says which form a model reads."},
         {"var": "GEN_TEMPERATURE", "label": "Temperature", "kind": "float",
          "min": 0.0, "max": 2.0, "step": 0.05, "default": 0.8,
          "help": "Randomness of the output. Lower = focused and deterministic. "

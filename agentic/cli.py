@@ -636,7 +636,8 @@ def main():
             resp = loop._chat_with_live_ram(
                 "planning_status",
                 lambda: ollama.chat(model=model, messages=messages, stream=False,
-                                     options=models._gen_options(model)),
+                                     options=models._gen_options(model),
+                                     **models.think_kwargs(model)),
             )
             plan_content = resp.message.content or ""
             ui.console.print()

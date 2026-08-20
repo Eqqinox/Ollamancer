@@ -240,7 +240,8 @@ def cmd_review_by(reviewer_model: str, messages: list, current_model: str) -> st
             "thinking_status",
             lambda: ollama.chat(model=reviewer_model,
                                  messages=[{"role": "user", "content": review_prompt}],
-                                 stream=False, options=models._gen_options(reviewer_model)),
+                                 stream=False, options=models._gen_options(reviewer_model),
+                                 **models.think_kwargs(reviewer_model)),
         )
         critique = (resp.message.content or "").strip()
     except Exception as e:

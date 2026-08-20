@@ -183,6 +183,50 @@ def get_num_ctx(model: str) -> int:
     return num_ctx
 
 
+def supports_thinking(model: str) -> bool:
+    """Does Ollama report the "thinking" capability for this model?
+
+    Same source and same economy as `_tool_capable_models`: one `ollama.show()`, the
+    `capabilities` list, cached per model name. Nothing is hardcoded, so a model pulled after
+    this code was written answers for itself the first time it is used.
+
+    Unknown means False. A model whose `show()` fails is one we cannot vouch for, and the cost
+    of guessing wrong is a 400 that kills the turn, against a `think` argument silently not
+    sent — an easy trade.
+    """
+    if model in state._thinking_cache:
+        return state._thinking_cache[model]
+    try:
+        ok = "thinking" in (ollama.show(model).capabilities or [])
+    except Exception:
+        ok = False
+    state._thinking_cache[model] = ok
+    return ok
+
+
+def think_kwargs(model: str) -> dict:
+    """`{"think": ...}` for this model, or `{}` — splat into an ollama.chat() call.
+
+    Empty whenever the answer would be a guess: THINK_MODE is "default", the model does not
+    advertise the capability, or it has already rejected the argument once this session
+    (`state._think_rejected`, filled by the handler in loop.py). Returning a dict rather than a
+    value is what lets every call site stay one `**` wider instead of growing a branch.
+
+    What this deliberately does NOT do is decide *which form* a model wants. Ollama exposes
+    thinking as one boolean capability and never says whether a model reads a bool
+    (`enable_thinking`, the Qwen family) or a level (`Reasoning: <level>`, gpt-oss), so
+    `think=False` on a level-only model is a documented silent no-op and no amount of
+    inspection here would catch it. Guessing from the chat template was considered and
+    dropped: it is a heuristic, and it is already wrong on the MLX builds, whose template is a
+    bare passthrough while `capabilities` still says thinking. What the code can honestly do is
+    send what was asked, gate what would error, and remember what got refused.
+    """
+    mode = config.THINK_MODE
+    if mode == "default" or model in state._think_rejected or not supports_thinking(model):
+        return {}
+    return {"think": False if mode == "off" else mode}
+
+
 def get_system_ram_gb() -> float:
     """Total unified memory of the machine in **decimal GB**, via sysctl (macOS).
 
@@ -471,6 +515,7 @@ def pick_model_interactive(current_model: str) -> str | None:
 
     with ui.console.status(f"[dim]{t('analyzing_models')}[/dim]", spinner="dots"):
         tools_ok = {}
+        think_ok = {}
         is_moe = {}
         categories = {}
         param_size = {}
@@ -478,6 +523,11 @@ def pick_model_interactive(current_model: str) -> str | None:
             try:
                 info = ollama.show(m.model)
                 tools_ok[m.model] = "tools" in info.capabilities
+                # Same response, same loop, no extra call — and it warms the cache that
+                # think_kwargs() reads, so opening the picker pre-answers the question for
+                # every installed model at once.
+                think_ok[m.model] = "thinking" in (info.capabilities or [])
+                state._thinking_cache[m.model] = think_ok[m.model]
                 is_moe[m.model] = _is_moe_model(info.modelinfo or {})
                 # ollama.list() leaves parameter_size empty for MLX builds, so the Params
                 # column was blank for them, and the size-only fallback made the usage tier
@@ -485,6 +535,7 @@ def pick_model_interactive(current_model: str) -> str | None:
                 param_size[m.model] = _parameter_size(info)
             except Exception:
                 tools_ok[m.model] = None  # unknown
+                think_ok[m.model] = None  # unknown
                 is_moe[m.model] = False
                 param_size[m.model] = ""
 
@@ -508,6 +559,7 @@ def pick_model_interactive(current_model: str) -> str | None:
     table.add_column(t("col_usage"), justify="center", no_wrap=True)
     table.add_column(t("col_task"), justify="left", no_wrap=True, overflow="ellipsis", max_width=24)
     table.add_column(t("col_tools"), justify="center", no_wrap=True)
+    table.add_column(t("col_thinking"), justify="center", no_wrap=True)
     table.add_column(t("col_active"), justify="center", no_wrap=True)
 
     for i, m in enumerate(models, start=1):
@@ -518,10 +570,17 @@ def pick_model_interactive(current_model: str) -> str | None:
         actif   = "✓" if m.model == current_model else ""
         ok      = tools_ok.get(m.model)
         tools_cell = "[green]✓[/green]" if ok else ("[red]✗[/red]" if ok is False else "[dim]?[/dim]")
+        # Reports what Ollama declares, exactly like the Tools column beside it — and carries
+        # the same caveat, which that column has always carried: a capability is a declaration,
+        # not a promise about quality. Claiming more than `capabilities` knows (bool vs level)
+        # would need template guesswork this deliberately avoids.
+        th = think_ok.get(m.model)
+        think_cell = "[green]✓[/green]" if th else ("[red]✗[/red]" if th is False else "[dim]?[/dim]")
         usage_cell = usage_tier(size_gb, ram_gb, is_moe.get(m.model, False))
         task_cell  = categories.get(m.model, "General-purpose")
         row_style = "dim strike" if ok is False else None
-        table.add_row(str(i), m.model, size_cell, params, usage_cell, task_cell, tools_cell, actif, style=row_style)
+        table.add_row(str(i), m.model, size_cell, params, usage_cell, task_cell,
+                      tools_cell, think_cell, actif, style=row_style)
 
     ui.console.print(table)
     ui.console.print(f"[dim]{t('legend_tools')}[/dim]")

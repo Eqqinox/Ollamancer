@@ -78,6 +78,14 @@ _LAST_PROMPT_TOKENS = 0            # last real prompt_eval_count returned by Oll
 
 # ── Caches (cleared by reset() so a fresh session never sees stale data) ─────
 _num_ctx_cache: dict = {}   # model name -> negotiated num_ctx (avoids an ollama.show() per call)
+_thinking_cache: dict = {}  # model name -> bool: does Ollama report the "thinking" capability?
+                            # Same ollama.show() economy as _num_ctx_cache above.
+_think_rejected: set = set()  # models that answered a `think` argument with a 400. Ollama only
+                            # reports thinking yes/no, never which *form* a model accepts, so a
+                            # model can advertise the capability and still refuse the argument
+                            # (an MLX build whose template is a bare "{{ .Prompt }}" passthrough
+                            # is the case seen here). This set is how that is learned once,
+                            # at runtime, instead of guessed from a hardcoded list.
 _search_cache: dict = {}    # (query, category, language) -> (timestamp, results)
 _rss_cache: dict = {}       # "pool" -> (timestamp, items) — every feed fetched once per TTL,
                             # so per-section matching costs no extra requests
@@ -119,7 +127,8 @@ def reset() -> None:
     _LAST_PROMPT_TOKENS = 0
 
     for container in (_snapshots, _context_files, _bg_processes,
-                      _num_ctx_cache, _search_cache, _robots_cache, _rss_cache):
+                      _num_ctx_cache, _search_cache, _robots_cache, _rss_cache,
+                      _thinking_cache, _think_rejected):
         container.clear()
     _last_turn_tool_results.clear()
     _last_turn_tool_calls.clear()

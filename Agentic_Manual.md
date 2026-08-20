@@ -220,6 +220,19 @@ Type your message after `You →` and press Enter.
 | `/review-by <model>` | A second model critiques the session's `/diff`, then your main model responds and can fix |
 | `/vision-model [name\|auto]` | Set the multimodal model used by `analyze_image` (auto-detection by default) |
 
+The `/model` table shows, per model: **Size**, **Params**, **Usage** (how heavy it is for this
+machine's RAM), **Task** (what it is good for), **Tools**, **Think** and **Active**.
+
+**Tools** and **Think** both read Ollama's declared capabilities (`ollama.show`), shown as
+`✓` / `✗` / `?`, where `?` means the lookup itself failed. A model with `✗` under Tools is
+struck through: this agent cannot use it at all. A model with `✗` under **Think** works
+normally — it simply ignores the **Thinking Mode** setting, and the agent never sends it the
+`think` argument, because doing so is an error rather than a no-op.
+
+Both columns report a *declaration*, not a promise about quality. A model can advertise tools
+and still call them badly — that is what `benchmarks/model_ranking/RESULTS.md` measures — and
+the same caveat applies to thinking.
+
 ### Tools, skills & safety
 
 | Command | Description |
@@ -403,11 +416,14 @@ used to be hard-coded. Navigate with **↑/↓** between rows, **←/→** to ad
 **`r`** to reset the selected one to its default, **`q`**/Enter to exit. A help line at the
 bottom explains the currently selected parameter.
 
-**33 parameters, 3 sections:**
+**34 parameters, 3 sections:**
 
-- **Model Generation (8)**: Temperature, Top P, Top K, Repeat Penalty, Max Output Tokens,
-  Seed, and **Stream Final Answer** (stream the final answer live; can be disabled if a model
-  regresses on tool-calling while streaming).
+- **Model Generation (9)**: **Thinking Mode** (first in the list: `default` sends nothing and
+  leaves the model to its own habit, `off` suppresses the reasoning trace, and `low`/`medium`/
+  `high` size it on models that read a level — only ever sent to a model whose `/model` row
+  shows a ✓ in the **Think** column), Temperature, Top P, Top K, Repeat Penalty, Max Output
+  Tokens, Seed, and **Stream Final Answer** (stream the final answer live; can be disabled if
+  a model regresses on tool-calling while streaming).
 - **Context & Safety Limits (16)**: context cap (**64K**), max tool rounds, **turn time
   budget** (`TURN_BUDGET_SECONDS`, 0 = off: when set and reached, the agent answers from what
   it already gathered instead of returning nothing), max background

@@ -145,7 +145,7 @@ Ollamancer treats the failure modes of small local models as first-class problem
 
 ## 7. Configuration & control
 
-- **`/parameters`**: a full-screen curses menu, **33 live-tunable settings** (generation params,
+- **`/parameters`**: a full-screen curses menu, **34 live-tunable settings** (generation params,
   context cap, safety/nudge limits, search tuning, streaming, compaction), persisted to
   `~/.agentic_1a_params.json`.
 - **Models**: `/model` (session), `/default-model` (persisted), `/failover-model`,
@@ -182,7 +182,7 @@ Ollamancer.md             # this file, detailed presentation
 Agentic_Manual.md         # full user manual
 capabilities.md           # exhaustive capability list
 DESIGN.md                 # design rationale & engineering history
-tests/                    # deterministic offline test suite (42 tests)
+tests/                    # deterministic offline test suite (43 tests)
 ```
 
 ---

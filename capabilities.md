@@ -257,6 +257,33 @@ What the agent can do autonomously by chaining its tools:
 
 ## 9 bis. Live settings (`/parameters`)
 
+**Thinking mode.** Turn a thinking model's reasoning off, or size it, without leaving the
+session: **Thinking Mode** (first setting in the menu) sends Ollama's `think` argument as
+`off`, `low`, `medium` or `high`, and `default` sends nothing at all — which is what every
+version before this one did, so the setting is opt-in and the benchmark campaign remains
+comparable. Detection is real, not name-based, the same way `analyze_image` detects vision:
+the `thinking` capability from `ollama.show()`, so a model pulled tomorrow answers for itself
+and there is no list to maintain. It is **never sent to a model that does not declare it** —
+a top-level `think` on such a model is an Ollama 400 that kills the turn, and that exact
+mistake is the most reported bug in the other clients that shipped this feature. `/model`
+gained a **Think** column so you can see which models can honour it **[native, `/parameters`
++ `/model`, v3.1]**
+- **What it is worth, measured on this machine, not inferred:** `gemma4:12b-mlx` went from 391
+  output tokens to 5 (9.8 s to 0.8 s) with thinking off, `qwen-heretic` from 600 to 6 (22.8 s
+  to 0.4 s). It is **not free**: on the same arithmetic question the model answered correctly
+  with thinking on and incorrectly with it off. Fast is not correct.
+- **Two limits Ollama makes undetectable in advance**, both confirmed by measurement: a level
+  on a boolean-only model (the Qwen family) switches thinking on rather than sizing it — `low`
+  and `high` produced byte-identical traces — and `off` on a level-only model (`gpt-oss`) is
+  ignored upstream, which reasoned *more* than the default. `gpt-oss` does honour levels
+  cleanly: 120 characters of reasoning on `low` against 1762 on `high`. Ollama reports
+  thinking as one yes/no capability and never says which form a model reads, so no amount of
+  inspection could separate these in advance; a model that refuses the argument outright is
+  remembered for the session and retried without it.
+- **Not applied to `analyze_image`**, which takes no generation settings at all (no
+  temperature, seed or context either) because it is a one-shot call to a separately loaded
+  model.
+
 **Tool call display.** By default the agent prints one line per tool call while it works,
 showing the name, the identifying argument, the size of the result and the elapsed time.
 **`/details`** then prints the complete record of the turn just finished: every call, its

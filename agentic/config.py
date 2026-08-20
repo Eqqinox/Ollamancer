@@ -100,6 +100,17 @@ SAFE_NUM_CTX = 65536   # context cap requested from Ollama (doubled 32768 -> 655
 # Generation and web-search parameters: all adjustable live via /parameters. The
 # defaults match Ollama's own defaults and the agent's behaviour before the menu
 # existed, so nothing changes until the user touches something.
+THINK_MODE          = "default"  # "default"/"off"/"low"/"medium"/"high". What to pass as the
+                             # top-level `think` argument of ollama.chat. "default" sends
+                             # nothing at all, which is what every version before this one did
+                             # and what the whole benchmark campaign was measured under, so it
+                             # stays the default. "off" sends think=False; the three levels go
+                             # through as-is. Never sent to a model that does not advertise the
+                             # capability (see models.think_kwargs) — a top-level `think` on a
+                             # model without it is a 400, the single most reported bug in every
+                             # other client that shipped this feature. "max" is deliberately
+                             # absent: Ollama rejects it top-level and accepts it only nested in
+                             # options (ollama/ollama#15831, still open).
 GEN_TEMPERATURE     = 0.8
 GEN_TOP_P           = 0.9
 GEN_TOP_K           = 40

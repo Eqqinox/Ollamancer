@@ -61,6 +61,7 @@ EXPECTED_SLASH_COMMANDS = {
 }
 
 EXPECTED_PARAM_VARS = {
+    "THINK_MODE",
     "GEN_TEMPERATURE", "GEN_TOP_P", "GEN_TOP_K", "GEN_REPEAT_PENALTY", "GEN_NUM_PREDICT",
     "GEN_SEED", "TOOL_DISPLAY", "STREAM_FINAL",
     "SAFE_NUM_CTX", "MAX_TOOL_ROUNDS", "TURN_BUDGET_SECONDS", "MAX_BACKGROUND_PROCESSES",
@@ -176,7 +177,7 @@ def test_param_schema():
     assert variables == EXPECTED_PARAM_VARS, (
         f"tunables changed\n  missing: {sorted(EXPECTED_PARAM_VARS - variables)}"
         f"\n  unexpected: {sorted(variables - EXPECTED_PARAM_VARS)}")
-    assert len(params) == 33, f"expected 33 tunables, got {len(params)}"
+    assert len(params) == 34, f"expected 34 tunables, got {len(params)}"
     for p in params:
         assert p["kind"] in ("int", "float", "enum"), f"{p['var']}: bad kind {p['kind']!r}"
         assert p.get("help"), f"{p['var']} has no help text"

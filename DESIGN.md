@@ -644,6 +644,55 @@ runs are also the only ones made against the final skill text: the date-form and
 answer-in-the-user's-language rules were added between, so the news and French answers above
 were produced by a slightly earlier body.
 
+**Thinking Mode (`THINK_MODE`).** The agent never passed `think` at all, so every thinking
+model ran with reasoning on. That was
+measured as expensive long before it was addressed — `qwen-heretic` spends most of its output
+on a trace the user never sees — but it stayed unimplemented because the obvious fix, defaulting
+it off, trades an unknown amount of quality for a known amount of speed. `THINK_MODE` ships as
+an opt-in with `default` meaning *send nothing*, so the prior behaviour and the entire benchmark
+campaign remain exactly as measured.
+
+**Detection is the whole design.** A top-level `think` sent to a model without the capability is
+an Ollama 400 that kills the turn, and it is the most reported bug in every other client that
+shipped this feature (openclaw #80332, Continue #11265, crush #2713, claude-code-router
+#972/#1046, qwen-code #1377). In all of them the trigger is identical: a thinking setting that
+outlives a model switch. `/model` makes that reachable here, so the capability is checked per
+call, from `ollama.show().capabilities` — the same source and the same one-lookup-per-model
+economy as the tool check beside it. Nothing is hardcoded, so a model pulled tomorrow answers
+for itself.
+
+**What `capabilities` cannot tell you, measured 2026-08-20 on this machine:**
+
+| Model | `off` | `low` → `high` |
+|---|---|---|
+| `gemma4:12b-mlx` | works — 391 → 5 output tokens, 9.8 s → 0.8 s | no effect (923 vs 933 chars) |
+| `gpt-oss:20b` | **ignored** — reasoned *more* than default (955 vs 699 chars) | works — 120 → 1762 chars |
+| `qwen-heretic:latest` | works — 600 → 6 tokens, 22.8 s → 0.4 s | no effect (byte-identical traces) |
+
+Ollama exposes thinking as one boolean capability and never says whether a model reads a bool
+(`enable_thinking`, the Qwen family) or a level (`Reasoning: <level>`, gpt-oss). So `off` on a
+level-only model is a documented silent no-op, and a level on a bool-only model switches
+thinking on rather than sizing it. Neither is detectable in advance. Guessing from the chat
+template was considered and dropped: it is a heuristic, and it is wrong on exactly the model
+that matters most here — `gemma4:12b-mlx`, the default, is an MLX build whose Ollama template
+is a bare `{{ .Prompt }}` passthrough with no reasoning branch, and it honours `think` anyway.
+The prediction from reading the template would have been the opposite of the measurement.
+(`qwen3.5:4b` has the same passthrough template and was not probed, so it is untested rather
+than known.) What
+the code does instead is send what was asked, gate what would error, and remember what got
+refused (`state._think_rejected`, one retry without the argument) — the same shape as the other
+plumbing signatures in `run_agent`, and the only one whose retry *changes* the request rather
+than repeating it.
+
+**Speed is not the interesting number.** On the same arithmetic question `gemma4:12b-mlx`
+answered correctly with thinking on and wrongly with it off. A wider sweep (3 tasks × 3 seeds)
+put thinking-on at 5/9 and off at 4/9, but that comparison is not trustworthy and is recorded
+here as unresolved rather than as a finding: it ran at `num_predict` 600 against a shipped
+default of 4096, and the tight cap manufactured its own failure mode — thinking-on returned an
+empty answer on 4 of 9 runs by exhausting the budget mid-trace. Settling it means re-running T1
+and T3 under the real protocol, which has not been done. Until then the honest claim is that
+`off` is a large, measured speed win of unmeasured cost, which is why it is not the default.
+
 ---
 
 ## 8. Known limitations

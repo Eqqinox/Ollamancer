@@ -574,7 +574,8 @@ def _summarize_span(span: list, model: str) -> str:
         resp = _chat_with_live_ram(
             "compacting_status",
             lambda: ollama.chat(model=model, messages=[{"role": "user", "content": instr}],
-                                 stream=False, options=models._gen_options(model)),
+                                 stream=False, options=models._gen_options(model),
+                                 **models.think_kwargs(model)),
         )
         return (resp.message.content or "").strip()
     except Exception:
@@ -814,7 +815,7 @@ def _chat_with_live_ram(status_key: str, chat_fn):
                 label = t(status_key)
                 if rss is not None:
                     label += f"  [dim]· {rss:.1f} GB RAM[/dim]"
-                status.update(f"[bold blue]{label}[/bold blue]")
+                    status.update(f"[bold blue]{label}[/bold blue]")
                 stop.wait(0.7)
 
         poller = threading.Thread(target=_poll, daemon=True)
@@ -839,7 +840,8 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
         return _chat_with_live_ram(
             "thinking_status",
             lambda: ollama.chat(model=model, messages=messages, tools=tool_list,
-                                 stream=False, options=models._gen_options(model)),
+                                 stream=False, options=models._gen_options(model),
+                                 **models.think_kwargs(model)),
         )
 
     if config.STREAM_FINAL != "on":
@@ -848,7 +850,8 @@ def _stream_or_buffer_chat(model, messages, tool_schemas=None):
     from rich.live import Live
     try:
         stream = ollama.chat(model=model, messages=messages, tools=tool_list,
-                              stream=True, options=models._gen_options(model))
+                              stream=True, options=models._gen_options(model),
+                              **models.think_kwargs(model))
     except TypeError:
         return _buffered()   # SDK without stream support: fallback
 
@@ -955,6 +958,25 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
             # message for clean display rather than the dict's raw repr.
             err_payload = e.error
             err_text = err_payload.get("message", str(err_payload)) if isinstance(err_payload, dict) else str(err_payload or e)
+            if "does not support thinking" in err_text.lower() or "invalid think value" in err_text.lower():
+                # The model refused the `think` argument. models.think_kwargs() already gates on
+                # the advertised capability, so reaching here means Ollama's own answer to "can
+                # this model think" disagrees with what it does when asked — which is exactly
+                # what the MLX passthrough builds looked like when this was researched, and is
+                # not something any amount of inspection could have settled in advance.
+                #
+                # Remember the refusal for the session and retry once without it. This is the
+                # only plumbing signature here whose retry changes the request rather than
+                # repeating it, because unlike #16988 and the XML drift there IS something on
+                # our side to fix: an argument we should not have sent. No failover — the model
+                # is fine, the argument was not.
+                if model not in state._think_rejected:
+                    state._think_rejected.add(model)
+                    ui.console.print(f"[dim]{t('think_unsupported_note', model=model)}[/dim]")
+                    safety._audit("THINK_UNSUPPORTED", {"model": model, "mode": config.THINK_MODE,
+                                                        "error_preview": err_text[:200]})
+                    rounds -= 1   # never reached the model; don't bill it to MAX_TOOL_ROUNDS
+                    continue
             if "Unable to generate parser for this template" in err_text:
                 # Confirmed Ollama bug (ollama/ollama#16988): automatically
                 # generating the tool-calling parser for the chat template embedded in an
