@@ -349,9 +349,12 @@ _PARAM_SCHEMA = [
          "help": "Only considers the K most likely next tokens at each step. Lower = more focused. "
                  "0 disables this filter (Top P alone decides)."},
         {"var": "GEN_REPEAT_PENALTY", "label": "Repeat Penalty", "kind": "float",
-         "min": 1.0, "max": 2.0, "step": 0.05, "default": 1.1,
+         "min": 1.0, "max": 2.0, "step": 0.05, "default": 1.15,
          "help": "Penalizes tokens already used, to reduce repetition. 1.0 = no penalty. "
-                 "Too high can make text feel unnatural or avoid necessary repeated words."},
+                 "Too high can make text feel unnatural or avoid necessary repeated words. "
+                 "Do not lower this below 1.15 without re-running benchmarks/model_ranking: at "
+                 "1.1, qwen3.5:4b emitted a malformed tool call in 9 runs out of 11, and at 1.15 "
+                 "it succeeded 9 times out of 9 with nothing else changed."},
         {"var": "GEN_NUM_PREDICT", "label": "Max Output Tokens", "kind": "int",
          "min": -1, "max": 8192, "step": 128, "default": 4096, "special_min_label": "unlimited",
          "help": "Maximum tokens the model can generate in one reply. "
@@ -382,7 +385,7 @@ _PARAM_SCHEMA = [
                  "Lower = less RAM used, but the model \"forgets\" more of a long conversation. "
                  "Default is 64K; raise toward 128K only if you have RAM headroom."},
         {"var": "MAX_TOOL_ROUNDS", "label": "Max Tool-Call Rounds", "kind": "int",
-         "min": 5, "max": 50, "step": 5, "default": 25,
+         "min": 5, "max": 50, "step": 5, "default": 45,
          "help": "Safety limit: how many tool-call rounds the agent can run in a single turn "
                  "before stopping automatically, to prevent an infinite loop. Hitting it no "
                  "longer discards the turn: the agent answers from what it already gathered, "

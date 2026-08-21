@@ -171,7 +171,7 @@ def test_interface_is_bilingual():
 
 
 def test_param_schema():
-    """The /parameters schema is frozen at 31 tunables, each well-formed."""
+    """The /parameters schema is frozen at 34 tunables, each well-formed."""
     params = ui._all_params()
     variables = {p["var"] for p in params}
     assert variables == EXPECTED_PARAM_VARS, (
@@ -185,6 +185,33 @@ def test_param_schema():
             assert p["default"] in p["options"], f"{p['var']}: default not among options"
         else:
             assert p["min"] <= p["default"] <= p["max"], f"{p['var']}: default out of range"
+
+
+def test_schema_defaults_match_config():
+    """The schema's `default` must be the value config.py actually ships.
+
+    They are two hand-maintained copies of one number, and they drifted: the menu said 1.1 for
+    GEN_REPEAT_PENALTY against config.py's 1.15, and 25 for MAX_TOOL_ROUNDS against 45. Both
+    superseded values are ones config.py documents as harmful — 1.1 produced a malformed tool
+    call in 9 runs out of 11, and 25 truncated gpt-oss:20b mid-task with both bugs already
+    found. Nothing caught it because `default` is only read on two paths that no test
+    exercised: the `r` (reset) key writes it into config, and the menu footer prints it as
+    "default: X". So the menu quietly offered to undo two measured fixes, and told you the
+    wrong number while doing it.
+
+    test_param_schema above checks `min <= default <= max`, which both stale values satisfied
+    — a range check cannot see that a number is the *wrong* number. This compares against the
+    live module instead, which is the only source that can be right.
+
+    Reads config directly rather than through _load_params(): this must pin what the code
+    ships, not what a developer happens to have saved in ~/.agentic_1a_params.json.
+    """
+    for p in ui._all_params():
+        live = getattr(config, p["var"])
+        assert p["default"] == live, (
+            f"{p['var']}: /parameters offers default {p['default']!r} but config.py ships "
+            f"{live!r} — pressing 'r' on that row would overwrite the shipped value, and the "
+            f"menu footer already displays the wrong one")
 
 
 def test_params_are_live():
