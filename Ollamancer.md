@@ -185,7 +185,7 @@ Ollamancer.md             # this file, detailed presentation
 Agentic_Manual.md         # full user manual
 capabilities.md           # exhaustive capability list
 DESIGN.md                 # design rationale & engineering history
-tests/                    # deterministic offline test suite (44 tests)
+tests/                    # deterministic offline test suite (45 tests)
 ```
 
 ---

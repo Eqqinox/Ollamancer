@@ -19,7 +19,7 @@ it, since a name imported elsewhere is a separate binding.
 Either runner works, and both run each test in its **own process**.
 
 ```bash
-pytest                         # 44 scripts plus a collection guard
+pytest                         # 45 scripts plus a collection guard
 pytest -k skills               # one script
 pytest -x                      # stop at the first failure
 bash tests/run_all.sh          # no pytest needed
@@ -35,7 +35,7 @@ assertions ending in `... ALL PASS`), and several deliberately mutate module glo
 single interpreter would cross-contaminate. Use the runner, which isolates each in a subprocess:
 
 ```bash
-bash tests/run_all.sh          # from the project root, "tests: 44 passed, 0 failed"
+bash tests/run_all.sh          # from the project root, "tests: 45 passed, 0 failed"
 ```
 
 Or a single test:
@@ -44,7 +44,7 @@ Or a single test:
 PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 ```
 
-## Coverage (44 files)
+## Coverage (45 files)
 
 | File | Feature under test |
 |---|---|
@@ -92,6 +92,7 @@ PYTHONPATH="$PWD" .venv/bin/python tests/test_skills.py
 | `test_context_overflow` | the fifth plumbing signature. A prompt over `num_ctx` makes Ollama drop the *oldest* messages, which deletes the user's own instruction; two models refuse outright and the rest answer from a conversation missing the request. Pins that the pre-send guard fires above the 85% ceiling, that it runs even with `AUTO_COMPACT` off (it is a correctness guard, not the convenience path), and that the handler's match string still appears in the real Ollama error |
 | `test_ram_units` | the `/model` header shows memory in binary GiB (a "24 GB" Mac reports 25.77 decimal GB and used to print **26**), while `usage_tier` keeps the decimal value so it still matches the model sizes Ollama reports. Pins both halves, and the 16.3 GB boundary model that the two divisors disagree about |
 | `test_score_rollup` | the benchmark scorer's `pass^k` roll-up: the headline is the **minimum** across reps and never the mean, a differing rep count is visibly marked in the table, per-rep hand judgements win over the legacy model-level key, and an unjudged item is reported `judged_pending` rather than silently scored 0. Also that a half-written run directory is skipped rather than crashing or scoring 0, since `results/` is written concurrently by a running campaign |
+| `test_forced_search_evidence` | a tool call the *code* injected counts as evidence, exactly like one the model made. The forced search and the auto-loaded web skill land in `messages` before `run_agent` opens, and the per-turn bookkeeping only ever filled from calls made inside the loop — so a turn built entirely on handed-to-it evidence read, to every honesty check, as a turn that had gathered nothing. The sharp edge is the unsearched-answer nudge: `^search` arms both `_FORCE_SEARCH_RE` and `_WEB_FORMAT_INTENT_RE`, so the phrasing most likely to reach the nudge is the one that had already searched, and the model was told to go and look up what it was holding. Pins that nudge staying silent after a forced search, that it still fires when only the skill loaded (`load_skill` is deliberately not a research tool), that `_grounding_check` no longer flags a figure taken from the forced search while still catching a genuinely unsupported one, and that the citation reminder now arms where it never did. Each of the three seeded fields was removed individually and fails its own assertion |
 
 ## Structural guardrails
 

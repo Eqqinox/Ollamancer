@@ -780,6 +780,53 @@ def _web_format_skill_loaded(messages: list) -> bool:
     return any(marker in str(m.get("content") or "") for m in messages[-30:])
 
 
+def _injected_turn_calls(messages: list) -> list[tuple[str, str]]:
+    """`(tool_name, result)` for the tool calls injected into this turn *before* the loop ran.
+
+    Two of them exist: `web._maybe_force_search` runs `search_web_deep` and appends the result
+    as an already-completed call, and `skills._maybe_autoload_web_format` does the same with
+    `load_skill`. Both land in `messages` after the user's turn and before `run_agent` is ever
+    entered, which is the whole point — a small model will not reliably choose either one.
+
+    The bookkeeping never saw them. `turn_tool_results`, `had_research` and
+    `searched_since_cite` all start empty and fill only from calls the model makes *inside* the
+    loop, so a turn whose only evidence was injected looked, to every honesty check, like a turn
+    with no evidence at all. The unsearched-answer nudge is the sharp edge: its premise is "the
+    skill was auto-loaded and nothing was searched", and after a forced search the first half is
+    true and the second half is only true because nobody counted. Both halves fire on the same
+    word — `^search` matches `_FORCE_SEARCH_RE` and `_WEB_FORMAT_INTENT_RE` alike — so the
+    message most likely to trigger the nudge is exactly the one that already searched. That
+    spends a correct answer on a false premise, which is the failure DESIGN.md §4.2b is about.
+
+    The rule this restores is that an injected call is accounted for exactly as if the model had
+    made it. Anything else means the honesty layer's view of a turn depends on *who* called the
+    tool rather than on what came back.
+
+    Walks back from the end to the turn's user message, so it can only ever see this turn: after
+    a completed turn `cli.py` appends an assistant message with no `tool_calls`, and the next
+    turn appends the user message first, so the scan stops immediately when nothing was
+    injected. Nudges are `role: user` too (see `_nudge`), but they are appended inside the loop,
+    long after this has run.
+    """
+    tail = []
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            break
+        tail.append(msg)
+    tail.reverse()
+
+    pairs: list[tuple[str, str]] = []
+    pending: list[str] = []
+    for msg in tail:
+        if msg.get("role") == "assistant" and msg.get("tool_calls"):
+            pending = [str((tc.get("function") or {}).get("name") or "")
+                       for tc in msg["tool_calls"]]
+        elif msg.get("role") == "tool":
+            name = pending.pop(0) if pending else ""
+            pairs.append((name, str(msg.get("content") or "")))
+    return pairs
+
+
 # ── Routing the model's own plan into its search call ────────────────────────
 _SECTIONS_LINE_RE = re.compile(r"^\s*sections\s*:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
 
@@ -1027,6 +1074,21 @@ def run_agent(messages: list, model: str, tool_schemas=None, allowed_tools=None)
     grounding_check_nudges_used = 0
     grounding_recheck_done = False   # the post-correction re-check runs at most once
     claim_action_nudges_used = 0
+
+    # Count the tool calls this turn was handed before the loop opened (the forced search and
+    # the auto-loaded web skill) exactly as the block below counts the model's own. Otherwise
+    # every honesty check reads a turn built entirely from injected evidence as a turn with no
+    # evidence — see _injected_turn_calls.
+    for injected_name, injected_result in _injected_turn_calls(messages):
+        turn_tool_results.append(injected_result)
+        if injected_name in _RESEARCH_TOOLS:
+            had_research = True
+        if injected_name in _VERIFY_TOOLS:
+            had_verification = True
+        if injected_name in _CITATION_ARMING_TOOLS and injected_result.startswith("[WARNING:"):
+            searched_since_cite = True
+        if injected_name == "search_web_deep":
+            deep_search_count += 1
 
     turn_started = time.monotonic()
 
